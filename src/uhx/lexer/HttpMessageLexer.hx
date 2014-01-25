@@ -6,7 +6,6 @@ import byte.ByteData;
 import hxparse.Lexer;
 import uhx.mo.TokenDef;
 import haxe.ds.StringMap;
-import hxparse.RuleBuilder;
 
 using Std;
 using StringTools;
@@ -24,7 +23,7 @@ enum HttpMessageKeywords {
 	KwdSeparator(v:String);
 }
  
-class HttpMessageLexer extends Lexer implements BaseLexer {
+class HttpMessageLexer extends Lexer {
 	
 	public var lang:String;
 	public var ext:Array<String>;
@@ -63,13 +62,13 @@ class HttpMessageLexer extends Lexer implements BaseLexer {
 		return new Token<T>(tok, lex.curPos());
 	}
 	
-	public static var root = Lexer.buildRuleset( [
-		{rule:LF, func:function(lexer) return mk(lexer, Newline) },
-		{rule:CR, func:function(lexer) return mk(lexer, Carriage) },
-		{rule:HT, func:function(lexer) return mk(lexer, Tab(lexer.current.length)) },
-		{rule:SP + '+', func:function(lexer) return mk(lexer, Space(lexer.current.length)) },
-		{rule:DQ, func:function(lexer) return mk(lexer, DoubleQuote) },
-		{rule:SEP,  func:function(lexer) {
+	public static var root = Mo.rules( [
+		LF => mk(lexer, Newline),
+		CR => mk(lexer, Carriage),
+		HT => mk(lexer, Tab(lexer.current.length)),
+		SP + '+' => mk(lexer, Space(lexer.current.length)),
+		DQ => mk(lexer, DoubleQuote),
+		SEP => {
 			var sep = lexer.current;
 			switch (sep) {
 				case _.check() => true: 
@@ -79,8 +78,8 @@ class HttpMessageLexer extends Lexer implements BaseLexer {
 					
 			}
 			return mk(lexer, Keyword( KwdSeparator( sep ) ));
-		} },
-		{rule:NAME, func:function(lexer) {
+		},
+		NAME => {
 			var result = switch (lexer.current) {
 				case _.toLowerCase() => 'http':
 					buf = new StringBuf();
@@ -104,18 +103,13 @@ class HttpMessageLexer extends Lexer implements BaseLexer {
 					mk(lexer, Keyword( KwdHeader( name.trim(), buf.toString() ) ) );
 			}
 			return result;
-		} },
+		},
 	] );
 	
-	public static var response = Lexer.buildRuleset( [
-		{rule:SEP, func:function(lexer) return lexer.token( response )},
-		{rule:NAME, func:function(lexer) return buf.add( lexer.current )},
+	public static var response = Mo.rules( [
+		SEP => lexer.token( response ),
+		NAME => buf.add( lexer.current ),
 	] );
-	
-	/*public static var value = Lexer.buildRuleset( [
-		{rule:SEP, func:function(lexer) return lexer.token( value )},
-		{rule:VALUE, func:function(lexer) return buf.add( lexer.current )},
-	] );*/
 	
 	public static var value = Mo.rules( [
 		SEP => lexer.token( value ),

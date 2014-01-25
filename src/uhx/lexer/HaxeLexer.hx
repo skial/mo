@@ -3,7 +3,6 @@ package uhx.lexer;
 import byte.ByteData;
 import haxe.io.Eof;
 import hxparse.Lexer;
-import hxparse.RuleBuilder;
 import uhx.mo.Token;
 import uhx.mo.TokenDef;
 
@@ -56,7 +55,7 @@ enum HaxeKeywords {
  * ...
  * @author Skial Bainn
  */
-class HaxeLexer extends Lexer implements BaseLexer implements RuleBuilder {
+class HaxeLexer extends Lexer {
 	
 	public var lang:String;
 	public var ext:Array<String>;
@@ -87,7 +86,7 @@ class HaxeLexer extends Lexer implements BaseLexer implements RuleBuilder {
 		return new Token<T>(tok, lex.curPos());
 	}
 	
-	public static var root = @:rule [
+	public static var root = Mo.rules( [
 		'\n' => mk(lexer, Newline),
 		'\r' => mk(lexer, Carriage),
 		'\t*' => mk(lexer, Tab(lexer.current.length)),
@@ -172,9 +171,9 @@ class HaxeLexer extends Lexer implements BaseLexer implements RuleBuilder {
 				mk(lexer, EConst(CIdent(lexer.current)));
 		},
 		idtype => mk(lexer, EConst(CIdent(lexer.current))),
-	];
+	] );
 	
-	public static var string = @:rule [
+	public static var string = Mo.rules( [
 		"\\\\\\\\" => {
 			buf.add("\\");
 			lexer.token(string);
@@ -200,9 +199,9 @@ class HaxeLexer extends Lexer implements BaseLexer implements RuleBuilder {
 			buf.add(lexer.current);
 			lexer.token(string);
 		}
-	];
+	] );
 	
-	public static var string2 = @:rule [
+	public static var string2 = Mo.rules( [
 		"\\\\\\\\" => {
 			buf.add("\\");
 			lexer.token(string2);
@@ -228,9 +227,9 @@ class HaxeLexer extends Lexer implements BaseLexer implements RuleBuilder {
 			buf.add(lexer.current);
 			lexer.token(string2);
 		}
-	];
+	] );
 	
-	public static var comment = @:rule [
+	public static var comment = Mo.rules( [
 		"*/" => lexer.curPos().pmax,
 		"*" => {
 			buf.add("*");
@@ -240,6 +239,6 @@ class HaxeLexer extends Lexer implements BaseLexer implements RuleBuilder {
 			buf.add(lexer.current);
 			lexer.token(comment);
 		}
-	];
+	] );
 	
 }
