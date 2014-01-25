@@ -16,11 +16,11 @@ using uhx.lexer.HttpMessageLexer;
  * @author Skial Bainn
  */
 enum HttpMessageKeywords {
-	KwdHeader(n:String, v:String);
-	KwdHttp(v:String);
+	@css(3) KwdHeader(n:String, v:String);
+	@css(3) KwdHttp(v:String);
 	// Microsoft can return additional sub decimal values. Of course they can.
-	KwdStatus(c:Float, s:String);
-	KwdSeparator(v:String);
+	@css(3) KwdStatus(c:Float, s:String);
+	@css(3) KwdSeparator(v:String);
 }
  
 class HttpMessageLexer extends Lexer {
@@ -70,12 +70,9 @@ class HttpMessageLexer extends Lexer {
 		DQ => mk(lexer, DoubleQuote),
 		SEP => {
 			var sep = lexer.current;
-			switch (sep) {
-				case _.check() => true: 
-					callback();
-					check = function(v) return false;
-				case _:
-					
+			if (check( sep )) {
+				check = function(v) return false;
+				callback();	
 			}
 			return mk(lexer, Keyword( KwdSeparator( sep ) ));
 		},

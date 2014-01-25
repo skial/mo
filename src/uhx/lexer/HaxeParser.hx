@@ -24,7 +24,7 @@ class HaxeParser {
 		
 	}
 	
-	public function tokenise(input:ByteData, name:String):Array<Token<HaxeKeywords>> {
+	public function toTokens(input:ByteData, name:String):Array<Token<HaxeKeywords>> {
 		var results = [];
 		
 		lexer = new HaxeLexer( input, name );
@@ -41,7 +41,7 @@ class HaxeParser {
 		return results;
 	}
 	
-	public function htmlify(tokens:Array<Token<HaxeKeywords>>) {
+	public function toHTML(tokens:Array<Token<HaxeKeywords>>):String {
 		result = new StringBuf();
 		
 		result.add('<pre><code class="language haxe">');

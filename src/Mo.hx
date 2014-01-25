@@ -20,7 +20,20 @@ using haxe.macro.ComplexTypeTools;
  */
 class Mo {
 	
-	public static function cssify(token:Dynamic):String {
+	public static inline function add(buffer:StringBuf, value:String, ?cls:String = ''):Void {
+		if (cls != '') cls = ' $cls';
+		buffer.add( '<span class="token$cls">$value</span>' );
+	}
+	
+	public static inline function start(buffer:StringBuf, language:String):Void {
+		buffer.add( '<pre><code class="language $language">' );
+	}
+	
+	public static inline function end(buffer:StringBuf):Void {
+		buffer.add( '</code></pre>' );
+	}
+	
+	public static function toCSS(token:Dynamic):String {
 		var meta = Meta.getFields( Type.getEnum( token ) );
 		var name = Type.enumConstructor( token );
 		
@@ -32,7 +45,7 @@ class Mo {
 				if (info[1] != null) {
 					for (param in Type.enumParameters( token ) ) {
 						if (Reflect.isEnumValue( param )) {
-							name += ' ' + cssify( param );
+							name += ' ' + toCSS( param );
 						}
 					}
 				}
