@@ -1,0 +1,14 @@
+{
+  "name": "mo",
+  "license": "MIT",
+  "classPath": "src",
+  "tags": ["uhu", "uhx", "mo", "lexer", "ast", "parser"],
+  "description": "A library of lanaguage lexer's and parser's.",
+  "contributors": ["skial"],
+  "releasenote": "Initial Release",
+  "version": "0.0.1-alpha",
+  "url": "https://github.com/skial/mo",
+  "dependencies": {
+	"hxparse": ""
+  }
+}
