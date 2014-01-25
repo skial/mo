@@ -24,7 +24,7 @@ enum HttpMessageKeywords {
 	KwdSeparator(v:String);
 }
  
-class HttpMessageLexer extends Lexer implements BaseLexer implements Klas {
+class HttpMessageLexer extends Lexer implements BaseLexer {
 	
 	public var lang:String;
 	public var ext:Array<String>;
@@ -112,9 +112,14 @@ class HttpMessageLexer extends Lexer implements BaseLexer implements Klas {
 		{rule:NAME, func:function(lexer) return buf.add( lexer.current )},
 	] );
 	
-	public static var value = Lexer.buildRuleset( [
+	/*public static var value = Lexer.buildRuleset( [
 		{rule:SEP, func:function(lexer) return lexer.token( value )},
 		{rule:VALUE, func:function(lexer) return buf.add( lexer.current )},
+	] );*/
+	
+	public static var value = Mo.rules( [
+		SEP => lexer.token( value ),
+		VALUE => buf.add( lexer.current ),
 	] );
 	
 	// Internal

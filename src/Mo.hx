@@ -1,7 +1,17 @@
 package ;
 
 import haxe.rtti.Meta;
-import de.polygonal.core.fmt.ASCII;
+import hxparse.Ruleset;
+import haxe.ds.StringMap;
+
+#if macro
+import haxe.macro.Expr;
+import haxe.macro.Context;
+
+using haxe.macro.TypeTools;
+using haxe.macro.ExprTools;
+using haxe.macro.ComplexTypeTools;
+#end
 
 /**
  * ...
@@ -9,10 +19,6 @@ import de.polygonal.core.fmt.ASCII;
  * Haitian Creole for Words
  */
 class Mo {
-
-	public function new() {
-		
-	}
 	
 	public static function cssify(token:Dynamic):String {
 		var meta = Meta.getFields( Type.getEnum( token ) );
@@ -40,7 +46,7 @@ class Mo {
 				
 				while ( i < parts.length ) {
 					
-					if (i != 0 && ASCII.isUpperCaseAlphabetic( parts[i].charCodeAt(0) )) {
+					if (i != 0 && (parts[i].charAt(0) == parts[i].charAt(0).toUpperCase() )) {
 						name += ' ';
 					}
 					
@@ -53,6 +59,26 @@ class Mo {
 		}
 		
 		return name.toLowerCase();
+	}
+	
+	public static macro function rules<T>(rules:ExprOf<StringMap<T>>):ExprOf<Ruleset<T>> {
+		var results = [];
+		
+		switch (rules) {
+			case macro [$a { values } ]:
+				for (value in values) switch (value) {
+					case macro $rule => $expr:
+						results.push( macro @:pos(expr.pos) {rule:$rule, func:function(lexer:hxparse.Lexer) return $expr} );
+						
+					case _:
+						
+				}
+				
+			case _:
+				
+		}
+		
+		return macro hxparse.Lexer.buildRuleset([$a { results } ]);
 	}
 	
 }
