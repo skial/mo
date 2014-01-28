@@ -9,7 +9,7 @@ import uhx.mo.TokenDef;
 
 enum HaxeKeywords {
 	Function;
-	Class;
+	@entry Class;
 	Var;
 	If;
 	Else;
