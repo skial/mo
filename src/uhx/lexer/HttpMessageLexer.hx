@@ -24,14 +24,8 @@ enum HttpMessageKeywords {
 }
  
 class HttpMessageLexer extends Lexer {
-	
-	public var lang:String;
-	public var ext:Array<String>;
 
 	public function new(content:ByteData, name:String) {
-		name = 'http';
-		ext = [''];
-		
 		super( content, name );
 	}
 	

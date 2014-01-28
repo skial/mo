@@ -12,6 +12,8 @@ using haxe.macro.TypeTools;
 using haxe.macro.ExprTools;
 using haxe.macro.ComplexTypeTools;
 #end
+using Reflect;
+using StringTools;
 
 /**
  * ...
@@ -33,25 +35,69 @@ class Mo {
 		buffer.add( '</code></pre>' );
 	}
 	
-	public static function toCSS(token:Dynamic):String {
+	/**
+	 * This is a quick fix. Just blast everything to it html number.
+	 * Ideally it would blast the problem characters into oblivon.
+	 * It works.
+	 */
+	public static function htmlify(value:String):String {
+		var result = new StringBuf();
+		
+		// Converts all ascii values between 32 and 127 to escaped html values.
+		// And handle ascii values between 8 and 13 as special.
+		for (i in 0...value.length) {
+			
+			var char = value.charAt( i );
+			var code = value.fastCodeAt( i );
+			
+			if (code > 31 && code < 128) {
+				result.add( '&#$code;' );
+			} else switch (code) {
+				case 8: result.add( '&#92;&#98;' );
+				case 9: result.add( '&#92;&#116;' );
+				case 10: result.add( '&#92;&#110;' );
+				case 11: result.add( '&#92;&#118;' );
+				case 12: result.add( '&#92;&#102;' );
+				case 13: result.add( '&#92;&#114;' );
+				case _: result.add( char );
+			}
+			
+		}
+		
+		return result.toString();
+	}
+	
+	public static function toCSS(token:EnumValue):String {
 		var meta = Meta.getFields( Type.getEnum( token ) );
 		var name = Type.enumConstructor( token );
 		
-		if (Reflect.hasField(meta, name)) {
-			if (Reflect.hasField(Reflect.field(meta, name), 'css')) {
-				var info = Reflect.field(Reflect.field(meta, name), 'css');
-				name = name.substr(info[0]);
+		if (meta.hasField( name )) {
+			var obj:Dynamic = meta.field( name );
+			
+			/*if (obj.hasField( 'css' )) {
+				var css:Array<Dynamic> = obj.field( 'css' );
 				
-				if (info[1] != null) {
+				if (css.length > 0) name = name.substr( css[0] );
+				if (css.length > 1 && Std.is( css[1], Bool ) && cast(css[1], Bool) == true) {
+					
 					for (param in Type.enumParameters( token ) ) {
-						if (Reflect.isEnumValue( param )) {
+						
+						if (param.isEnumValue()) {
 							name += ' ' + toCSS( param );
 						}
+						
 					}
+					
 				}
+			}*/
+			
+			if (obj.hasField( 'loop' )) for (param in Type.enumParameters( token )) if (param.isEnumValue()) {
+				var css = toCSS( param );
+				if (obj.hasField( 'sub' )) css = css.substr( obj.field( 'sub' )[0] );
+				name += ' $css';
 			}
 			
-			if (Reflect.hasField(Reflect.field(meta, name), 'split')) {
+			if (obj.hasField( 'split' )) {
 				var parts = name.split('');
 				var i = 0;
 				

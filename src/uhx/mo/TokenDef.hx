@@ -8,10 +8,10 @@ import haxe.macro.Expr;
  * @author Skial Bainn
  */
 enum TokenDef<Kwd> {
-	@css(1, true) EConst(c:Constant);
-	@css(1, true) EUnop(op:Unop);
-	@css(1, true) EBinop(op:Binop);
-	@css(0, true) Keyword(v:Kwd);
+	@sub(1) @loop Const(c:Constant);
+	@sub(2) @loop Unop(op:Unop);
+	@sub(2) @loop Binop(op:Binop);
+	@loop Keyword(v:Kwd);
 	EOF;
 	Newline;
 	Carriage;
@@ -19,7 +19,7 @@ enum TokenDef<Kwd> {
 	Space(len:Int);
 	Dot;
 	Colon;
-	@split @css(3) IntInterval(s:String);
+	Interval(s:String);
 	Comment(s:String);
 	@split CommentLine(s:String);
 	Arrow;					//	->

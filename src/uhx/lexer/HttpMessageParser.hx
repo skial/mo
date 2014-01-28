@@ -62,7 +62,49 @@ class HttpMessageParser {
 		return result;
 	}
 	
-	public function toHTML(tokens:Array<Token<HttpMessageKeywords>>):String {
+	public function printString(token:Token<HttpMessageKeywords>):String {
+		return switch (token.token) {
+			case Tab(n): [for (i in 0...n) '\t'].join('');
+			case Space(n): [for (i in 0...n) ' '].join('');
+			case Newline: '\n';
+			case Carriage: '\r';
+			case DoubleQuote: '"';
+			case Keyword(KwdHttp(v)): 'http $v';
+			case Keyword(KwdStatus(c, s)): '$c $s';
+			case Keyword(KwdHeader(k, v)): '$k:$v';
+			case _: '';
+		}
+	}
+	
+	public function printHTML(token:Token<HttpMessageKeywords>, ?tag:String = 'span'):String {
+		var name = token.token.toCSS();
+		var result = new StringBuf();
+		
+		switch (token.token) {
+			case Keyword(KwdHttp(v)): 
+				result.add( '<$tag class="$name">http</$tag>' );
+				result.add( '<$tag class="space"> </$tag>' );
+				result.add( '<$tag class="version">$v</$tag>' );
+				
+			case Keyword(KwdStatus(c, s)):
+				result.add( '<$tag class="$name code">$c</$tag>' );
+				result.add( '<$tag class="space"> </$tag>' );
+				result.add( '<$tag class="$name message">$s</$tag>' );
+				
+			case Keyword(KwdHeader(k, v)):
+				result.add( '<$tag class="$name key">$k</$tag>' );
+				result.add( '<$tag class="separator">:</$tag>' );
+				result.add( '<$tag class="$name value">$v</$tag>' );
+				
+			case _:
+				result.add( '<$tag class="$name">' + printString( token ) + '</$tag>' );
+				
+		}
+		
+		return result.toString();
+	}
+	
+	/*public function toHTML(tokens:Array<Token<HttpMessageKeywords>>):String {
 		var result = new StringBuf();
 		
 		result.start( 'http' );
@@ -127,6 +169,6 @@ class HttpMessageParser {
 		}
 		
 		return result.toString();
-	}
+	}*/
 	
 }
