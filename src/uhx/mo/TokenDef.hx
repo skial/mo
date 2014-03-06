@@ -8,6 +8,7 @@ import haxe.macro.Expr;
  * @author Skial Bainn
  */
 enum TokenDef<Kwd> {
+	Ignore;
 	@sub(1) @loop Const(c:Constant);
 	@sub(2) @loop Unop(op:Unop);
 	@sub(2) @loop Binop(op:Binop);
@@ -37,4 +38,5 @@ enum TokenDef<Kwd> {
 	Dollar(s:String);		//	$
 	SingleQuote;			//	'
 	DoubleQuote;			//	"
+	Hyphen(len:Int);		//	-
 }

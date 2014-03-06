@@ -1,6 +1,10 @@
 package ;
 
+import haxe.macro.Printer;
+import uhx.mo.Token;
+import hxparse.Lexer;
 import haxe.rtti.Meta;
+import uhx.mo.TokenDef;
 import hxparse.Ruleset;
 import haxe.ds.StringMap;
 
@@ -120,24 +124,44 @@ class Mo {
 		return name.toLowerCase();
 	}
 	
+	public static function make<T>(lex:Lexer, tok:TokenDef<T>):Token<T> {
+		return new Token<T>(tok, lex.curPos());
+	}
+	
 	public static macro function rules<T>(rules:ExprOf<StringMap<T>>):ExprOf<Ruleset<T>> {
 		var results = [];
 		
-		switch (rules) {
-			case macro [$a { values } ]:
-				for (value in values) switch (value) {
-					case macro $rule => $expr:
-						results.push( macro @:pos(expr.pos) {rule:$rule, func:function(lexer:hxparse.Lexer) return $expr} );
-						
-					case _:
-						
-				}
-				
-			case _:
-				
+		return if (!Context.defined('display')) {
+			switch (rules) {
+				case macro [$a { values } ]:
+					for (value in values) switch (value) {
+						case macro $rule => $expr:
+							var res = macro return $expr;
+							
+							switch (expr.expr) {
+								case EBlock(es):
+									var copy = es.copy();
+									var last = copy.pop();
+									copy.push( macro return $last );
+									res = { expr:EBlock(copy), pos:expr.pos };
+									
+								case _:
+									
+							}
+							results.push( macro {rule:$rule, func:function(lexer:hxparse.Lexer) $res} );
+							
+						case _:
+							
+					}
+					
+				case _:
+					
+			}
+			
+			macro hxparse.Lexer.buildRuleset([$a { results } ]);
+		} else {
+			macro hxparse.Lexer.buildRuleset([]);
 		}
-		
-		return macro hxparse.Lexer.buildRuleset([$a { results } ]);
 	}
 	
 }

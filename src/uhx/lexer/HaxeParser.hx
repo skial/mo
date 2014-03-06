@@ -106,8 +106,10 @@ class HaxeParser {
 		var result = '<$tag class="$css">' + 
 		
 		( switch( token.token ) {
+			case Carriage: '';
 			case Const(CString(v)): '"$v"'.htmlify();
-			case _: printString( token );
+			case Keyword(kwd): printString( token );
+			case _: '<wbr>&shy;' + printString( token );
 		} )
 		
 		+ '</$tag>';
