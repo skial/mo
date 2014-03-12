@@ -51,7 +51,9 @@ class MarkdownLexer extends Lexer {
 	public static var blank = '$CR$LF$CR$LF';
 	public static var dot = '\\\\.|.';
 	public static var hyphen = '\\-';
-	public static var safeText = 'a-zA-Z0-9:/,\'\\(\\)"\\\\';
+	public static var text = 'a-zA-Z0-9ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ№';
+	//public static var text = 'a-zA-Z0-9';
+	public static var safeText = '$text:/,\'\\(\\)"\\\\';
 	public static var allText = '${safeText}. ';
 	
 	//public static var italic = '\\*[$allText]+\\*|_[$allText]+_';
@@ -64,7 +66,7 @@ class MarkdownLexer extends Lexer {
 	public static var normal = '`.,&^%$£"!¬:;@~}{></\\+\\?\\|\\[\\]\\(\\)\'\\\\';
 	public static var symbols = '.,=_&^%$£"!¬:;@~#}{<>/$hyphen\\+\\*\\?\\|\\[\\]\\(\\)\'';
 	public static var anyCharacter = '=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|\\[\\]$hyphen$allText';
-	public static var code = 'a-zA-Z0-9 $symbols';
+	public static var code = '$text $symbols';
 	
 	public static var spaceOrTab = '(    [ ]*|$VT)';
 	
@@ -80,7 +82,7 @@ class MarkdownLexer extends Lexer {
 	
 	public static var image = '!$link';
 	
-	public static var reference = '$linkText[ $CR$LF]*(\\[[a-zA-Z0-9 \\[\\]]*\\])?';
+	public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
 	
 	public static var resourceTitle = '($linkTitle|\'$linkUrl\'|\\($linkUrl\\)|$linkUrl)?';
 	public static var resource = '$spaceOrTab?$linkText:[ $VT]+<?$linkUrl>?[ $CR$LF$VT]*$resourceTitle';
@@ -88,9 +90,9 @@ class MarkdownLexer extends Lexer {
 	public static var linkRef = reference;
 	public static var imageRef = '!$reference';
 	
-	public static var italic = '\\*[a-zA-Z0-9 ]+\\*|_[a-zA-Z0-9 ]+_';
-	public static var bold = '\\*\\*[a-zA-Z0-9 ]+\\*\\*|__[a-zA-Z0-9 ]+__';
-	public static var strike = '~~[a-zA-Z0-9 ]+~~';
+	public static var italic = '\\*[$text ]+\\*|_[$text ]+_';
+	public static var bold = '\\*\\*[$text ]+\\*\\*|__[$text ]+__';
+	public static var strike = '~~[$text ]+~~';
 	
 	//public static var inlineCode = '`[$code]+`';
 	public static var inlineCode = '`[^`]+`';
@@ -116,7 +118,7 @@ class MarkdownLexer extends Lexer {
 	//public static var paragraphText = '([$anyCharacter]+$CR?$LF?)+';
 	// `[^$hyphen]` allows `<h2>` alternative headers to be captured.
 	//public static var paragraphText = '([^\\*\\-\\+# ]([a-zA-Z0-9 $normal$hyphen\\*]|$inlineCode)+$CR?$LF?)+';
-	public static var paragraphText = '([a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
+	public static var paragraphText = '([$text $normal]([$text $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraphText = '([^*-+# ][a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraph = '($paragraphText($blank)|$paragraphText)';
 	public static var paragraph = '$paragraphText($blank)?';
@@ -124,7 +126,7 @@ class MarkdownLexer extends Lexer {
 	//public static var blockquote = '> ($indentedCode|$paragraph)+';
 	//public static var blockquote = '(> ($paragraphText|$indentedCode)*)+';
 	//public static var blockquote = '(> ([$anyCharacter]*$CR?$LF?)+($blank)?';
-	public static var blockquote = '> ([a-zA-Z0-9 $normal>]([a-zA-Z0-9 $normal$special]|$inlineCode)*$CR?$LF?)+';
+	public static var blockquote = '> ([$text $normal>]([$text $normal$special]|$inlineCode)*$CR?$LF?)+';
 	
 	private static function handleBlockQuote(lexer:Lexer) {
 		var current = lexer.current;
@@ -348,6 +350,7 @@ class MarkdownLexer extends Lexer {
 	public static var blocks = Mo.rules( [
 		LF => Mo.make(lexer, Newline),
 		CR => Mo.make(lexer, Carriage),
+		VT => Mo.make(lexer, Tab(0)),
 		' ' => Mo.make(lexer, Space(0)),
 		header => handleHeader(lexer),
 		altHeader => handleAltHeader(lexer),

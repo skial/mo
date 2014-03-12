@@ -2,10 +2,12 @@ package uhx.lexer;
 
 import hxparse.Lexer;
 import haxe.io.Eof;
+import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
 import uhx.mo.TokenDef;
 import uhx.lexer.MarkdownLexer;
+import unifill.Utf32;
 
 using Mo;
 using StringTools;
@@ -39,7 +41,7 @@ class MarkdownParser {
 			
 		} catch (e:Dynamic) {
 			// rawr
-			trace(e);
+			trace(name, e);
 		}
 		
 		return results;
