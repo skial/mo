@@ -1,6 +1,8 @@
 package uhx.lexer;
 
 import haxe.io.Eof;
+import hxparse.Unexpected.Unexpected;
+import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
@@ -49,12 +51,14 @@ class MarkdownLexer extends Lexer {
 	public static var CR = '\r';
 	public static var VT = '\t';
 	public static var blank = '$CR$LF$CR$LF';
-	public static var dot = '\\\\.|.';
+	public static var dot = '\\\\.|\\.';
 	public static var hyphen = '\\-';
-	public static var text = 'a-zA-Z0-9ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ№';
-	//public static var text = 'a-zA-Z0-9';
+	// Character `Ê` causes the lexer to fail. See https://github.com/Simn/hxparse/issues/13
+	// No internation characters are allowed. The markdown should be preprocessed to turn into
+	// html entities.
+	public static var text = 'a-zA-Z0-9';
 	public static var safeText = '$text:/,\'\\(\\)"\\\\';
-	public static var allText = '${safeText}. ';
+	public static var allText = '${safeText}\\. ';
 	
 	//public static var italic = '\\*[$allText]+\\*|_[$allText]+_';
 	//public static var bold = '\\*\\*[_$allText]+\\*\\*|__[$allText\\*]+__';
@@ -63,8 +67,8 @@ class MarkdownLexer extends Lexer {
 	
 	//public static var image = '!\\[[$allText]*\\]';
 	public static var special = '_#=$VT$hyphen\\*';
-	public static var normal = '`.,&^%$£"!¬:;@~}{></\\+\\?\\|\\[\\]\\(\\)\'\\\\';
-	public static var symbols = '.,=_&^%$£"!¬:;@~#}{<>/$hyphen\\+\\*\\?\\|\\[\\]\\(\\)\'';
+	public static var normal = '`\\.,&^%$£"!¬:;@~}{></\\+\\?\\|\\[\\]\\(\\)\'\\\\';
+	public static var symbols = '\\.,=_&^%$£"!¬:;@~#}{<>/$hyphen\\+\\*\\?\\|\\[\\]\\(\\)\'';
 	public static var anyCharacter = '=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|\\[\\]$hyphen$allText';
 	public static var code = '$text $symbols';
 	
@@ -76,19 +80,19 @@ class MarkdownLexer extends Lexer {
 	public static var horizontalRule = '($horizontalStar|$horizontalHyphen|$horizontalUnderscore)+$CR?$LF?';
 	
 	public static var linkText = '\\[[$anyCharacter$CR$LF]+\\]';
+	//public static var linkText = '\\[[=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
 	public static var linkUrl = '[$anyCharacter]*';
 	public static var linkTitle = '"[$anyCharacter]*"';
-	public static var link = '($linkText)\\(($linkUrl)?[$VT ]?($linkTitle)?\\)';
+	public static var link = '$linkText\\(($linkUrl)?[$VT ]?($linkTitle)?\\)';
 	
 	public static var image = '!$link';
 	
 	public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
+	//public static var reference = '$linkText[ $CR$LF]*($linkText)?';
+	//public static var reference = '\\[[a-zA-Z]+\\]';
 	
 	public static var resourceTitle = '($linkTitle|\'$linkUrl\'|\\($linkUrl\\)|$linkUrl)?';
 	public static var resource = '$spaceOrTab?$linkText:[ $VT]+<?$linkUrl>?[ $CR$LF$VT]*$resourceTitle';
-	
-	public static var linkRef = reference;
-	public static var imageRef = '!$reference';
 	
 	public static var italic = '\\*[$text ]+\\*|_[$text ]+_';
 	public static var bold = '\\*\\*[$text ]+\\*\\*|__[$text ]+__';
@@ -102,7 +106,7 @@ class MarkdownLexer extends Lexer {
 	public static var header = '(#|##|###|####|#####|######) [$anyCharacter]+[# ]*';
 	public static var altHeader = '[$anyCharacter]+$CR$LF(===(=)*|$hyphen$hyphen$hyphen($hyphen)*)+';
 	
-	public static var orderedMark = '[0-9]+.( |$VT)';
+	public static var orderedMark = '[0-9]+\\.( |$VT)';
 	public static var orderedItem = '$orderedMark[$allText]+($CR$LF($CR$LF)?$VT([$allText]+)?)*($blank|$CR$LF)?';
 	public static var orderedList = '($orderedMark[$anyCharacter]+($blank|[$CR$LF]+)?($VT[$anyCharacter$VT$CR$LF]+)?)+';
 	
@@ -289,10 +293,10 @@ class MarkdownLexer extends Lexer {
 	
 	public static var span = Mo.rules( [
 		dot => Mo.make(lexer, Dot),
-		VT => Mo.make(lexer, Tab(0)),
+		VT => Mo.make(lexer, Tab(1)),
 		LF => Mo.make(lexer, Newline),
 		CR => Mo.make(lexer, Carriage),
-		' ' => Mo.make(lexer, Space(0)),
+		' ' => Mo.make(lexer, Space(1)),
 		bold => {
 			var current = lexer.current;
 			//trace( current );
@@ -324,34 +328,36 @@ class MarkdownLexer extends Lexer {
 			Mo.make(lexer, Keyword(Item( current.substring(0, index), parse( current.substring(index + 1).ltrim(), 'md-ordered-item', span ) )));
 		},
 		link => {
-			var resource = handleResource( lexer.current );
-			Mo.make(lexer, Keyword(Link(false, resource.text, resource.url, resource.title)));
+			var res = handleResource( lexer.current );
+			Mo.make(lexer, Keyword(Link(false, res.text, res.url, res.title)));
 		},
-		image => {
-			var resource = handleResource( lexer.current.substring(1) );
-			Mo.make(lexer, Keyword(Image(false, resource.text, resource.url, resource.title)));
+		'!$reference' => {
+			var res = handleResource( lexer.current.substring(1) );
+			Mo.make(lexer, Keyword(Image(false, res.text, res.url, res.title)));
 		},
-		linkRef => { 
-			var resource = handleResource( lexer.current );
-			Mo.make(lexer, Keyword(Link(true, resource.text, resource.url, resource.title)));
+		reference => { 
+			var res = handleResource( lexer.current );
+			Mo.make(lexer, Keyword(Link(true, res.text, res.url, res.title)));
 		},
 		resource => {
-			var resource = handleResource( lexer.current );
-			Mo.make(lexer, Keyword(Resource(resource.text, resource.url, resource.title)));
+			var res = handleResource( lexer.current );
+			Mo.make(lexer, Keyword(Resource(res.text, res.url, res.title)));
 		},
 		'[$hyphen]+' => Mo.make(lexer, Hyphen(lexer.current.length)),
 		'  [ ]*$CR?$LF' => Mo.make(lexer, Keyword(Break)),
 		'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
+		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
+		'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\\\' => Mo.make(lexer, Const(CString('\\'))),
 		'\\]' => Mo.make(lexer, Const(CString(']'))),
-		'\\[' => Mo.make(lexer, Const(CString('['))),
+		'\\[' => Mo.make(lexer, Const(CString('['))),*/
 	] );
 	
 	public static var blocks = Mo.rules( [
 		LF => Mo.make(lexer, Newline),
 		CR => Mo.make(lexer, Carriage),
-		VT => Mo.make(lexer, Tab(0)),
-		' ' => Mo.make(lexer, Space(0)),
+		VT => Mo.make(lexer, Tab(1)),
+		' ' => Mo.make(lexer, Space(1)),
 		header => handleHeader(lexer),
 		altHeader => handleAltHeader(lexer),
 		indentedCode => Mo.make(lexer, Keyword(Code(false, '', lexer.current.ltrim()))),
@@ -378,7 +384,18 @@ class MarkdownLexer extends Lexer {
 	private static function parse<T>(value:String, name:String, rule:Ruleset<T>):Array<T> {
 		var l = new MarkdownLexer( ByteData.ofString( value ), name );
 		var t = [];
-		try while (true) t.push(l.token( rule )) catch(_e:Eof) null catch (_e:Dynamic) trace(_e);
+		try {
+			while (true) {
+				t.push(l.token( rule ));
+			}
+		} catch (_e:Eof) if (l.pos != l.input.length) {
+			// This forces the damn thing to continue working. Why did you stop.
+			// See issue https://github.com/skial/mo/issues/1
+			t = t.concat( parse( value.substring(l.pos), name, rule ) );
+		} catch (_e:Dynamic) {
+			trace(_e);
+		}
+		
 		return t;
 	}
 	
