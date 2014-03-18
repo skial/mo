@@ -79,7 +79,7 @@ class MarkdownLexer extends Lexer {
 	public static var horizontalUnderscore = '(_ ?_ ?_ ?(_ ?)*)';
 	public static var horizontalRule = '($horizontalStar|$horizontalHyphen|$horizontalUnderscore)+$CR?$LF?';
 	
-	public static var linkText = '\\[[$anyCharacter$CR$LF]+\\]';
+	public static var linkText = '\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
 	//public static var linkText = '\\[[=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
 	public static var linkUrl = '[$anyCharacter]*';
 	public static var linkTitle = '"[$anyCharacter]*"';
@@ -87,7 +87,8 @@ class MarkdownLexer extends Lexer {
 	
 	public static var image = '!$link';
 	
-	public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
+	//public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
+	public static var reference = '$linkText[ $CR$LF]*(\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]*\\])?';
 	//public static var reference = '$linkText[ $CR$LF]*($linkText)?';
 	//public static var reference = '\\[[a-zA-Z]+\\]';
 	
@@ -182,6 +183,7 @@ class MarkdownLexer extends Lexer {
 	
 	private static function handleResource(value:String) {
 		//var current = value.substring(1);
+		//trace(value);
 		var current = value;
 		var text = '';
 		var url = '';
@@ -348,9 +350,9 @@ class MarkdownLexer extends Lexer {
 		'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
 		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
-		'\\\\' => Mo.make(lexer, Const(CString('\\'))),
+		'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
 		'\\]' => Mo.make(lexer, Const(CString(']'))),
-		'\\[' => Mo.make(lexer, Const(CString('['))),*/
+		'\\[' => Mo.make(lexer, Const(CString('['))),
 	] );
 	
 	public static var blocks = Mo.rules( [
@@ -393,6 +395,7 @@ class MarkdownLexer extends Lexer {
 			// See issue https://github.com/skial/mo/issues/1
 			t = t.concat( parse( value.substring(l.pos), name, rule ) );
 		} catch (_e:Dynamic) {
+			trace(value.substring(l.pos));
 			trace(_e);
 		}
 		
