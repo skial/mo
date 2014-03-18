@@ -95,12 +95,12 @@ class MarkdownLexer extends Lexer {
 	public static var resourceTitle = '($linkTitle|\'$linkUrl\'|\\($linkUrl\\)|$linkUrl)?';
 	public static var resource = '$spaceOrTab?$linkText:[ $VT]+<?$linkUrl>?[ $CR$LF$VT]*$resourceTitle';
 	
-	public static var italic = '\\*[$text ]+\\*|_[$text ]+_';
-	public static var bold = '\\*\\*[$text ]+\\*\\*|__[$text ]+__';
-	public static var strike = '~~[$text ]+~~';
+	public static var italic = '\\*["$text ]+\\*|_["$text ]+_';
+	public static var bold = '\\*\\*["$text ]+\\*\\*|__["$text ]+__';
+	public static var strike = '~~["$text ]+~~';
 	
-	//public static var inlineCode = '`[$code]+`';
-	public static var inlineCode = '`[^`]+`';
+	public static var inlineCode = '`[$code]+`';
+	//public static var inlineCode = '`[^`]+`';
 	//public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)|($spaceOrTab([$code]+$CR?$LF?))+';
 	public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)?';
 	
@@ -123,7 +123,7 @@ class MarkdownLexer extends Lexer {
 	//public static var paragraphText = '([$anyCharacter]+$CR?$LF?)+';
 	// `[^$hyphen]` allows `<h2>` alternative headers to be captured.
 	//public static var paragraphText = '([^\\*\\-\\+# ]([a-zA-Z0-9 $normal$hyphen\\*]|$inlineCode)+$CR?$LF?)+';
-	public static var paragraphText = '([$text $normal]([$text $normal$special]|$inlineCode)+$CR?$LF?)+';
+	public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)[^#]$CR?$LF?)+';
 	//public static var paragraphText = '([^*-+# ][a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraph = '($paragraphText($blank)|$paragraphText)';
 	public static var paragraph = '$paragraphText($blank)?';
@@ -350,9 +350,11 @@ class MarkdownLexer extends Lexer {
 		'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
 		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
-		'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
+		/*'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
 		'\\]' => Mo.make(lexer, Const(CString(']'))),
 		'\\[' => Mo.make(lexer, Const(CString('['))),
+		'!' => Mo.make(lexer, Const(CString('!'))),
+		'[a-zA-Z0-9]#' => Mo.make(lexer, Const(CString(lexer.current))),
 	] );
 	
 	public static var blocks = Mo.rules( [
@@ -396,6 +398,7 @@ class MarkdownLexer extends Lexer {
 			t = t.concat( parse( value.substring(l.pos), name, rule ) );
 		} catch (_e:Dynamic) {
 			trace(value.substring(l.pos));
+			trace(l.pos);
 			trace(_e);
 		}
 		
