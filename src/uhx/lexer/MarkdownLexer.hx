@@ -88,7 +88,7 @@ class MarkdownLexer extends Lexer {
 	public static var image = '!$link';
 	
 	//public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
-	public static var reference = '$linkText[ $CR$LF]*(\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]*\\])?';
+	public static var reference = '$linkText([ $CR$LF]*\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]*\\])?';
 	//public static var reference = '$linkText[ $CR$LF]*($linkText)?';
 	//public static var reference = '\\[[a-zA-Z]+\\]';
 	
@@ -123,7 +123,7 @@ class MarkdownLexer extends Lexer {
 	//public static var paragraphText = '([$anyCharacter]+$CR?$LF?)+';
 	// `[^$hyphen]` allows `<h2>` alternative headers to be captured.
 	//public static var paragraphText = '([^\\*\\-\\+# ]([a-zA-Z0-9 $normal$hyphen\\*]|$inlineCode)+$CR?$LF?)+';
-	public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)[^#]$CR?$LF?)+';
+	public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)$CR?$LF?)+';
 	//public static var paragraphText = '([^*-+# ][a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraph = '($paragraphText($blank)|$paragraphText)';
 	public static var paragraph = '$paragraphText($blank)?';
@@ -207,6 +207,7 @@ class MarkdownLexer extends Lexer {
 				pos++;
 				char = current.charAt( pos );
 				
+			// The `[text]()` part.
 			case '[' if (text == ''):
 				pos++;
 				char = current.charAt( pos );
@@ -226,6 +227,7 @@ class MarkdownLexer extends Lexer {
 						
 				}
 				
+			// The `[](url)` part for inline links.
 			case '(', ':' if (url == ''):
 				pos++;
 				char = current.charAt( pos );
@@ -243,7 +245,7 @@ class MarkdownLexer extends Lexer {
 						
 				}
 				
-				
+			// The `[]: url` part for reference links.
 			case '[' if (url == ''):
 				var isRef = char == '[';
 				
@@ -265,6 +267,7 @@ class MarkdownLexer extends Lexer {
 				
 				if (isRef && url == '') url = text;
 				
+			// The `[]: / "title"` part for reference links.
 			case '"', "'", '(' if (title == ''):
 				pos++;
 				char = current.charAt( pos );
@@ -290,7 +293,7 @@ class MarkdownLexer extends Lexer {
 		
 		if (isLazy && url == '') url = text;
 		
-		return { text:text.trim(), url:url.trim(), title:title.trim() };
+		return { text:text, url:url.trim(), title:title.trim() };
 	}
 	
 	public static var span = Mo.rules( [
@@ -349,8 +352,8 @@ class MarkdownLexer extends Lexer {
 		'  [ ]*$CR?$LF' => Mo.make(lexer, Keyword(Break)),
 		'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
 		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
+		'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
 		'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
-		/*'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
 		'\\]' => Mo.make(lexer, Const(CString(']'))),
 		'\\[' => Mo.make(lexer, Const(CString('['))),
 		'!' => Mo.make(lexer, Const(CString('!'))),

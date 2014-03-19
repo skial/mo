@@ -27,7 +27,7 @@ class MarkdownParser {
 	public function filterResources(tokens:Array<Token<MarkdownKeywords>>, map:Map<String, {url:String, title:String}>) {
 		for (token in tokens) switch (token.token) {
 			case Keyword(Resource(text, url, title)):
-				map.set(text.toLowerCase(), { url:url, title:title } );
+				map.set(text.toLowerCase().trim(), { url:url, title:title } );
 				
 			case Keyword(Paragraph(toks)), Keyword(Blockquote(toks)), Keyword(Item(_, toks)), Keyword(Collection(_, toks)):
 				filterResources( toks, map );
@@ -68,6 +68,9 @@ class MarkdownParser {
 			case Hyphen(_): 
 				result += '-';
 				
+			case Newline, Carriage:
+				result += ' ';
+				
 			case Space(len): 
 				result += [for (i in 0...len) ' '].join('');
 				
@@ -75,7 +78,8 @@ class MarkdownParser {
 				result += s;
 				
 			case Keyword(Paragraph(tokens)) if (tokens.length > 0):
-				result += '<p>' + [for (token in tokens) printHTML( token, res )].join('') + '</p>';
+				var content = [for (token in tokens) printHTML( token, res )].join('');
+				if (content != '') result += '<p>$content</p>\n';
 				
 			case Keyword(Header(_, len, title)):
 				result += '<h$len>$title</h$len>';
@@ -102,7 +106,10 @@ class MarkdownParser {
 				result += '>$text</a>';
 				
 			case Keyword(Link(ref, text, url, title)) if (ref):
-				var res = res.exists( text.toLowerCase() ) ? res.get( text.toLowerCase() ) : { url:'', title:'' };
+				trace( text, url, title );
+				var key = url.toLowerCase().trim();
+				var res = res.exists( key ) ? res.get( key ) : { url:'', title:'' };
+				
 				url = res.url;
 				title = res.title;
 				
@@ -116,7 +123,10 @@ class MarkdownParser {
 				result += ' />';
 				
 			case Keyword(Code(fenced, lang, code)):
-				
+				result += '<code';
+				result += (lang != '' ? ' language="$lang"' : '') + '>';
+				result += code;
+				result += '</code>';
 				
 			case Keyword(Blockquote(tokens)):
 				result += '<blockquote>' + [for (token in tokens) printHTML( token, res )].join('') + '</blockquote>';
