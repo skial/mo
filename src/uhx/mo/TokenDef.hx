@@ -14,27 +14,30 @@ enum TokenDef<Kwd> {
 	@sub(2) @loop Binop(op:Binop);
 	@loop Keyword(v:Kwd);
 	EOF;
-	Newline;
-	Carriage;
-	Tab(len:Int);
+	Newline;				//	\n
+	Carriage;				//	\r
+	Tab(len:Int);			//	\t
 	Space(len:Int);
-	Dot;
-	Colon;
+	Dot;					//	.
+	Colon;					//	:
 	Interval(s:String);
 	Comment(s:String);
+	CommentOpen;
+	CommentClose;
 	@split CommentLine(s:String);
 	Arrow;					//	->
-	Semicolon;
-	Comma;
+	Semicolon;				//	;
+	Comma;					//	,
 	@split BracketOpen;		//	[
 	@split BracketClose;	//	]
 	@split BraceOpen;		//	{
 	@split BraceClose;		//	}
 	@split ParenthesesOpen;//	(
 	@split ParenthesesClose;//	)
-	Question;
-	At;
-	Conditional(s:String);	//	#
+	Question;				//	?
+	At;						//	@
+	Hash;					//	#
+	Conditional(s:String);
 	Dollar(s:String);		//	$
 	SingleQuote;			//	'
 	DoubleQuote;			//	"

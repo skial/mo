@@ -15,7 +15,7 @@ using Lambda;
 using StringTools;
 using haxe.EnumTools;
 
-typedef Tokens = Array<Token<MarkdownKeywords>>;
+private typedef Tokens = Array<Token<MarkdownKeywords>>;
 
 enum MarkdownKeywords {
 	Paragraph(tokens:Tokens);
@@ -54,10 +54,10 @@ class MarkdownLexer extends Lexer {
 	public static var dot = '\\\\.|\\.';
 	public static var hyphen = '\\-';
 	// Character `Ê` causes the lexer to fail. See https://github.com/Simn/hxparse/issues/13
-	// No internation characters are allowed. The markdown should be preprocessed to turn into
+	// No international characters are allowed. The markdown should be preprocessed to turn into
 	// html entities.
 	public static var text = 'a-zA-Z0-9';
-	public static var safeText = '$text:/,\'\\(\\)"\\\\';
+	public static var safeText = '$text&;:/,\'\\(\\)"';
 	public static var allText = '${safeText}\\. ';
 	
 	//public static var italic = '\\*[$allText]+\\*|_[$allText]+_';
@@ -83,24 +83,28 @@ class MarkdownLexer extends Lexer {
 	//public static var linkText = '\\[[=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
 	public static var linkUrl = '[$anyCharacter]*';
 	public static var linkTitle = '"[$anyCharacter]*"';
+	// See issue http://github.com/skial/mo/issues/4
 	public static var link = '$linkText\\(($linkUrl)?[$VT ]?($linkTitle)?\\)';
 	
 	public static var image = '!$link';
 	
+	// [link text][optional id]
 	//public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
 	public static var reference = '$linkText([ $CR$LF]*\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]*\\])?';
 	//public static var reference = '$linkText[ $CR$LF]*($linkText)?';
 	//public static var reference = '\\[[a-zA-Z]+\\]';
 	
-	public static var resourceTitle = '($linkTitle|\'$linkUrl\'|\\($linkUrl\\)|$linkUrl)?';
-	public static var resource = '$spaceOrTab?$linkText:[ $VT]+<?$linkUrl>?[ $CR$LF$VT]*$resourceTitle';
+	// [id]: /url/ "optional title"
+	public static var resourceTitle = '($linkTitle|\'$linkUrl\'|\\($linkUrl\\))?';
+	//public static var resource = '$spaceOrTab?$linkText:[ $VT]+<?$linkUrl>?[ $CR$LF$VT]*$resourceTitle';
+	public static var resource = '$linkText:[ $VT]+<?$linkUrl>?[ $CR$LF$VT]*$resourceTitle($CR$LF)?';
 	
-	public static var italic = '\\*["$text ]+\\*|_["$text ]+_';
-	public static var bold = '\\*\\*["$text ]+\\*\\*|__["$text ]+__';
-	public static var strike = '~~["$text ]+~~';
+	public static var italic = '\\*[\\[\\]$safeText$CR$LF ]+\\*|_[\\[\\]$safeText$CR$LF ]+_';
+	public static var bold = '\\*\\*[\\[\\]$safeText$CR$LF ]+\\*\\*|__[\\[\\]$safeText$CR$LF ]+__';
+	public static var strike = '~~[\\[\\]$safeText$CR$LF ]+~~';
 	
 	public static var inlineCode = '`[$code]+`';
-	//public static var inlineCode = '`[^`]+`';
+	public static var inlineCodeRule = '`[^`]+`';
 	//public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)|($spaceOrTab([$code]+$CR?$LF?))+';
 	public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)?';
 	
@@ -302,25 +306,26 @@ class MarkdownLexer extends Lexer {
 		LF => Mo.make(lexer, Newline),
 		CR => Mo.make(lexer, Carriage),
 		' ' => Mo.make(lexer, Space(1)),
+		inlineCodeRule => {
+			var current = lexer.current;
+			//trace( current );
+			Mo.make(lexer, Keyword(Code(false, '', current.substring(1, current.length - 1))));
+		},
+		italic => {
+			var current = lexer.current;
+			//trace( current );
+			var underscore = current.startsWith('_');
+			Mo.make(lexer, Keyword(Italic( underscore, parse( current.substring(1, current.length - 1), 'md-italic', span ))));
+		},
 		bold => {
 			var current = lexer.current;
 			//trace( current );
 			var underscore = current.startsWith('_');
 			Mo.make(lexer, Keyword(Bold( underscore, parse( current.substring(2, current.length - 2), 'md-bold', span ))));
 		},
-		italic => {
-			var current = lexer.current;
-			//trace( current );
-			var underscore = current.startsWith('_');
-			Mo.make(lexer, Keyword(Bold( underscore, parse( current.substring(1, current.length - 1), 'md-italic', span ))));
-		},
 		strike => {
 			var current = lexer.current;
 			Mo.make(lexer, Keyword(Strike( parse( current.substring(2, current.length - 2), 'md-strike', span ))));
-		},
-		inlineCode => {
-			var current = lexer.current;
-			Mo.make(lexer, Keyword(Code(false, '', current.substring(1, current.length - 1))));
 		},
 		blockquote => handleBlockQuote(lexer),
 		unorderedItem => {
@@ -336,9 +341,13 @@ class MarkdownLexer extends Lexer {
 			var res = handleResource( lexer.current );
 			Mo.make(lexer, Keyword(Link(false, res.text, res.url, res.title)));
 		},
-		'!$reference' => {
+		image => {
 			var res = handleResource( lexer.current.substring(1) );
 			Mo.make(lexer, Keyword(Image(false, res.text, res.url, res.title)));
+		},
+		'!$reference' => {
+			var res = handleResource( lexer.current.substring(1) );
+			Mo.make(lexer, Keyword(Image(true, res.text, res.url, res.title)));
 		},
 		reference => { 
 			var res = handleResource( lexer.current );
@@ -357,6 +366,8 @@ class MarkdownLexer extends Lexer {
 		'\\]' => Mo.make(lexer, Const(CString(']'))),
 		'\\[' => Mo.make(lexer, Const(CString('['))),
 		'!' => Mo.make(lexer, Const(CString('!'))),
+		'%' => Mo.make(lexer, Const(CString('%'))),
+		'?' => Mo.make(lexer, Const(CString('?'))),
 		'[a-zA-Z0-9]#' => Mo.make(lexer, Const(CString(lexer.current))),
 	] );
 	
@@ -395,25 +406,14 @@ class MarkdownLexer extends Lexer {
 			while (true) {
 				t.push(l.token( rule ));
 			}
-		} catch (_e:Eof) if (l.pos != l.input.length) {
-			// This forces the damn thing to continue working. Why did you stop.
-			// See issue https://github.com/skial/mo/issues/1
-			t = t.concat( parse( value.substring(l.pos), name, rule ) );
+		} catch (_e:Eof) {
+			
 		} catch (_e:Dynamic) {
-			trace(value.substring(l.pos));
-			trace(l.pos);
 			trace(_e);
+			trace(value.substring(l.pos));
 		}
 		
 		return t;
 	}
 	
-	/*private static function parseSpan(value:String, name:String) {
-		return parse( value, name, span );
-	}
-	
-	private static function parseBlocks(value:String, name:String) {
-		return parse( value, name, blocks );
-	}
-	*/
 }

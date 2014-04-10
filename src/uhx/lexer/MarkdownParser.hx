@@ -49,10 +49,12 @@ class MarkdownParser {
 				results.push( token );
 			}
 			
+		} catch (e:Eof) {
+			
 		} catch (e:Dynamic) {
 			// rawr
 			//trace(name);
-			//trace(e);
+			trace(e);
 		}
 		
 		return results;
@@ -79,7 +81,7 @@ class MarkdownParser {
 				
 			case Keyword(Paragraph(tokens)) if (tokens.length > 0):
 				var content = [for (token in tokens) printHTML( token, res )].join('');
-				if (content != '') result += '<p>$content</p>\n';
+				if (content != '') result += '<p>$content</p>';
 				
 			case Keyword(Header(_, len, title)):
 				result += '<h$len>$title</h$len>';
@@ -106,21 +108,41 @@ class MarkdownParser {
 				result += '>$text</a>';
 				
 			case Keyword(Link(ref, text, url, title)) if (ref):
-				trace( text, url, title );
 				var key = url.toLowerCase().trim();
-				var res = res.exists( key ) ? res.get( key ) : { url:'', title:'' };
 				
-				url = res.url;
-				title = res.title;
-				
-				result += '<a href="$url"';
-				result += title == '' ? ' ' : ' title="$title"';
-				result += '>$text</a>';
+				if (res.exists( key )) {
+					var res = res.get( key );
+					
+					url = res.url;
+					title = res.title;
+					
+					result += '<a href="$url"';
+					result += title == '' ? ' ' : ' title="$title"';
+					result += '>$text</a>';
+				} else {
+					result += '[$text]';
+				}
 				
 			case Keyword(Image(ref, text, url, title)) if (!ref):
 				result += '<img src="$url" alt="$text"';
 				result += title == '' ? ' ' : ' title="$title"';
 				result += ' />';
+				
+			case Keyword(Image(ref, text, url, title)) if (ref):
+				var key = url.toLowerCase().trim();
+				
+				if (res.exists( key )) {
+					var res = res.get( key );
+					
+					url = res.url;
+					title = res.title;
+					
+					result += '<img src="$url" alt="$text"';
+					result += title == '' ? ' ' : ' title="$title"';
+					result += ' />';
+				} else {
+					result += '[$text]';
+				}
 				
 			case Keyword(Code(fenced, lang, code)):
 				result += '<code';
