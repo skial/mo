@@ -39,7 +39,8 @@ class HtmlLexer extends Lexer {
 		'\t' => Mo.make( lexer, Tab(1) ),
 		'<![$tagChars]+>' => {
 			var current = lexer.current;
-			var att = mapAttributes(lexer.bytes.readBytes(2, lexer.bytes.length - 1), 'instruction');
+			//var att = mapAttributes(lexer.bytes.readBytes(2, lexer.bytes.length - 1), 'instruction');
+			var att = mapAttributes(ByteData.ofString(current.substring(2, current.length - 1), 'instruction');
 			var tag = att.get('tag');
 			att.remove('tag');
 			
