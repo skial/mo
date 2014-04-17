@@ -79,7 +79,10 @@ class MarkdownLexer extends Lexer {
 	public static var horizontalUnderscore = '(_ ?_ ?_ ?(_ ?)*)';
 	public static var horizontalRule = '($horizontalStar|$horizontalHyphen|$horizontalUnderscore)+$CR?$LF?';
 	
-	public static var linkText = '\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
+	//public static var linkText = '\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
+	//public static var linkText = '\\[[^\t\\]]+\\]';
+	//public static var linkText = '\\[[^\t]*\\]';
+	public static var linkText = '\\[(\\[[^\t\\[\\]]*\\]|[^\t\\[\\]]*)*\\]';
 	//public static var linkText = '\\[[=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]+\\]';
 	public static var linkUrl = '[$anyCharacter]*';
 	public static var linkTitle = '"[$anyCharacter]*"';
@@ -90,8 +93,9 @@ class MarkdownLexer extends Lexer {
 	
 	// [link text][optional id]
 	//public static var reference = '$linkText[ $CR$LF]*(\\[[$text \\[\\]]*\\])?';
-	public static var reference = '$linkText([ $CR$LF]*\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]*\\])?';
-	//public static var reference = '$linkText[ $CR$LF]*($linkText)?';
+	//public static var reference = '$linkText([ $CR$LF]*\\[[$=_&^%$£"!¬;@~#`}{<>\\+\\*\\?\\|$hyphen$allText$CR$LF]*\\])?';
+	//public static var reference = '$linkText([ $CR$LF]*\\[[^\t]*\\])?';
+	public static var reference = '$linkText([ $CR$LF]*$linkText)?';
 	//public static var reference = '\\[[a-zA-Z]+\\]';
 	
 	// [id]: /url/ "optional title"
@@ -112,8 +116,10 @@ class MarkdownLexer extends Lexer {
 	public static var altHeader = '[$anyCharacter]+$CR$LF(===(=)*|$hyphen$hyphen$hyphen($hyphen)*)+';
 	
 	public static var orderedMark = '[0-9]+\\.( |$VT)';
-	public static var orderedItem = '$orderedMark[$allText]+($CR$LF($CR$LF)?$VT([$allText]+)?)*($blank|$CR$LF)?';
-	public static var orderedList = '($orderedMark[$anyCharacter]+($blank|[$CR$LF]+)?($VT[$anyCharacter$VT$CR$LF]+)?)+';
+	//public static var orderedItem = '$orderedMark[$allText]+($CR$LF($CR$LF)?$VT([$allText]+)?)*($blank|$CR$LF)?';
+	public static var orderedItem = '[0-9]+\\.[ \t][^\r\n]+($CR$LF($CR$LF)?$VT([^\r\n]+)?)*($blank|$CR$LF)?';
+	//public static var orderedList = '($orderedMark[$anyCharacter]+($blank|[$CR$LF]+)?($VT[$anyCharacter$VT$CR$LF]+)?)+';
+	public static var orderedList = '($orderedMark[^\r\n\t]+(\r\n\r\n|[\r\n]+)?(\t.+)?)+';
 	
 	/*public static var unorderedMark = '[\\*$hyphen\\+][ $VT]';
 	public static var unorderedItem = '$unorderedMark([$allText]+)';
@@ -121,13 +127,16 @@ class MarkdownLexer extends Lexer {
 	
 	// `[^\\*$hyphen\\+]` helps prevent horizontal lines from being captured as unordered lists.
 	public static var unorderedMark = '[\\*$hyphen\\+]( |$VT)[^\\*$hyphen\\+]';
-	public static var unorderedItem = '$unorderedMark[$allText]+($CR$LF($CR$LF)?$VT([$allText]+)?)*($blank|$CR$LF)?';
-	public static var unorderedList = '($unorderedMark[$anyCharacter]+($blank|[$CR$LF]+)?($VT[$anyCharacter$VT$CR$LF]+)?)+';
+	//public static var unorderedItem = '$unorderedMark[$allText]+($CR$LF($CR$LF)?$VT([$allText]+)?)*($blank|$CR$LF)?';
+	public static var unorderedItem = '$unorderedMark[^\r\n]+($CR$LF($CR$LF)?$VT([^\r\n]+)?)*($blank|$CR$LF)?';
+	//public static var unorderedList = '($unorderedMark[$anyCharacter]+($blank|[$CR$LF]+)?($VT[$anyCharacter$VT$CR$LF]+)?)+';
+	public static var unorderedList = '($unorderedMark[^\r\n\t]+(\r\n\r\n|[\r\n]+)?(\t.+)?)+';
 	
 	//public static var paragraphText = '([$anyCharacter]+$CR?$LF?)+';
 	// `[^$hyphen]` allows `<h2>` alternative headers to be captured.
 	//public static var paragraphText = '([^\\*\\-\\+# ]([a-zA-Z0-9 $normal$hyphen\\*]|$inlineCode)+$CR?$LF?)+';
-	public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)$CR?$LF?)+';
+	//public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)$CR?$LF?)+';
+	public static var paragraphText = '(([^\t\r\n=#])[^\r\n]+$CR?$LF?)+';
 	//public static var paragraphText = '([^*-+# ][a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraph = '($paragraphText($blank)|$paragraphText)';
 	public static var paragraph = '$paragraphText($blank)?';
@@ -135,7 +144,8 @@ class MarkdownLexer extends Lexer {
 	//public static var blockquote = '> ($indentedCode|$paragraph)+';
 	//public static var blockquote = '(> ($paragraphText|$indentedCode)*)+';
 	//public static var blockquote = '(> ([$anyCharacter]*$CR?$LF?)+($blank)?';
-	public static var blockquote = '> ([$text $normal>]([$text $normal$special]|$inlineCode)*$CR?$LF?)+';
+	//public static var blockquote = '> ([$text $normal>]([$text $normal$special]|$inlineCode)*$CR?$LF?)+';
+	public static var blockquote = '> ([^>][^\r\n]+$CR?$LF?)+';
 	
 	private static function handleBlockQuote(lexer:Lexer) {
 		var current = lexer.current;
@@ -300,34 +310,114 @@ class MarkdownLexer extends Lexer {
 		return { text:text, url:url.trim(), title:title.trim() };
 	}
 	
+	private static var codeRule = Mo.rules( [
+	'`' => '`',
+	'[^`]+' => lexer.current,
+	] );
+	
+	private static var emphasis = Mo.rules( [
+	'\r' => Mo.make(lexer, Carriage),
+	'\n' => Mo.make(lexer, Newline),
+	'\\*' => Mo.make(lexer, Asterisk),
+	'\\_' => Mo.make(lexer, Underscore),
+	'~' => Mo.make(lexer, Tilde),
+	'`' => Mo.make(lexer, GraveAccent),
+	'\t' => Mo.make(lexer, Tab(1)),
+	' ' => Mo.make(lexer, Space(1)),
+	'[^\r\n\t\\_\\*~` ]+' => Mo.make(lexer, Const(CString(lexer.current))),
+	] );
+	
 	public static var span = Mo.rules( [
-		dot => Mo.make(lexer, Dot),
-		VT => Mo.make(lexer, Tab(1)),
-		LF => Mo.make(lexer, Newline),
-		CR => Mo.make(lexer, Carriage),
+		//dot => Mo.make(lexer, Dot),
+		'\t' => Mo.make(lexer, Tab(1)),
+		'\n' => Mo.make(lexer, Newline),
+		'\r' => Mo.make(lexer, Carriage),
 		' ' => Mo.make(lexer, Space(1)),
-		inlineCodeRule => {
+		//inlineCodeRule => {
+		'`' => {
 			var current = lexer.current;
-			//trace( current );
-			Mo.make(lexer, Keyword(Code(false, '', current.substring(1, current.length - 1))));
+			var tokens = [];
+			
+			try while (true) {
+				var token:String = lexer.token( codeRule );
+				switch (token) {
+					case '`': break;
+					case _:
+				}
+				tokens.push( token );
+			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
+			
+			Mo.make(lexer, Keyword(Code( false, '', tokens.join('') )));
 		},
-		italic => {
+		//italic => {
+		'\\*|\\_' => {
 			var current = lexer.current;
-			//trace( current );
-			var underscore = current.startsWith('_');
-			Mo.make(lexer, Keyword(Italic( underscore, parse( current.substring(1, current.length - 1), 'md-italic', span ))));
+			var underscore = current == '_';
+			var tokens = [];
+			
+			try while (true) {
+				var token:Token<MarkdownKeywords> = lexer.token( emphasis );
+				switch (token.token) {
+					case Underscore if (underscore): break;
+					case Asterisk if (!underscore): break;
+					case _:
+				}
+				tokens.push( token );
+			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
+			
+			Mo.make(lexer, Keyword(Italic( underscore, tokens )));
 		},
-		bold => {
+		//bold => {
+		'\\*\\*|\\_\\_' => {
 			var current = lexer.current;
-			//trace( current );
-			var underscore = current.startsWith('_');
-			Mo.make(lexer, Keyword(Bold( underscore, parse( current.substring(2, current.length - 2), 'md-bold', span ))));
+			var underscore = current == '__';
+			var tokens:Tokens = [];
+			
+			try while (true) {
+				tokens.push( lexer.token( emphasis ) );
+				
+				switch (tokens.slice(tokens.length-2).map(function(t) return t.token)) {
+					case [Underscore, Underscore] if (underscore): 
+						tokens.pop();
+						tokens.pop();
+						break;
+						
+					case [Asterisk, Asterisk] if (!underscore):
+						tokens.pop();
+						tokens.pop();
+						break;
+						
+					case _:
+				}
+				
+			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
+			
+			Mo.make(lexer, Keyword(Bold( underscore, tokens )));
 		},
-		strike => {
+		//strike => {
+		'~~' => {
 			var current = lexer.current;
-			Mo.make(lexer, Keyword(Strike( parse( current.substring(2, current.length - 2), 'md-strike', span ))));
+			var tokens = [];
+			
+			try while (true) {
+				tokens.push( lexer.token( emphasis ) );
+				
+				switch (tokens.slice(tokens.length-2).map(function(t) return t.token)) {
+					case [Tilde, Tilde]: 
+						tokens.pop();
+						tokens.pop();
+						break;
+						
+					case _:
+				}
+				
+			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
+			
+			Mo.make(lexer, Keyword(Strike( tokens )));
 		},
-		blockquote => handleBlockQuote(lexer),
+		blockquote => {
+			handleBlockQuote(lexer);
+		},
 		unorderedItem => {
 			var current = lexer.current;
 			Mo.make(lexer, Keyword(Item( current.substring(0, 1), parse( current.substring(1).ltrim(), 'md-unordered-item', span ) )));
@@ -338,43 +428,50 @@ class MarkdownLexer extends Lexer {
 			Mo.make(lexer, Keyword(Item( current.substring(0, index), parse( current.substring(index + 1).ltrim(), 'md-ordered-item', span ) )));
 		},
 		link => {
+			//trace( 'link' );
 			var res = handleResource( lexer.current );
 			Mo.make(lexer, Keyword(Link(false, res.text, res.url, res.title)));
 		},
 		image => {
+			//trace( 'img' );
 			var res = handleResource( lexer.current.substring(1) );
 			Mo.make(lexer, Keyword(Image(false, res.text, res.url, res.title)));
 		},
 		'!$reference' => {
+			//trace( 'img reference' );
 			var res = handleResource( lexer.current.substring(1) );
 			Mo.make(lexer, Keyword(Image(true, res.text, res.url, res.title)));
 		},
 		reference => { 
+			//trace( 'reference' );
 			var res = handleResource( lexer.current );
 			Mo.make(lexer, Keyword(Link(true, res.text, res.url, res.title)));
 		},
 		resource => {
+			//trace( 'resource' );
 			var res = handleResource( lexer.current );
 			Mo.make(lexer, Keyword(Resource(res.text, res.url, res.title)));
 		},
-		'[$hyphen]+' => Mo.make(lexer, Hyphen(lexer.current.length)),
-		'  [ ]*$CR?$LF' => Mo.make(lexer, Keyword(Break)),
-		'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
+		'[\\-]+' => Mo.make(lexer, Hyphen(lexer.current.length)),
+		//'  [ ]*$CR?$LF' => Mo.make(lexer, Keyword(Break)),
+		//'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
+		'[^\t\r\n\\*\\_~`\\[ ]+' => Mo.make(lexer, Const(CString( lexer.current ))),
+		'~' => Mo.make(lexer, Tilde),
 		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
-		'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
+		/*'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\]' => Mo.make(lexer, Const(CString(']'))),
 		'\\[' => Mo.make(lexer, Const(CString('['))),
 		'!' => Mo.make(lexer, Const(CString('!'))),
 		'%' => Mo.make(lexer, Const(CString('%'))),
 		'?' => Mo.make(lexer, Const(CString('?'))),
-		'[a-zA-Z0-9]#' => Mo.make(lexer, Const(CString(lexer.current))),
+		'[a-zA-Z0-9]#' => Mo.make(lexer, Const(CString(lexer.current))),*/
 	] );
 	
 	public static var blocks = Mo.rules( [
-		LF => Mo.make(lexer, Newline),
-		CR => Mo.make(lexer, Carriage),
-		VT => Mo.make(lexer, Tab(1)),
+		'\n' => Mo.make(lexer, Newline),
+		'\r' => Mo.make(lexer, Carriage),
+		'\t' => Mo.make(lexer, Tab(1)),
 		' ' => Mo.make(lexer, Space(1)),
 		header => handleHeader(lexer),
 		altHeader => handleAltHeader(lexer),
@@ -383,18 +480,34 @@ class MarkdownLexer extends Lexer {
 		orderedList => {
 			Mo.make(lexer, Keyword(Collection( true, parse( lexer.current, 'md-ordered-list', span ) )));
 		},
-		horizontalRule => {
+		/*horizontalRule => {
 			var current = lexer.current;
 			var character = current.substring(0, 2);
 			character = character.endsWith(' ') ? character : character.substring(0, 1);
 			Mo.make(lexer, Keyword(Horizontal(character)));
+		},*/
+		blockquote => {
+			handleBlockQuote(lexer);
 		},
-		blockquote => handleBlockQuote(lexer),
-		paragraph => {
+		/*paragraph => {
 			//trace( lexer.current );
 			//trace( lexer.current.replace('\r', '\\r').replace('\n', '\\n') );
 			Mo.make(lexer, Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) )));
-		},
+		},*/
+		'$horizontalRule|$paragraph' => {
+			var current = lexer.current;
+			switch (current.substring(0, 3)) {
+				case '***', '* *', '---', '- -', '___', '_ _':
+					var char = current.substring(0, 2);
+					char = char.endsWith(' ') ? char : char.substring(0, 1);
+					Mo.make(lexer, Keyword(Horizontal(char)));
+					
+				case _:
+					//trace( lexer.current );
+					//trace( lexer.current.replace('\r', '\\r').replace('\n', '\\n') );
+					Mo.make(lexer, Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) )));
+			}
+		}
 	] );
 	
 	public static var root = blocks;
@@ -406,10 +519,8 @@ class MarkdownLexer extends Lexer {
 			while (true) {
 				t.push(l.token( rule ));
 			}
-		} catch (_e:Eof) {
-			
-		} catch (_e:Dynamic) {
-			trace(_e);
+		} catch (e:Eof) { } catch (e:Dynamic) {
+			trace(e);
 			trace(value.substring(l.pos));
 		}
 		

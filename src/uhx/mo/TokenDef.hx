@@ -42,4 +42,8 @@ enum TokenDef<Kwd> {
 	SingleQuote;			//	'
 	DoubleQuote;			//	"
 	Hyphen(len:Int);		//	-
+	Asterisk;				//	*
+	Underscore;				//	_
+	Tilde;					//	~
+	GraveAccent;			//	`
 }

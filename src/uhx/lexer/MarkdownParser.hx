@@ -55,6 +55,7 @@ class MarkdownParser {
 			// rawr
 			//trace(name);
 			trace(e);
+			untyped trace(input.readString(0,input.length).substring(lexer.pos));
 		}
 		
 		return results;
@@ -67,8 +68,11 @@ class MarkdownParser {
 			case Dot: 
 				result += '.';
 				
-			case Hyphen(_): 
-				result += '-';
+			case Tilde: 
+				result += '~';
+				
+			case Hyphen(len): 
+				result += [for (i in 0...len) '-'].join('');
 				
 			case Newline, Carriage:
 				result += ' ';
