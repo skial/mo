@@ -1,6 +1,7 @@
 package uhx.lexer;
 
 import haxe.io.Eof;
+import haxe.ds.StringMap;
 import hxparse.Ruleset.Ruleset;
 import hxparse.UnexpectedChar;
 import uhx.mo.Token;
@@ -13,8 +14,9 @@ using StringTools;
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 
 enum HtmlKeywords {
-	Instruction(name:String, attributes:Map<String,String>);
+	Instruction(name:String, attributes:StringMap<String>);
 	Tag(name:String, attributes:Map<String,String>, tokens:Tokens, selfClosing:Bool, complete:Bool);
+	End(name:String);
 }
 
 /**
@@ -39,15 +41,14 @@ class HtmlLexer extends Lexer {
 		'\t' => Mo.make( lexer, Tab(1) ),
 		'<![$tagChars]+>' => {
 			var current = lexer.current;
-			//var att = mapAttributes(lexer.bytes.readBytes(2, lexer.bytes.length - 1), 'instruction');
-			var att = mapAttributes(ByteData.ofString(current.substring(2, current.length - 1), 'instruction');
+			var att = mapAttributes(ByteData.ofString(current.substring(2, current.length - 1)), 'instruction');
 			var tag = att.get('tag');
 			att.remove('tag');
 			
 			Mo.make( lexer, Keyword( Instruction(tag, att) ) );
 		},
 		'</[$tagChars]*>' => {
-			Mo.make( lexer, Keyword( Tag( lexer.current, [''=>''], [], true, true ) ) );
+			Mo.make( lexer, Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) ) );
 		},
 		'<[^/][$tagChars]*>' => {
 			var current = lexer.current.substring(1, lexer.current.length - 1).trim();
@@ -59,26 +60,13 @@ class HtmlLexer extends Lexer {
 			var tag = att.get('tag');
 			att.remove('tag');
 			
-			/*var inner = ByteData.alloc(0);
-			
-			try {
-				inner = lexer.token( tillClosing( tag ) );
-			} catch (e:Dynamic) {
-				inner = null;
-				trace(e);
-			}
-			
-			var parsed = parse(inner, tag);*/
-			
-			//var position = stack.push( Keyword( Tag(tag, _, _, _, _) ) );
-			
 			var match:Bool = false;
 			var parsed:Tokens = [];
 			try while (true) {
 				var token:Token<HtmlKeywords> = lexer.token( tags );
 				
 				switch (token.token) {
-					case Keyword( Tag( t, _, _, _, _) ) if (t == '</$tag>'): 
+					case Keyword( End( t ) ) if (t == tag): 
 						match = true;
 						break;
 						
@@ -86,8 +74,8 @@ class HtmlLexer extends Lexer {
 				}
 				
 				parsed.push( token );
-				
-			} catch (e:Dynamic) {
+			} catch (e:Eof) { }
+			catch (e:Dynamic) {
 				trace( e );
 			}
 			
@@ -95,7 +83,9 @@ class HtmlLexer extends Lexer {
 		},
 		'[^</!>]+' => {
 			Mo.make( lexer, Const(CString(lexer.current)) );
-		}
+		},
+		'<' => Mo.make( lexer, Const(CString(lexer.current)) ),
+		'>' => Mo.make( lexer, Const(CString(lexer.current)) ),
 	] );
 	
 	/*public static function tillClosing(tag:String) {
@@ -155,7 +145,8 @@ class HtmlLexer extends Lexer {
 			while (true) {
 				lexer.token( attributes );
 			}
-		} catch (e:Dynamic) {
+		} catch (e:Eof) { }
+		catch (e:Dynamic) {
 			trace( e );
 		}
 		
