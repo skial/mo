@@ -34,7 +34,7 @@ enum CssSelectors {
 	Attribute(name:String, type:AttributeType, value:String);
 	Class(names:Array<String>);
 	ID(name:String);
-	Pseudo(name:String);
+	Pseudo(name:String, expr:String);
 	Combinator(selector:CssSelectors, next:CssSelectors, type:CombinatorType);
 	Expr(tokens:Selectors);
 }
@@ -51,7 +51,7 @@ enum AttributeType {
 }
 
 enum CombinatorType {
-	None;				// Used in `type.class`
+	None;				// Used in `type.class` and `type:pseudo`
 	Child;				//	`>`
 	Descendant;			//	` `
 	Adjacent;			//	`+`
@@ -76,10 +76,10 @@ class CssLexer extends Lexer {
 	
 	public static var s = ' \t\r\n';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
-	public static var selector = 'a-zA-Z0-9:#=~\\.\\-\\_\\*\\^\\|';
+	public static var selector = 'a-zA-Z0-9:#=>~\\.\\-\\_\\*\\^\\|';
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;]+;';
-	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.)?';
+	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|::?)?';
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
@@ -97,7 +97,6 @@ class CssLexer extends Lexer {
 	private static function handleRuleSet(lexer:Lexer, make:String->Tokens->TokenDef<CssKeywords>, breakOn:TokenDef<CssKeywords>) {
 		var current = lexer.current;
 		var rule = current.substring(0, current.length - 1);
-		
 		var tokens:Tokens = [];
 		
 		try while (true) {
@@ -117,8 +116,23 @@ class CssLexer extends Lexer {
 	}
 	
 	public static var root = Mo.rules([
-	'[\n\r]|[ \t]*' => lexer.token( root ),
-	'[$selector,"\'/ \\[\\]]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
+	'[\n\r\t ]*' => lexer.token( root ),
+	'/\\*' => {
+		var tokens = [];
+		try while ( true ) {
+			var token:String = lexer.token( comments );
+			switch (token) {
+				case '*/': break;
+				case _:
+			}
+			tokens.push( token );
+		} catch (e:Eof) { } catch (e:Dynamic) {
+			trace( e );
+		}
+		
+		return Mo.make(lexer, Comment( tokens.join('').trim() ));
+	},
+	'[^\r\n/*}][$selector,"\'/ \\[\\]\n\r\t]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
 	'@[$selector \\(\\)]+{' => handleRuleSet(lexer, makeAtRule, BraceClose),
 	declaration => {
 		var tokens = parse(ByteData.ofString(lexer.current), 'declaration', declarations);
@@ -130,44 +144,57 @@ class CssLexer extends Lexer {
 	':' => Mo.make(lexer, Colon),
 	'#' => Mo.make(lexer, Hash),
 	',' => Mo.make(lexer, Comma),
-	'/\\*[^\\*]+\\*/' => Mo.make(lexer, Comment(lexer.current)),
 	]);
 	
-	private static function handleSelectors(lexer:Lexer, single:CssSelectors) {
+	public static var comments = Mo.rules([
+	'\\*/' => '*/',
+	'[^*/]+' => lexer.current,
+	'\\*' => '*',
+	'/' => '/',
+	]);
+	
+	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
 		var current = lexer.current;
-		var result = single;
+		var result = null;
 		
-		var len = current.length-1;
+		var len = current.length - 1;
+		var idx = -1;
 		var type = null;
 		
 		while (len > 0) {
 			switch (current.charCodeAt(len)) {
 				case ' '.code: 
 					type = Descendant;
+					idx = len;
 					
-				case '.'.code:
-					// Used for `type.class` instances.
+				case '.'.code, ':'.code:
+					// Used for `type.class` or `type:pseudo` instances.
 					// Not an actual css spec combinator.
 					type = None;
+					idx = len;
 					lexer.pos--;
 					break;
 					
 				case '>'.code: 
 					type = Child;
+					idx = len;
 					len = 0;
 					break;
 					
 				case '+'.code:
 					type = Adjacent;
+					idx = len;
 					len = 0;
 					break;
 					
 				case '~'.code:
 					type = General;
+					idx = len;
 					len = 0;
 					break;
 					
 				case _:
+					//untyped console.log( current.charAt(len) );
 					len = 0;
 					break;
 			}
@@ -185,27 +212,28 @@ class CssLexer extends Lexer {
 			}
 			
 			var next = tokens.length > 1 ? CssSelectors.Group(tokens) : tokens[0];
-			if (tokens.length > 0) result = Combinator(single, next, type);
+			if (tokens.length > 0) result = Combinator(single(idx), next, type);
 		}
+		
+		if (result == null) result = single(idx);
 		
 		return result;
 	}
 	
 	public static var selectors = Mo.rules([
-	'([^,]+,[^,]+)+' => {
-		var tokens = [];
-		
-		for (part in lexer.current.split(',')) {
-			tokens = tokens.concat(parse(ByteData.ofString(part.trim()), 'group-selector', selectors));
-		}
-		
-		CssSelectors.Group(tokens);
+	' +' => lexer.token( selectors ),
+	'[\t\r\n]+' => lexer.token( selectors ),
+	'\\*$combinator' => {
+		handleSelectors(lexer, function(_) return Universal);
 	},
-	'\\*$combinator' => handleSelectors(lexer, Universal),
 	'[$ident]+$combinator' => {
 		var current = lexer.current.trim();
-		var name = current.endsWith('.') ? current.substring(0, current.length - 1).trim() : current;
-		handleSelectors(lexer, Type( name ));
+		var name = ['.'.code, ':'.code].indexOf(current.charCodeAt(current.length - 1)) > -1 
+			? current.substring(0, current.length - 1).trim() 
+			: current;
+		handleSelectors(lexer, function(i) { 
+			return Type( i > -1 ? name.substring(0, i).rtrim() : name );
+		} );
 	},
 	'(\\.[$ident]+)+$combinator' => {
 		var parts = [];
@@ -215,13 +243,37 @@ class CssLexer extends Lexer {
 		} else {
 			parts = [lexer.current.substring(1).trim()];
 		}
-		handleSelectors(lexer, Class( parts ));
+		
+		handleSelectors(lexer, function(i) {
+			if (i > -1) {
+				var j = parts.length -1;
+				parts[j] = parts[j].substring(0, i - 1).trim();
+			}
+			
+			return Class( parts );
+		});
 	},
-	'::?[$ident]+$combinator' => handleSelectors(lexer, Pseudo(lexer.current.replace(':', '').trim())),
+	'::?[$ident]+[ ]*(\\([^\\(\\)]*\\))?($combinator|[ ]*)' => {
+		var current = lexer.current.trim();
+		var expression = '';
+		var index = current.length;
+		
+		if (current.endsWith(')')) {
+			index = current.indexOf('(');
+			expression = current.substring(index + 1, current.length - 1);
+		}
+		
+		handleSelectors(lexer, function(i) {
+			if (i > -1 && i < index) {
+				index = i;
+			}
+			
+			return Pseudo(current.substring(1, index).trim(), expression);
+		});
+	},
 	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[$ident/"\']+)?\\]' => {
 		var c = lexer.current;
 		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
-		
 		var name = '';
 		var type = null;
 		var value = '';
@@ -234,6 +286,15 @@ class CssLexer extends Lexer {
 		}
 		Attribute(name, type == null ? t[0] : type, value);
 	},
+	'([^,]+,[^,]+)+' => {
+		var tokens = [];
+		
+		for (part in lexer.current.split(',')) {
+			tokens = tokens.concat(parse(ByteData.ofString(part.trim()), 'group-selector', selectors));
+		}
+		
+		CssSelectors.Group(tokens);
+	},
 	'\\(' => {
 		var tokens = [];
 		try while (true) {
@@ -243,7 +304,7 @@ class CssLexer extends Lexer {
 				case _:
 			}
 			tokens.push( token );
-		}  catch (e:Eof) {
+		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
 			trace( e );
