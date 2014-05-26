@@ -102,7 +102,6 @@ class HaxeParser {
 	
 	public function printHTML(token:Token<HaxeKeywords>, ?tag:String = 'span'):String {
 		var css = token.token.toCSS();
-		
 		var result = '<$tag class="$css">' + 
 		
 		( switch( token.token ) {
