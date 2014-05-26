@@ -22,7 +22,6 @@ enum CssKeywords {
 	RuleSet(selector:CssSelectors, tokens:Tokens);
 	AtRule(name:String, query:CssMedia, tokens:Tokens);
 	Declaration(name:String, value:String);
-	CssComment(tokens:Tokens);
 }
 
 private typedef Selectors = Array<CssSelectors>;
@@ -44,7 +43,7 @@ enum AttributeType {
 	Value(value:String);//	val
 	Exact;				//	att=val
 	List;				//	att~=val
-	DashList;			//	att|=val
+	@split DashList;	//	att|=val
 	Prefix;				//	att^=val
 	Suffix;				//	att$=val
 	Contains;			//	att*=val
