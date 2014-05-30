@@ -128,9 +128,15 @@ class MarkdownParser {
 				}
 				
 			case Keyword(Image(ref, text, url, title)) if (!ref):
-				result += '<img src="$url" alt="$text"';
-				result += title == '' ? ' ' : ' title="$title"';
-				result += ' />';
+				if (!url.endsWith('mp4')) {
+					result += '<img src="$url" alt="$text"';
+					result += title == '' ? ' ' : ' title="$title"';
+					result += ' />';
+				} else {
+					result += '<video controls="" loop="" src="$url" alt="$text"';
+					result += title == '' ? ' ' : ' title="$title"';
+					result += '></video>';
+				}
 				
 			case Keyword(Image(ref, text, url, title)) if (ref):
 				var key = url.toLowerCase().trim();
@@ -149,10 +155,10 @@ class MarkdownParser {
 				}
 				
 			case Keyword(Code(fenced, lang, code)):
-				result += '<code';
+				result += (fenced ? '<pre>' : '') + '<code';
 				result += (lang != '' ? ' language="$lang"' : '') + '>';
-				result += code;
-				result += '</code>';
+				result += code.replace('<', '&lt;').replace('>', '&gt;');
+				result += '</code>' + (fenced ? '</pre>' : '');
 				
 			case Keyword(Blockquote(tokens)):
 				result += '<blockquote>' + [for (token in tokens) printHTML( token, res )].join('') + '</blockquote>';

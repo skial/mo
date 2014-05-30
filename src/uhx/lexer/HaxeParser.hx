@@ -108,7 +108,7 @@ class HaxeParser {
 			case Carriage: '';
 			case Const(CString(v)): '"$v"'.htmlify();
 			case Keyword(kwd): printString( token );
-			case _: '<wbr>&shy;' + printString( token );
+			case _: '<wbr />&shy;' + printString( token );
 		} )
 		
 		+ '</$tag>';

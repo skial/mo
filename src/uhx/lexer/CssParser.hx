@@ -37,18 +37,21 @@ class CssParser {
 		var result = '<$tag class="$css">' +
 		(switch (token.token) {
 			case Keyword( RuleSet(s, t) ):
-				printSelectorHTML( s )
-				+ ' {\r\n'
+				var css = s.toCSS();
+				'<$tag class="$css">' + printSelector( s ) + '</$tag>'
+				+ '<$tag class="brace open"> {\r\n</$tag>'
 				+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
-				+ '\r\n}';
+				+ '<$tag class="brace close">\r\n}</$tag>';
 				
 			case Keyword( AtRule(n, q, t) ):
 				'@$n'
-				+ '(' + printMediaQueryHTML( q ) + ') {\r\n'
+				+ '(' + printMediaQuery( q ) + ') <$tag class="brace open">{\r\n</$tag>'
 				+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
-				+ '\r\n}';
+				+ '<$tag class="brace close">\r\n}</$tag>';
 				
-			case Keyword(_): printString( token );
+			case Keyword( Declaration(n, v) ):
+				'<$tag>$n</$tag><$tag class="colon">: </$tag><$tag>$v</$tag>';
+				
 			case _: '<wbr>&shy;' + printString( token );
 		})
 		+ '</$tag>';
@@ -82,14 +85,14 @@ class CssParser {
 				result = '/*$c*/';
 				
 			case Keyword( RuleSet(s, t) ):
-				result += printSelectorHTML( s );
+				result += printSelector( s );
 				result += ' {\r\n';
 				result += [for (i in t) '\t' + printString( i )].join('\r\n');
 				result += '\r\n}';
 				
 			case Keyword( AtRule(n, q, t) ):
 				result = '@$n';
-				result += '(' + printMediaQueryHTML( q ) + ') {\r\n';
+				result += '(' + printMediaQuery( q ) + ') {\r\n';
 				result += [for (i in t) '\t' + printString( i )].join('\r\n');
 				result += '\r\n}';
 				
@@ -103,7 +106,7 @@ class CssParser {
 		return result;
 	}
 	
-	public function printSelectorHTML(token:CssSelectors):String {
+	public function printSelector(token:CssSelectors):String {
 		var result = '';
 		
 		switch (token) {
@@ -113,7 +116,7 @@ class CssParser {
 						if (result != '' && !i.match( Attribute(_, _, _) )) {
 							result += ',\r\n';
 						}
-						result += printSelectorHTML( i );
+						result += printSelector( i );
 						
 				}
 				
@@ -124,7 +127,7 @@ class CssParser {
 				result = '*';
 				
 			case Attribute(n, t, v):
-				result = '[$n' + printAttributeTypeHTML( t ) + '$v]';
+				result = '[$n' + printAttributeType( t ) + '$v]';
 				
 			case Class(n):
 				result = [for (i in n) '.$i'].join('');
@@ -136,12 +139,12 @@ class CssParser {
 				result = ':$n' + e == ''? '' : '($e)';
 				
 			case Combinator(s, n, t):
-				result = printSelectorHTML( s );
+				result = printSelector( s );
 				result += ' ' + printCombinatorType( t ) + ' ';
-				result += printSelectorHTML( n );
+				result += printSelector( n );
 				
 			case Expr(t):
-				result = '(' + [for (i in t) printSelectorHTML( i )].join(', ') + ')';
+				result = '(' + [for (i in t) printSelector( i )].join(', ') + ')';
 				
 			case _:
 				
@@ -150,7 +153,7 @@ class CssParser {
 		return result;
 	}
 	
-	public function printAttributeTypeHTML(token:AttributeType):String {
+	public function printAttributeType(token:AttributeType):String {
 		var result = '';
 		
 		switch (token) {
@@ -208,7 +211,7 @@ class CssParser {
 		return result;
 	}
 	
-	public function printMediaQueryHTML(token:CssMedia):String {
+	public function printMediaQuery(token:CssMedia):String {
 		var result = '';
 		
 		switch (token) {
