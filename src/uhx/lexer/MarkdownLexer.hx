@@ -107,10 +107,11 @@ class MarkdownLexer extends Lexer {
 	public static var bold = '\\*\\*[\\[\\]$safeText$CR$LF ]+\\*\\*|__[\\[\\]$safeText$CR$LF ]+__';
 	public static var strike = '~~[\\[\\]$safeText$CR$LF ]+~~';
 	
-	public static var inlineCode = '`[$code]+`';
-	public static var inlineCodeRule = '`[^`]+`';
+	//public static var inlineCode = '`[$code]+`';
+	//public static var inlineCodeRule = '`[^`]+`';
 	//public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)|($spaceOrTab([$code]+$CR?$LF?))+';
-	public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)?';
+	//public static var indentedCode = '($spaceOrTab([$code]+$CR?$LF?))+($blank)?';
+	public static var indentedCode = '($spaceOrTab([^`\r\n]+$CR?$LF?))+($blank)?';
 	
 	public static var header = '(#|##|###|####|#####|######) [$anyCharacter]+[# ]*';
 	public static var altHeader = '[$anyCharacter]+$CR$LF(===(=)*|$hyphen$hyphen$hyphen($hyphen)*)+';
@@ -136,7 +137,7 @@ class MarkdownLexer extends Lexer {
 	// `[^$hyphen]` allows `<h2>` alternative headers to be captured.
 	//public static var paragraphText = '([^\\*\\-\\+# ]([a-zA-Z0-9 $normal$hyphen\\*]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)$CR?$LF?)+';
-	public static var paragraphText = '(([^\t\r\n=#])[^\r\n]+$CR?$LF?)+';
+	public static var paragraphText = '(([^\t\r\n=#][^`])[^\r\n]+$CR?$LF?)+';
 	//public static var paragraphText = '([^*-+# ][a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraph = '($paragraphText($blank)|$paragraphText)';
 	public static var paragraph = '$paragraphText($blank)?';
@@ -311,7 +312,12 @@ class MarkdownLexer extends Lexer {
 	}
 	
 	private static var codeRule = Mo.rules( [
-	'`' => '`',
+	'``*' => '`',
+	'[^`]+' => lexer.current,
+	] );
+	
+	private static var codeBlockRule = Mo.rules( [
+	'````*' => '```',
 	'[^`]+' => lexer.current,
 	] );
 	
@@ -334,7 +340,7 @@ class MarkdownLexer extends Lexer {
 		'\r' => Mo.make(lexer, Carriage),
 		' ' => Mo.make(lexer, Space(1)),
 		//inlineCodeRule => {
-		'`' => {
+		'``*' => {
 			var current = lexer.current;
 			var tokens = [];
 			
@@ -475,7 +481,24 @@ class MarkdownLexer extends Lexer {
 		' ' => Mo.make(lexer, Space(1)),
 		header => handleHeader(lexer),
 		altHeader => handleAltHeader(lexer),
-		indentedCode => Mo.make(lexer, Keyword(Code(false, '', lexer.current.ltrim()))),
+		indentedCode => {
+			Mo.make(lexer, Keyword(Code(false, '', lexer.current.ltrim())));
+		},
+		'````*' => {
+			var current = lexer.current;
+			var tokens = [];
+			
+			try while (true) {
+				var token:String = lexer.token( codeBlockRule );
+				switch (token) {
+					case '```': break;
+					case _:
+				}
+				tokens.push( token );
+			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
+			
+			Mo.make(lexer, Keyword(Code( true, '', tokens.join('') )));
+		},
 		unorderedList => Mo.make(lexer, Keyword(Collection( false, parse( lexer.current, 'md-unordered-list', span ) ))),
 		orderedList => {
 			Mo.make(lexer, Keyword(Collection( true, parse( lexer.current, 'md-ordered-list', span ) )));
