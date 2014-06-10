@@ -59,8 +59,9 @@ class CssParser {
 		return result;
 	}
 	
-	public function printString(token:Token<CssKeywords>):String {
+	public function printString(token:Token<CssKeywords>, compress:Bool = false):String {
 		var result = '';
+		var newline = compress ? '' : '\r\n';
 		
 		switch (token.token) {
 			case BraceOpen:
@@ -86,15 +87,15 @@ class CssParser {
 				
 			case Keyword( RuleSet(s, t) ):
 				result += printSelector( s );
-				result += ' {\r\n';
-				result += [for (i in t) '\t' + printString( i )].join('\r\n');
-				result += '\r\n}';
+				result += ' {$newline';
+				result += [for (i in t) '\t' + printString( i )].join( newline );
+				result += '$newline}';
 				
 			case Keyword( AtRule(n, q, t) ):
 				result = '@$n';
 				result += '(' + printMediaQuery( q ) + ') {\r\n';
-				result += [for (i in t) '\t' + printString( i )].join('\r\n');
-				result += '\r\n}';
+				result += [for (i in t) '\t' + printString( i )].join( newline );
+				result += '$newline}';
 				
 			case Keyword( Declaration(n, v) ):
 				result = '$n: $v;';
