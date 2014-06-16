@@ -225,6 +225,7 @@ class CssLexer extends Lexer {
 	
 	public static var selectors = Mo.rules([
 	' +' => lexer.token( selectors ),
+	'/\\*[^*]+\\*/' => lexer.token( selectors ),
 	'[\t\r\n]+' => lexer.token( selectors ),
 	'\\*$combinator' => {
 		//untyped console.log( lexer.current );
