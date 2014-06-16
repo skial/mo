@@ -323,14 +323,14 @@ class CssLexer extends Lexer {
 	]);
 	
 	public static var attributes = Mo.rules([
-	'[$s]*[^$s]+[$s]*' => Name(lexer.current.trim()),
-	'[$s]*[^$s]+' => Value(lexer.current.trim()),
 	'=' => Exact,
 	'~=' => AttributeType.List,
 	'\\|=' => DashList,
 	'\\^=' => Prefix,
 	'$=' => Suffix,
 	'\\*=' => Contains,
+	'[$s]*[^$s=~$\\|\\^\\*]+[$s]*' => Name(lexer.current.trim()),
+	'[$s]*[^$s=~$\\|\\^\\*]+' => Value(lexer.current.trim()),
 	]);
 	
 	public static var declarations = Mo.rules([
