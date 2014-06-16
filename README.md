@@ -6,7 +6,7 @@ The goal of Mo is to be a syntax highlighter for Haxe, using @Simn [hxparse] lib
 
 ## Installation
 
-1. [hxparse] - `haxelib install hxparse`
+1. [hxparse] - `https://github.com/Simn/hxparse development src`
 2. mo:
 	+ git - `haxelib git mo https://github.com/skial/mo master src`
 	+ zip:
