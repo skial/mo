@@ -81,14 +81,14 @@ class CssLexer extends Lexer {
 	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.)?';
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
-		untyped console.log( rule );
+		//untyped console.log( rule );
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
 		//untyped console.log( selector );
 		return Keyword(RuleSet(selector.length > 1? CssSelectors.Group(selector) : selector[0], tokens));
 	}
 	
 	private static function makeAtRule(rule:String, tokens:Tokens) {
-		untyped console.log( rule );
+		//untyped console.log( rule );
 		var index = rule.indexOf(' ');
 		var query = parse(ByteData.ofString(rule.substring(index)), 'media query', mediaQueries);
 		//untyped console.log(query);
@@ -277,7 +277,7 @@ class CssLexer extends Lexer {
 	},
 	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n]+)?\\]' => {
 		var c = lexer.current;
-		untyped console.log( c );
+		//untyped console.log( c );
 		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
 		var name = '';
 		var type = null;
