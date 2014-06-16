@@ -26,7 +26,7 @@ class CssParser {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			trace( e );
+			untyped console.log( lexer.input.readString( lexer.curPos().pmin, lexer.curPos().pmax ) );
 		}
 		
 		return tokens;
@@ -144,8 +144,8 @@ class CssParser {
 				result += ' ' + printCombinatorType( t ) + ' ';
 				result += printSelector( n );
 				
-			case Expr(t):
-				result = '(' + [for (i in t) printSelector( i )].join(', ') + ')';
+			/*case Expr(t):
+				result = '(' + [for (i in t) printSelector( i )].join(', ') + ')';*/
 				
 			case _:
 				

@@ -75,18 +75,20 @@ class CssLexer extends Lexer {
 	
 	public static var s = ' \t\r\n';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
-	public static var selector = 'a-zA-Z0-9:#=>~\\.\\-\\_\\*\\^\\|';
+	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|';
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
-	public static var declaration = '[$ident]+[$s]*:[$s]*[^;]+;';
-	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|::?)?';
+	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
+	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.)?';
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
+		untyped console.log( rule );
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
 		//untyped console.log( selector );
 		return Keyword(RuleSet(selector.length > 1? CssSelectors.Group(selector) : selector[0], tokens));
 	}
 	
 	private static function makeAtRule(rule:String, tokens:Tokens) {
+		untyped console.log( rule );
 		var index = rule.indexOf(' ');
 		var query = parse(ByteData.ofString(rule.substring(index)), 'media query', mediaQueries);
 		//untyped console.log(query);
@@ -108,7 +110,7 @@ class CssLexer extends Lexer {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			trace( e );
+			untyped console.log( e );
 		}
 		
 		return Mo.make(lexer, make(rule.trim(), tokens));
@@ -126,13 +128,15 @@ class CssLexer extends Lexer {
 			}
 			tokens.push( token );
 		} catch (e:Eof) { } catch (e:Dynamic) {
-			trace( e );
+			untyped console.log( e );
 		}
 		
 		return Mo.make(lexer, Comment( tokens.join('').trim() ));
 	},
-	'[^\r\n/*}][$selector,"\'/ \\[\\]\n\r\t]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
-	'@[$selector \\(\\)]+{' => handleRuleSet(lexer, makeAtRule, BraceClose),
+	'[^\r\n/@}{][$selector,"\'/ \\[\\]\\(\\)$s]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
+	'@[$selector \\(\\)]+{' => {
+		handleRuleSet(lexer, makeAtRule, BraceClose);
+	},
 	declaration => {
 		var tokens = parse(ByteData.ofString(lexer.current), 'declaration', declarations);
 		Mo.make(lexer, Keyword(Declaration(tokens[0], tokens[1])));
@@ -155,7 +159,7 @@ class CssLexer extends Lexer {
 	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
 		var current = lexer.current;
 		var result = null;
-		
+		//untyped console.log( current );
 		var len = current.length - 1;
 		var idx = -1;
 		var type = null;
@@ -223,6 +227,7 @@ class CssLexer extends Lexer {
 	' +' => lexer.token( selectors ),
 	'[\t\r\n]+' => lexer.token( selectors ),
 	'\\*$combinator' => {
+		//untyped console.log( lexer.current );
 		handleSelectors(lexer, function(_) return Universal);
 	},
 	'[$ident]+$combinator' => {
@@ -252,7 +257,7 @@ class CssLexer extends Lexer {
 			return Class( parts );
 		});
 	},
-	'::?[$ident]+[ ]*(\\([^\\(\\)]*\\))?($combinator|[ ]*)' => {
+	'::?[$ident]+[ ]*(\\([^()]*\\))?($combinator|[ ]*)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
@@ -270,8 +275,9 @@ class CssLexer extends Lexer {
 			return Pseudo(current.substring(1, index).trim(), expression);
 		});
 	},
-	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[$ident/"\']+)?\\]' => {
+	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n]+)?\\]' => {
 		var c = lexer.current;
+		untyped console.log( c );
 		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
 		var name = '';
 		var type = null;
@@ -316,8 +322,8 @@ class CssLexer extends Lexer {
 	]);
 	
 	public static var attributes = Mo.rules([
-	'[$s]*[$ident]+[$s]*' => Name(lexer.current.trim()),
-	'[$s]*[$ident/"\']+' => Value(lexer.current.trim()),
+	'[$s]*[^$s]+[$s]*' => Name(lexer.current.trim()),
+	'[$s]*[^$s]+' => Value(lexer.current.trim()),
 	'=' => Exact,
 	'~=' => AttributeType.List,
 	'\\|=' => DashList,
@@ -374,7 +380,9 @@ class CssLexer extends Lexer {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
+			//untyped trace( lexer.input.readString( lexer.curPos().pmin, lexer.curPos().pmax ) );
 			trace( e );
+			trace( value.readString(0, value.length) );
 		}
 		
 		return tokens;
