@@ -337,7 +337,7 @@ class CssLexer extends Lexer {
 	public static var mediaQueries = Mo.rules([
 	'(n|N)(o|O)(t|T)' => Not,
 	'(o|O)(n|N)(l|L)(y|Y)' => Only,
-	'(a|A)(n|N)(d|D)|(a|A)(l|L)+' => lexer.token( mediaQueries ),
+	//'(a|A)(n|N)(d|D)|(a|A)(l|L)+' => lexer.token( mediaQueries ),
 	'[$ident]+' => Feature(lexer.current, ''),
 	'[$ident]+[$s]*:[$s]*[$ident]+' => {
 		var current = lexer.current;
