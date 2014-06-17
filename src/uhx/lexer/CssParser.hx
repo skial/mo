@@ -130,7 +130,7 @@ class CssParser {
 						if (result != '' && !i.match( Attribute(_, _, _) )) {
 							result += ',$newline';
 						}
-						result += printSelector( i );
+						result += printSelector( i, compress );
 						
 				}
 				
@@ -144,7 +144,9 @@ class CssParser {
 				result = '[$n' + printAttributeType( t ) + '$v]';
 				
 			case Class(n):
-				result = (n.length > 1 ? '' : '.') + [for (i in n) '$i'].join('.');
+				if (n.length > 0) {
+					result = '.' + [for (i in n) '$i'].join('.');
+				}
 				
 			case ID(n):
 				result = '#$n';
@@ -153,9 +155,9 @@ class CssParser {
 				result = ':$n' + e == ''? '' : '($e)';
 				
 			case Combinator(s, n, t):
-				result = printSelector( s );
+				result = printSelector( s, compress );
 				result += ' ' + printCombinatorType( t ) + ' ';
-				result += printSelector( n );
+				result += printSelector( n, compress );
 				
 			/*case Expr(t):
 				result = '(' + [for (i in t) printSelector( i )].join(', ') + ')';*/
