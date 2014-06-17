@@ -81,17 +81,13 @@ class CssLexer extends Lexer {
 	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.)?';
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
-		//untyped console.log( rule );
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
-		//untyped console.log( selector );
 		return Keyword(RuleSet(selector.length > 1? CssSelectors.Group(selector) : selector[0], tokens));
 	}
 	
 	private static function makeAtRule(rule:String, tokens:Tokens) {
-		//untyped console.log( rule );
 		var index = rule.indexOf(' ');
 		var query = parse(ByteData.ofString(rule.substring(index)), 'media query', mediaQueries);
-		//untyped console.log(query);
 		return Keyword(AtRule(rule.substring(1, index), query.length > 1? CssMedia.Group(query) : query[0], tokens));
 	}
 	
@@ -110,7 +106,7 @@ class CssLexer extends Lexer {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			trace( e );
 		}
 		
 		return Mo.make(lexer, make(rule.trim(), tokens));
@@ -128,7 +124,7 @@ class CssLexer extends Lexer {
 			}
 			tokens.push( token );
 		} catch (e:Eof) { } catch (e:Dynamic) {
-			untyped console.log( e );
+			trace( e );
 		}
 		
 		return Mo.make(lexer, Comment( tokens.join('').trim() ));
@@ -159,7 +155,6 @@ class CssLexer extends Lexer {
 	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
 		var current = lexer.current;
 		var result = null;
-		//untyped console.log( current );
 		var len = current.length - 1;
 		var idx = -1;
 		var type = null;
@@ -197,7 +192,6 @@ class CssLexer extends Lexer {
 					break;
 					
 				case _:
-					//untyped console.log( current.charAt(len) );
 					len = 0;
 					break;
 			}
@@ -228,7 +222,6 @@ class CssLexer extends Lexer {
 	'/\\*[^*]+\\*/' => lexer.token( selectors ),
 	'[\t\r\n]+' => lexer.token( selectors ),
 	'\\*$combinator' => {
-		//untyped console.log( lexer.current );
 		handleSelectors(lexer, function(_) return Universal);
 	},
 	'[$ident]+$combinator' => {
@@ -242,7 +235,7 @@ class CssLexer extends Lexer {
 	},
 	'([$s]*\\.[$ident]+)+$combinator' => {
 		var parts = [];
-		//untyped console.log( lexer.current );
+		
 		if (lexer.current.lastIndexOf('.') != 0) {
 			parts = lexer.current.split('.').map(function(s) return s.trim()).filter(function(s) return s != '');
 		} else {
@@ -278,7 +271,7 @@ class CssLexer extends Lexer {
 	},
 	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n]+)?\\]' => {
 		var c = lexer.current;
-		//untyped console.log( c );
+		
 		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
 		var name = '';
 		var type = null;
