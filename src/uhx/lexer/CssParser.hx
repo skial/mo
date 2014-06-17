@@ -46,7 +46,7 @@ class CssParser {
 				
 			case Keyword( AtRule(n, q, t) ):
 				'@$n'
-				+ '(' + printMediaQuery( q ) + ') <$tag class="brace open">{\r\n</$tag>'
+				+ '(' + [for (i in q) printMediaQuery( i )].join(' ') + ') <$tag class="brace open">{\r\n</$tag>'
 				+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
 				+ '<$tag class="brace close">\r\n}</$tag>';
 				
@@ -100,7 +100,7 @@ class CssParser {
 				
 			case Keyword( AtRule(n, q, t) ):
 				result = '@$n';
-				result += ' ' + printMediaQuery( q, compress ) + ' {$newline';
+				result += ' ' + [for (i in q) printMediaQuery( i, compress )].join(' ') + ' {$newline';
 				result += [for (i in t) '$tab' + printString( i, compress ).replace(compress? '': '\n', compress? '' : '\n\t')].join( newline );
 				result += '$newline}';
 				
@@ -245,17 +245,14 @@ class CssParser {
 			case Not:
 				result = 'not';
 				
-			case Feature(n, v):
+			case Feature(n):
 				result = n;
-				if (v != '') {
-					result += ':$space$v';
-				}
 				
 			case Group(q) if(q.length > 0):
-				result = [for (i in q) printMediaQuery( i, compress )].join(' ');
+				result = [for (a in q) [for (b in a) printMediaQuery( b, compress )].join(' ') ].join(',$space');
 				
-			case Expr(t) if(t.length > 0):
-				result = '(' + [for (i in t) printMediaQuery( i, compress )].join('$space') + ')';
+			case Expr(n, v):
+				result = '($n:$space$v)';
 				
 			case _:
 				

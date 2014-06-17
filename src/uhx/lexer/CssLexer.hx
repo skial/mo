@@ -20,7 +20,7 @@ private typedef Tokens = Array<Token<CssKeywords>>;
 
 enum CssKeywords {
 	RuleSet(selector:CssSelectors, tokens:Tokens);
-	AtRule(name:String, query:CssMedia, tokens:Tokens);
+	AtRule(name:String, query:Array<CssMedia>, tokens:Tokens);
 	Declaration(name:String, value:String);
 }
 
@@ -62,9 +62,9 @@ private typedef Queries = Array<CssMedia>;
 enum CssMedia {
 	Only;
 	Not;
-	Feature(name:String, value:String);
-	Group(queries:Queries);
-	Expr(tokens:Queries);
+	Feature(name:String);
+	Group(queries:Array<Queries>);
+	Expr(name:String, value:String);
 }
  
 class CssLexer extends Lexer {
@@ -88,7 +88,7 @@ class CssLexer extends Lexer {
 	private static function makeAtRule(rule:String, tokens:Tokens) {
 		var index = rule.indexOf(' ');
 		var query = parse(ByteData.ofString(rule.substring(index)), 'media query', mediaQueries);
-		return Keyword(AtRule(rule.substring(1, index), query.length > 1? CssMedia.Group(query) : query[0], tokens));
+		return Keyword(AtRule(rule.substring(1, index), /*query.length > 1? CssMedia.Group(query) : query[0]*/query, tokens));
 	}
 	
 	private static function handleRuleSet(lexer:Lexer, make:String->Tokens->TokenDef<CssKeywords>, breakOn:TokenDef<CssKeywords>) {
@@ -130,7 +130,7 @@ class CssLexer extends Lexer {
 		return Mo.make(lexer, Comment( tokens.join('').trim() ));
 	},
 	'[^\r\n/@}{][$selector,"\'/ \\[\\]\\(\\)$s]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
-	'@[$selector \\(\\)]+{' => {
+	'@[$selector \\(\\),]+{' => {
 		handleRuleSet(lexer, makeAtRule, BraceClose);
 	},
 	declaration => {
@@ -335,21 +335,30 @@ class CssLexer extends Lexer {
 	]);
 	
 	public static var mediaQueries = Mo.rules([
+	'([^,]+,[^,]+)+' => {
+		var tokens = [];
+		
+		for (part in lexer.current.split(',')) {
+			tokens.push( parse(ByteData.ofString(part.trim()), 'group-media', mediaQueries) );
+		}
+		
+		CssMedia.Group(tokens);
+	},
 	'(n|N)(o|O)(t|T)' => Not,
 	'(o|O)(n|N)(l|L)(y|Y)' => Only,
 	//'(a|A)(n|N)(d|D)|(a|A)(l|L)+' => lexer.token( mediaQueries ),
-	'[$ident]+' => Feature(lexer.current, ''),
+	'[$ident]+' => Feature(lexer.current),
 	'[$ident]+[$s]*:[$s]*[$ident]+' => {
 		var current = lexer.current;
 		var parts = current.split(':');
-		Feature(parts[0].trim(), parts[1].trim());
+		CssMedia.Expr(parts[0].trim(), parts[1].trim());
 	},
 	'\\(' => {
 		var tokens = [];
 		try while (true) {
 			var token = lexer.token( mediaQueries );
 			switch (token) {
-				case Feature(')', ''): break;
+				case Feature(')'): break;
 				case _:
 			}
 			tokens.push( token );
@@ -359,9 +368,9 @@ class CssLexer extends Lexer {
 			trace( e );
 		}
 		
-		return CssMedia.Expr(tokens);
+		return tokens[0];
 	},
-	'\\)' => Feature(')', ''),
+	'\\)' => Feature(')'),
 	'[ :,]' => lexer.token( mediaQueries ),
 	]);
 	
