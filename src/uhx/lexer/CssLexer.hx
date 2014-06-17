@@ -240,11 +240,11 @@ class CssLexer extends Lexer {
 			return Type( i > -1 ? name.substring(0, i).rtrim() : name );
 		} );
 	},
-	'(\\.[$ident]+)+$combinator' => {
+	'([$s ]*\\.[$ident]+)+$combinator' => {
 		var parts = [];
-		
+		untyped console.log( lexer.current );
 		if (lexer.current.lastIndexOf('.') != 0) {
-			parts = lexer.current.split('.').map(function(s) return s.trim());
+			parts = lexer.current.split('.').map(function(s) return s.trim()).filter(function(s) return s != '');
 		} else {
 			parts = [lexer.current.substring(1).trim()];
 		}

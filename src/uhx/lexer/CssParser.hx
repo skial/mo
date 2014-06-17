@@ -61,7 +61,13 @@ class CssParser {
 	
 	public function printString(token:Token<CssKeywords>, compress:Bool = false):String {
 		var result = '';
-		var newline = compress ? '' : '\r\n';
+		var tab = '\t';
+		var space = ' ';
+		var newline = '\r\n';
+		
+		if (compress) {
+			tab = space = newline = '';
+		}
 		
 		switch (token.token) {
 			case BraceOpen:
@@ -86,19 +92,19 @@ class CssParser {
 				result = '/*$c*/';
 				
 			case Keyword( RuleSet(s, t) ):
-				result += printSelector( s );
-				result += ' {$newline';
-				result += [for (i in t) '\t' + printString( i )].join( newline );
+				result += printSelector( s, compress );
+				result += '$space{$newline';
+				result += [for (i in t) '$tab' + printString( i, compress)].join( newline );
 				result += '$newline}';
 				
 			case Keyword( AtRule(n, q, t) ):
 				result = '@$n';
-				result += '(' + printMediaQuery( q ) + ') {\r\n';
-				result += [for (i in t) '\t' + printString( i )].join( newline );
+				result += '(' + printMediaQuery( q ) + ') {$newline';
+				result += [for (i in t) '$tab' + printString( i, compress )].join( newline );
 				result += '$newline}';
 				
 			case Keyword( Declaration(n, v) ):
-				result = '$n: $v;';
+				result = '$n:$space$v;';
 				
 			case _:
 				
@@ -107,15 +113,22 @@ class CssParser {
 		return result;
 	}
 	
-	public function printSelector(token:CssSelectors):String {
+	public function printSelector(token:CssSelectors, compress:Bool = false):String {
 		var result = '';
+		var tab = '\t';
+		var space = ' ';
+		var newline = '\r\n';
+		
+		if (compress) {
+			tab = space = newline = '';
+		}
 		
 		switch (token) {
 			case Group(s):
 				for (i in s) switch (i) {
 					case _:
 						if (result != '' && !i.match( Attribute(_, _, _) )) {
-							result += ',\r\n';
+							result += ',$newline';
 						}
 						result += printSelector( i );
 						
@@ -131,7 +144,7 @@ class CssParser {
 				result = '[$n' + printAttributeType( t ) + '$v]';
 				
 			case Class(n):
-				result = [for (i in n) '.$i'].join('');
+				result = (n.length > 1 ? '' : '.') + [for (i in n) '$i'].join('.');
 				
 			case ID(n):
 				result = '#$n';
