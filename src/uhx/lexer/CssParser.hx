@@ -6,6 +6,7 @@ import byte.ByteData;
 import uhx.lexer.CssLexer;
 
 using Mo;
+using StringTools;
 
 /**
  * ...
@@ -99,8 +100,8 @@ class CssParser {
 				
 			case Keyword( AtRule(n, q, t) ):
 				result = '@$n';
-				result += '(' + printMediaQuery( q ) + ') {$newline';
-				result += [for (i in t) '$tab' + printString( i, compress )].join( newline );
+				result += ' ' + printMediaQuery( q, compress ) + ' {$newline';
+				result += [for (i in t) '$tab' + printString( i, compress ).replace(compress? '': '\n', compress? '' : '\n\t')].join( newline );
 				result += '$newline}';
 				
 			case Keyword( Declaration(n, v) ):
@@ -227,8 +228,15 @@ class CssParser {
 		return result;
 	}
 	
-	public function printMediaQuery(token:CssMedia):String {
+	public function printMediaQuery(token:CssMedia, compress:Bool = false):String {
 		var result = '';
+		var tab = '\t';
+		var space = ' ';
+		var newline = '\r\n';
+		
+		if (compress) {
+			tab = space = newline = '';
+		}
 		
 		switch (token) {
 			case Only:
@@ -238,10 +246,16 @@ class CssParser {
 				result = 'not';
 				
 			case Feature(n, v):
+				result = n;
+				if (v != '') {
+					result += ':$space$v';
+				}
 				
-			case Group(q):
+			case Group(q) if(q.length > 0):
+				result = [for (i in q) printMediaQuery( i, compress )].join(' ');
 				
-			case Expr(t):
+			case Expr(t) if(t.length > 0):
+				result = '(' + [for (i in t) printMediaQuery( i, compress )].join('$space') + ')';
 				
 			case _:
 				
