@@ -89,7 +89,7 @@ class CssParser {
 			case Comma:
 				result = ',';
 				
-			case Comment(c):
+			case Comment(c) if (!compress):
 				result = '/*$c*/';
 				
 			case Keyword( RuleSet(s, t) ):

@@ -9,6 +9,7 @@
   "version": "0.0.1-alpha",
   "url": "https://github.com/skial/mo",
   "dependencies": {
-	"hxparse": ""
+	"hxparse": "",
+	"unifill": ""
   }
 }
