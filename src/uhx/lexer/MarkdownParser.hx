@@ -10,6 +10,7 @@ import uhx.lexer.MarkdownLexer;
 
 using Mo;
 using StringTools;
+using haxe.io.Path;
 
 /**
  * ...
@@ -106,12 +107,12 @@ class MarkdownParser {
 			case Keyword(Item(_, tokens)):
 				result += '<li>' + [for (token in tokens) printHTML( token, res )].join('') + '</li>';
 				
-			case Keyword(Link(ref, text, url, title)) if (!ref):
+			case Keyword(Link(false, text, url, title)):
 				result += '<a href="$url"';
 				result += title == '' ? ' ' : ' title="$title"';
 				result += '>$text</a>';
 				
-			case Keyword(Link(ref, text, url, title)) if (ref):
+			case Keyword(Link(true, text, url, title)):
 				var key = url.toLowerCase().trim();
 				
 				if (res.exists( key )) {
@@ -127,18 +128,65 @@ class MarkdownParser {
 					result += '[$text]';
 				}
 				
-			case Keyword(Image(ref, text, url, title)) if (!ref):
-				if (!url.endsWith('mp4')) {
+			case Keyword(Image(false, text, url, title)):
+				var hasYoutube = text.indexOf( 'youtube' ) > -1;
+				var hasVimeo = text.indexOf( 'vimeo' ) > -1;
+				
+				if (hasYoutube) {
+					var parts = text.split(' ');
+					var width = '';
+					var height = '';
+					
+					if (parts.length > 1 && parts[parts.length - 1].indexOf('x') != -1) {
+						parts = parts[parts.length - 1].split('x');
+						width = ' width="${parts[0]}"';
+						height = ' height="${parts[1]}"';
+						
+					}
+					
+					url = 'www.youtube.com/embed/$url'.normalize();
+					result += '<iframe$width$height src="//$url" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
+					
+				} else if (hasVimeo) {
+					var parts = text.split(' ');
+					var width = '';
+					var height = '';
+					
+					if (parts.length > 1 && parts[parts.length - 1].indexOf('x') != -1) {
+						parts = parts[parts.length - 1].split('x');
+						width = ' width="${parts[0]}"';
+						height = ' height="${parts[1]}"';
+						
+					}
+					
+					url = 'player.vimeo.com/video/$url'.normalize();
+					result += '<iframe$width$height src="//$url" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
+					
+				} else if (!url.endsWith('mp4')) {
 					result += '<img src="$url" alt="$text"';
 					result += title == '' ? ' ' : ' title="$title"';
 					result += ' />';
+					
 				} else {
-					result += '<video controls="" loop="" src="$url" alt="$text"';
-					result += title == '' ? ' ' : ' title="$title"';
-					result += '></video>';
+					var parts = text.split(' ');
+					var width = '';
+					var height = '';
+					
+					if (parts.length > 1 && parts[parts.length - 1].indexOf('x') != -1) {
+						var bits = parts.pop().split('x');
+						width = ' width="${bits[0]}"';
+						height = ' height="${bits[1]}"';
+						text = parts.join(' ');
+						
+					}
+					
+					result += '<video$width$height controls="" loop="" alt="$text"' + (title == '' ? ' ' : ' title="$title"') + '>';
+					result += '\r\n\t<source src="$url" type="video/mp4" />';
+					result += '\r\n</video>';
+					
 				}
 				
-			case Keyword(Image(ref, text, url, title)) if (ref):
+			case Keyword(Image(true, text, url, title)):
 				var key = url.toLowerCase().trim();
 				
 				if (res.exists( key )) {
