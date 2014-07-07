@@ -129,61 +129,36 @@ class MarkdownParser {
 				}
 				
 			case Keyword(Image(false, text, url, title)):
-				var hasYoutube = text.indexOf( 'youtube' ) > -1;
-				var hasVimeo = text.indexOf( 'vimeo' ) > -1;
-				
-				if (hasYoutube) {
-					var parts = text.split(' ');
-					var width = '';
-					var height = '';
-					
-					if (parts.length > 1 && parts[parts.length - 1].indexOf('x') != -1) {
-						parts = parts[parts.length - 1].split('x');
-						width = ' width="${parts[0]}"';
-						height = ' height="${parts[1]}"';
+				switch (text) {
+					case _.indexOf( 'youtube' ) > -1 => true:
+						result += embed(text, url, youtube);
 						
-					}
-					
-					url = 'www.youtube.com/embed/$url'.normalize();
-					result += '<iframe$width$height src="//$url" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
-					
-				} else if (hasVimeo) {
-					var parts = text.split(' ');
-					var width = '';
-					var height = '';
-					
-					if (parts.length > 1 && parts[parts.length - 1].indexOf('x') != -1) {
-						parts = parts[parts.length - 1].split('x');
-						width = ' width="${parts[0]}"';
-						height = ' height="${parts[1]}"';
+					case _.indexOf( 'vimeo' ) > -1 => true:
+						result += embed(text, url, vimeo);
 						
-					}
-					
-					url = 'player.vimeo.com/video/$url'.normalize();
-					result += '<iframe$width$height src="//$url" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
-					
-				} else if (!url.endsWith('mp4')) {
-					result += '<img src="$url" alt="$text"';
-					result += title == '' ? ' ' : ' title="$title"';
-					result += ' />';
-					
-				} else {
-					var parts = text.split(' ');
-					var width = '';
-					var height = '';
-					
-					if (parts.length > 1 && parts[parts.length - 1].indexOf('x') != -1) {
-						var bits = parts.pop().split('x');
-						width = ' width="${bits[0]}"';
-						height = ' height="${bits[1]}"';
-						text = parts.join(' ');
+					case _.indexOf( 'slideshare' ) > -1 => true:
+						result += embed(text, url, slideshare);
 						
-					}
-					
-					result += '<video$width$height controls="" loop="" alt="$text"' + (title == '' ? ' ' : ' title="$title"') + '>';
-					result += '\r\n\t<source src="$url" type="video/mp4" />';
-					result += '\r\n</video>';
-					
+					case _.indexOf( 'speakerdeck' ) > -1 => true:
+						result += embed(text, url, speakerdeck);
+						
+					case _.indexOf( 'iframe' ) > -1 => true:
+						result += embed(text, url, iframe);
+						
+					case _ if (url.endsWith( 'mp4' )):
+						result += embed(text, url, function(_, w, h) {
+							if (w != '') w = ' width="$w"';
+							if (h != '') h = ' height="$h"';
+							return '<video$w$h controls="" loop=""' + (title == '' ? ' ' : ' title="$title"') + '>'
+							+ '\r\n\t<source src="$url" type="video/mp4" />'
+							+ '\r\n</video>';
+						}, false );
+						
+					case _:
+						result += '<img src="$url" alt="$text"';
+						result += title == '' ? ' ' : ' title="$title"';
+						result += ' />';
+						
 				}
 				
 			case Keyword(Image(true, text, url, title)):
@@ -219,4 +194,98 @@ class MarkdownParser {
 		
 		return result;
 	}
+	
+	private function embed(text:String, url:String, method:String->String->String->String, remove:Bool = true):String {
+		var w = '';
+		var h = '';
+		var parts = find(text, ~/[\d]+x[\d]+/, remove);
+		
+		if (parts.length > 1) switch (parts[1].split('x')) {
+			case [a, b]:
+				w = a;
+				h = b;
+				text = parts[0];
+				
+			case _:
+				
+		}
+		
+		return method(url, w, h);
+	}
+	
+	private function find(text:String, ereg:EReg, remove:Bool = false):Array<String> {
+		var originals = text.split(' ');
+		var results = [];
+		var removables = [];
+		
+		if (originals.length > 0) for (original in originals) {
+			if (ereg.match( original )) {
+				if (remove) removables.push( original );
+				results.push( original );
+			}
+		}
+		
+		for (removable in removables) {
+			originals.remove( removable );
+		}
+		
+		results.unshift( originals.join(' ') );
+		
+		return results;
+	}
+	
+	private function youtube(id:String, width:String, height:String):String {
+		return element('iframe', [
+			width == '' ? '' : ' width="$width"', 
+			height == '' ? '' : ' height="$height"',
+			' src="//' + 'www.youtube.com/embed/$id'.normalize() + '"',
+			' frameborder="0"', ' webkitallowfullscreen',
+			' mozallowfullscreen', ' allowfullscreen'
+		] );
+	}
+	
+	private function vimeo(id:String, width:String, height:String):String {
+		return element('iframe', [
+			width == '' ? '' : ' width="$width"', 
+			height == '' ? '' : ' height="$height"',
+			' src="//' + 'player.vimeo.com/video/$id'.normalize() + '"',
+			' frameborder="0"', ' webkitallowfullscreen',
+			' mozallowfullscreen', ' allowfullscreen'
+		] );
+	}
+	
+	private function speakerdeck(id:String, width:String, height:String):String {
+		return element('iframe', [
+			width == '' ? '' : ' width="$width"', 
+			height == '' ? '' : ' height="$height"',
+			' src="//' + 'http://speakerdeck.com/embed/$id'.normalize() + '"',
+			' frameborder="0"', ' webkitallowfullscreen',
+			' mozallowfullscreen', ' allowfullscreen'
+		] );
+	}
+	
+	private function slideshare(id:String, width:String, height:String):String {
+		return element('iframe', [
+			width == '' ? '' : ' width="$width"', 
+			height == '' ? '' : ' height="$height"',
+			' src="//' + 'www.slideshare.net/slideshow/embed_code/$id'.normalize() + '"',
+			' frameborder="0"', ' webkitallowfullscreen',
+			' mozallowfullscreen', ' allowfullscreen'
+		] );
+	}
+	
+	private function iframe(url:String, width:String, height:String):String {
+		return element('iframe', [
+			width == '' ? '' : ' width="$width"', 
+			height == '' ? '' : ' height="$height"',
+			' src="//${url.normalize()}"',
+			' frameborder="0"', ' webkitallowfullscreen',
+			' mozallowfullscreen', ' allowfullscreen'
+		] );
+	}
+	
+	private function element(html:String, attributes:Array<String>):String {
+		return '<$html' + attributes.join('') + '></$html>';
+	}
+	
 }
