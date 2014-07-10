@@ -19,7 +19,7 @@ private typedef Tokens = Array<Token<MarkdownKeywords>>;
 
 enum MarkdownKeywords {
 	Paragraph(tokens:Tokens);
-	Header(alt:Bool, length:Int, title:String);
+	Header(alt:Bool, length:Int, title:Tokens);
 	Italic(underscore:Bool, tokens:Tokens);
 	Bold(underscore:Bool, tokens:Tokens);
 	Strike(tokens:Tokens);
@@ -180,7 +180,7 @@ class MarkdownLexer extends Lexer {
 			current = current.substring(0, current.length - 1);
 		}
 		
-		return Mo.make(lexer, Keyword(Header(false, len, current.trim())));
+		return Mo.make(lexer, Keyword(Header(false, len, parse(current.trim(), 'md-header', span) )));
 	}
 	
 	private static function handleAltHeader(lexer:Lexer) {
@@ -193,7 +193,7 @@ class MarkdownLexer extends Lexer {
 			current = current.substring(0, current.length - 1);
 		}
 		
-		return Mo.make(lexer, Keyword(Header(true, h1?1:2, current.rtrim())));
+		return Mo.make(lexer, Keyword(Header(true, h1?1:2, parse(current.rtrim(), 'md-alt-header', span) )));
 	}
 	
 	private static function handleResource(value:String) {

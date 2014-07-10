@@ -62,6 +62,71 @@ class MarkdownParser {
 		return results;
 	}
 	
+	public function printString(token:Token<MarkdownKeywords>):String {
+		var result = '';
+		
+		switch (token.token) {
+			case Dot: 
+				result += '.';
+				
+			case Tilde: 
+				result += '~';
+				
+			case Hyphen(len): 
+				result += [for (i in 0...len) '-'].join('');
+				
+			case Newline, Carriage:
+				result += ' ';
+				
+			case Space(len): 
+				result += [for (i in 0...len) ' '].join('');
+				
+			case Const(CString(s)): 
+				result += s;
+				
+			case Keyword(Paragraph(tokens)) if (tokens.length > 0):
+				result = [for (token in tokens) printString( token )].join('');
+				
+			case Keyword(Header(_, len, title)):
+				result += title.map( function(t) printString( t ) ).join('');
+				
+			case Keyword(Italic(_, tokens)):
+				result += [for (token in tokens) printString( token )].join('');
+				
+			case Keyword(Bold(_, tokens)):
+				result += [for (token in tokens) printString( token )].join('');
+				
+			case Keyword(Strike(tokens)):
+				result += [for (token in tokens) printString( token )].join('');
+				
+			case Keyword(Collection(ordered, tokens)):
+				var l = ordered?'ol':'ul';
+				result += '<$l>' + [for (token in tokens) printString( token )].join('') + '</$l>';
+				
+			case Keyword(Item(_, tokens)):
+				result += [for (token in tokens) printString( token )].join('');
+				
+			case Keyword(Link(_, text, url, title)):
+				result += text;
+				
+			case Keyword(Image(_, text, url, title)):
+				result += text;
+				
+			case Keyword(Code(fenced, lang, code)):
+				result += code;
+				
+			case Keyword(Blockquote(tokens)):
+				result += [for (token in tokens) printString( token )].join('');
+				
+			/*case Keyword(Horizontal(_)):
+				result += '<hr />';*/
+				
+			case _:
+		}
+		
+		return result;
+	}
+	
 	public function printHTML(token:Token<MarkdownKeywords>, res:Map<String, { url:String, title:String }>):String {
 		var result = '';
 		
@@ -89,7 +154,7 @@ class MarkdownParser {
 				if (content != '') result += '<p>$content</p>';
 				
 			case Keyword(Header(_, len, title)):
-				result += '<h$len>$title</h$len>';
+				result += '<h$len>' + title.map( function(t) return printHTML( t, res ) ).join('') + '</h$len>';
 				
 			case Keyword(Italic(_, tokens)):
 				result += '<em>' + [for (token in tokens) printHTML( token, res )].join('') + '</em>';
