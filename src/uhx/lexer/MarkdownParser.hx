@@ -198,7 +198,7 @@ class MarkdownParser {
 	private function embed(text:String, url:String, method:String->String->String->String, remove:Bool = true):String {
 		var w = '';
 		var h = '';
-		var parts = find(text, ~/[\d]+x[\d]+/, remove);
+		var parts = find(text, ~/[\d]+[%]?x[\d]+[%]?/, remove);
 		
 		if (parts.length > 1) switch (parts[1].split('x')) {
 			case [a, b]:
@@ -239,8 +239,8 @@ class MarkdownParser {
 			width == '' ? '' : ' width="$width"', 
 			height == '' ? '' : ' height="$height"',
 			' src="//' + 'www.youtube.com/embed/$id'.normalize() + '"',
-			' frameborder="0"', ' webkitallowfullscreen',
-			' mozallowfullscreen', ' allowfullscreen'
+			' frameborder="0"', ' webkitallowfullscreen=""',
+			' mozallowfullscreen=""', ' allowfullscreen=""'
 		] );
 	}
 	
@@ -249,8 +249,8 @@ class MarkdownParser {
 			width == '' ? '' : ' width="$width"', 
 			height == '' ? '' : ' height="$height"',
 			' src="//' + 'player.vimeo.com/video/$id'.normalize() + '"',
-			' frameborder="0"', ' webkitallowfullscreen',
-			' mozallowfullscreen', ' allowfullscreen'
+			' frameborder="0"', ' webkitallowfullscreen=""',
+			' mozallowfullscreen=""', ' allowfullscreen=""'
 		] );
 	}
 	
@@ -259,8 +259,8 @@ class MarkdownParser {
 			width == '' ? '' : ' width="$width"', 
 			height == '' ? '' : ' height="$height"',
 			' src="//' + 'http://speakerdeck.com/embed/$id'.normalize() + '"',
-			' frameborder="0"', ' webkitallowfullscreen',
-			' mozallowfullscreen', ' allowfullscreen'
+			' frameborder="0"', ' webkitallowfullscreen=""',
+			' mozallowfullscreen=""', ' allowfullscreen=""'
 		] );
 	}
 	
@@ -269,8 +269,8 @@ class MarkdownParser {
 			width == '' ? '' : ' width="$width"', 
 			height == '' ? '' : ' height="$height"',
 			' src="//' + 'www.slideshare.net/slideshow/embed_code/$id'.normalize() + '"',
-			' frameborder="0"', ' webkitallowfullscreen',
-			' mozallowfullscreen', ' allowfullscreen'
+			' frameborder="0"', ' webkitallowfullscreen=""',
+			' mozallowfullscreen=""', ' allowfullscreen=""'
 		] );
 	}
 	
@@ -279,8 +279,8 @@ class MarkdownParser {
 			width == '' ? '' : ' width="$width"', 
 			height == '' ? '' : ' height="$height"',
 			' src="//${url.normalize()}"',
-			' frameborder="0"', ' webkitallowfullscreen',
-			' mozallowfullscreen', ' allowfullscreen'
+			' frameborder="0"', ' webkitallowfullscreen=""',
+			' mozallowfullscreen=""', ' allowfullscreen=""'
 		] );
 	}
 	
