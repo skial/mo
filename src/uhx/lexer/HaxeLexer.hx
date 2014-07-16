@@ -57,25 +57,14 @@ enum HaxeKeywords {
  * @author Skial Bainn
  */
 class HaxeLexer extends Lexer implements RuleBuilder {
-	
-	//public var keywords:Array<String>;
 
 	public function new(content:ByteData, name:String) {
-		
-		/*keywords = ('function|class|static|var|if|else|while|do|for|'
-            + 'break|return|continue|extends|implements|import|'
-            + 'switch|case|default|public|private|try|untyped|'
-            + 'catch|new|this|throw|extern|enum|in|interface|'
-            + 'cast|override|dynamic|typedef|package|'
-            + 'inline|using|null|true|false|abstract').split('|');
-			*/
 		super( content, name );
 	}
 	
 	public static var buf = new StringBuf();
-	public static var idtype:String = '_*[A-Z][_a-zA-Z0-9]*';
-	public static var ident:String = '_*[a-z][_a-zA-Z0-9]*|_+[0-9][_a-zA-Z0-9]*|' + idtype + '|_+|\\$[_a-zA-Z0-9]+';
-	//public static var ident:String = '_*[a-z][a-zA-Z0-9_]*|_+|_+[0-9][_a-zA-Z0-9]*';
+	static var ident = "_*[a-z][a-zA-Z0-9_]*|_+|_+[0-9][_a-zA-Z0-9]*";
+	static var idtype = "_*[A-Z][a-zA-Z0-9_]*";
 	
 	public static var keywords = @:mapping(0) HaxeKeywords;
 	
@@ -90,11 +79,11 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 		' *' => mk(lexer, Space(lexer.current.length)),
 		"0x[0-9a-fA-F]+" => mk(lexer, Const(CInt(lexer.current))),
 		"[0-9]+" => mk(lexer, Const(CInt(lexer.current))),
-		"[0-9]+.[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		".[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
+		"[0-9]+\\.[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
+		"\\.[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
 		"[0-9]+[eE][\\+\\-]?[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		"[0-9]+.[0-9]*[eE][\\+\\-]?[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		"[0-9]+..." => mk(lexer, Interval(lexer.current.substr(0,-3))),
+		"[0-9]+\\.[0-9]*[eE][\\+\\-]?[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
+		"[0-9]+\\.\\.\\." => mk(lexer, Interval(lexer.current.substr(0,-3))),
 		"//[^\n\r]*" => mk(lexer, CommentLine(lexer.current.substr(2))),
 		"+\\+" => mk(lexer, Unop(OpIncrement)),
 		"--" => mk(lexer, Unop(OpDecrement)),
@@ -107,6 +96,7 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 		"-=" => mk(lexer, Binop(OpAssignOp(OpSub))),
 		"*=" => mk(lexer, Binop(OpAssignOp(OpMult))),
 		"/=" => mk(lexer, Binop(OpAssignOp(OpDiv))),
+		"<<=" => mk(lexer, Binop(OpAssignOp(OpShl))),
 		"==" => mk(lexer, Binop(OpEq)),
 		"!=" => mk(lexer, Binop(OpNotEq)),
 		"<=" => mk(lexer, Binop(OpLte)),
@@ -114,7 +104,7 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 		"|\\|" => mk(lexer, Binop(OpBoolOr)),
 		"<<" => mk(lexer, Binop(OpShl)),
 		"->" => mk(lexer, Arrow),
-		"..." => mk(lexer, Binop(OpInterval)),
+		"\\.\\.\\." => mk(lexer, Binop(OpInterval)),
 		"=>" => mk(lexer, Binop(OpArrow)),
 		"!" => mk(lexer, Unop(OpNot)),
 		"<" => mk(lexer, Binop(OpLt)),
@@ -122,7 +112,7 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 		";" => mk(lexer, Semicolon),
 		":" => mk(lexer, Colon),
 		"," => mk(lexer, Comma),
-		"." => mk(lexer, Dot),
+		"\\." => mk(lexer, Dot),
 		"%" => mk(lexer, Binop(OpMod)),
 		"&" => mk(lexer, Binop(OpAnd)),
 		"|" => mk(lexer, Binop(OpOr)),
@@ -140,8 +130,6 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 		"\\)" => mk(lexer, ParenthesesClose),
 		"?" => mk(lexer, Question),
 		"@" => mk(lexer, At),
-		"#" + ident => mk(lexer, Conditional(lexer.current.substr(1))),
-		"$" + ident => mk(lexer, Dollar(lexer.current.substr(1))),
 		'"' => {
 			buf = new StringBuf();
 			var pmin = lexer.curPos();
@@ -160,6 +148,8 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 			var pmax = try lexer.token(comment) catch (e:Eof) throw e;
 			mk(lexer, Comment(buf.toString()));
 		},
+		"#" + ident => mk(lexer, Conditional(lexer.current.substr(1))),
+		"$" + ident => mk(lexer, Dollar(lexer.current.substr(1))),
 		ident => {
 			var kwd = keywords.get(lexer.current);
 			if (kwd != null)

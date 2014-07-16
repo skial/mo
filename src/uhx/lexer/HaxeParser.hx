@@ -10,6 +10,7 @@ import uhx.mo.TokenDef;
 import uhx.lexer.HaxeLexer.HaxeKeywords;
 
 using Mo;
+using StringTools;
 
 /**
  * ...
@@ -106,9 +107,9 @@ class HaxeParser {
 		
 		( switch( token.token ) {
 			case Carriage: '';
-			case Const(CString(v)): '"$v"'.htmlify();
+			case Const(CString(v)): '"$v"'.htmlEscape();
 			case Keyword(kwd): printString( token );
-			case _: '<wbr />&shy;' + printString( token );
+			case _: printString( token ).htmlEscape();
 		} )
 		
 		+ '</$tag>';
