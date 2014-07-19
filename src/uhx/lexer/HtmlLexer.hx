@@ -1,22 +1,46 @@
 package uhx.lexer;
 
 import haxe.io.Eof;
-import haxe.ds.StringMap;
-import hxparse.Ruleset.Ruleset;
-import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
 import uhx.mo.TokenDef;
+import hxparse.Ruleset;
+import hxparse.Position;
+import haxe.ds.StringMap;
+import hxparse.UnexpectedChar;
 
 using StringTools;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 
 enum HtmlKeywords {
+	End(name:String);
+	Ref(entity:HtmlReference);
 	Instruction(name:String, attributes:StringMap<String>);
 	Tag(name:String, attributes:Map<String,String>, tokens:Tokens, selfClosing:Bool, complete:Bool);
-	End(name:String);
+}
+
+private class HtmlReference {
+	
+	public var name:String;
+	public var tokens:Tokens;
+	public var complete:Bool;
+	public var selfClosing:Bool;
+	public var attributes:Map<String,String>;
+	
+	public function new(name:String, attributes:Map<String,String>, tokens:Tokens, selfClosing:Bool, complete:Bool) {
+		this.name = name;
+		this.attributes = attributes;
+		this.tokens = tokens;
+		this.selfClosing = selfClosing;
+		this.complete = complete;
+	}
+	
+	public function get():HtmlKeywords {
+		return Tag( name, attributes, tokens, selfClosing, complete );
+	}
+	
 }
 
 /**
@@ -32,7 +56,7 @@ class HtmlLexer extends Lexer {
 	public static var tagChars = 'a-zA-Z0-9 \\-\\^\\[\\]\\(\\)\\*\\+\\?\\!\\|"\'£$%&_={}:;@~#,/';
 	public static var attributeChars = 'a-zA-Z0-9\\-\\^\\[\\]\\(\\)\\*\\+\\?\\!\\|"\'£$%&_{}:;@~#,/';
 	
-	private static var stack:Array<TokenDef<HtmlKeywords>> = [];
+	public static var openTags:Array<HtmlReference> = [];
 	
 	public static var tags = Mo.rules( [
 		' ' => Mo.make( lexer, Space(1) ),
@@ -60,26 +84,59 @@ class HtmlLexer extends Lexer {
 			var tag = att.get('tag');
 			att.remove('tag');
 			
-			var match:Bool = false;
 			var parsed:Tokens = [];
-			try while (true) {
+			var entity = new HtmlReference(tag, att, parsed, isVoid, false);
+			var position = openTags.push( entity );
+			
+			if (!isVoid) try while (true) {
 				var token:Token<HtmlKeywords> = lexer.token( tags );
 				
 				switch (token.token) {
-					case Keyword( End( t ) ) if (t == tag): 
-						match = true;
-						break;
+					/*case Keyword( End( t ) ) if (t == tag): 
+						entity.complete = true;
+						
+						if (index != -1) {
+							openTags.splice(index, 1);
+						}
+						break;*/
+						
+					case Keyword( End( t ) ):
+						var index = -1;
+						var tag = null;
+						
+						for (i in 0...openTags.length) {
+							tag = openTags[i];
+							
+							if (tag != null && t == tag.name) {
+								tag.complete = true;
+								index = i;
+								break;
+							}
+						}
+						
+						if (index != -1) {
+							openTags[index] = null;
+							break;
+						}
 						
 					case _:
 				}
 				
 				parsed.push( token );
-			} catch (e:Eof) { }
-			catch (e:Dynamic) {
+			} catch (e:Eof) { 
+				
+			} catch (e:Dynamic) {
 				trace( e );
+			} else {
+				entity.complete = true;
 			}
 			
-			Mo.make( lexer, Keyword( Tag(tag, att, parsed, isVoid, match) ) );
+			if (openTags[position] != null && !openTags[position].complete) {
+				Mo.make( lexer, Keyword( Ref(entity) ) );
+			} else {
+				entity.complete = true;
+				Mo.make( lexer, Keyword( entity.get() ) );
+			}
 		},
 		'[^</!>]+' => {
 			Mo.make( lexer, Const(CString(lexer.current)) );
