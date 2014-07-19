@@ -12,7 +12,7 @@ class Token<Kwd> {
 	public var token:TokenDef<Kwd>;
 	//public var position:Position;
 	
-	public function new(tok:TokenDef<Kwd>, pos:Position) {
+	public inline function new(tok:TokenDef<Kwd>, pos:Position) {
 		token = tok;
 		//position = pos;
 	}
