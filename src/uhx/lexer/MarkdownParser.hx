@@ -75,8 +75,11 @@ class MarkdownParser {
 			case Hyphen(len): 
 				result += [for (i in 0...len) '-'].join('');
 				
-			case Newline, Carriage:
-				result += ' ';
+			case Carriage:
+				result += '\r';
+				
+			case Newline:
+				result += '\n';
 				
 			case Space(len): 
 				result += [for (i in 0...len) ' '].join('');
@@ -243,8 +246,8 @@ class MarkdownParser {
 				}
 				
 			case Keyword(Code(fenced, lang, code)):
-				result += (fenced ? '<pre>' : '') + '<code';
-				result += (lang != '' ? ' language="$lang"' : '') + '>';
+				result += (fenced ? '<pre' + (lang != '' ? ' language="${lang.toLowerCase()}"' : '') + '>' : '') + '<code';
+				result += (lang != '' ? ' language="${lang.toLowerCase()}"' : '') + '>';
 				result += code.replace('<', '&lt;').replace('>', '&gt;');
 				result += '</code>' + (fenced ? '</pre>' : '');
 				

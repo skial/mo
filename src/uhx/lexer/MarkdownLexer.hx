@@ -137,7 +137,7 @@ class MarkdownLexer extends Lexer {
 	// `[^$hyphen]` allows `<h2>` alternative headers to be captured.
 	//public static var paragraphText = '([^\\*\\-\\+# ]([a-zA-Z0-9 $normal$hyphen\\*]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraphText = '([$text $normal]([$text $normal$special]+|$inlineCode)$CR?$LF?)+';
-	public static var paragraphText = '(([^\t\r\n=#][^`])[^\r\n]+$CR?$LF?)+';
+	public static var paragraphText = '(([^\t\r\n=#][^`])[^\r\n]+\r?\n?)+';
 	//public static var paragraphText = '([^*-+# ][a-zA-Z0-9 $normal]([a-zA-Z0-9 $normal$special]|$inlineCode)+$CR?$LF?)+';
 	//public static var paragraph = '($paragraphText($blank)|$paragraphText)';
 	public static var paragraph = '$paragraphText($blank)?';
@@ -317,6 +317,7 @@ class MarkdownLexer extends Lexer {
 	] );
 	
 	private static var codeBlockRule = Mo.rules( [
+	'`[a-zA-Z0-9]+\r\n' => lexer.current.rtrim(),
 	'````*' => '```',
 	'[^`]+' => lexer.current,
 	] );
@@ -475,10 +476,6 @@ class MarkdownLexer extends Lexer {
 	] );
 	
 	public static var blocks = Mo.rules( [
-		'\n' => Mo.make(lexer, Newline),
-		'\r' => Mo.make(lexer, Carriage),
-		'\t' => Mo.make(lexer, Tab(1)),
-		' ' => Mo.make(lexer, Space(1)),
 		header => handleHeader(lexer),
 		altHeader => handleAltHeader(lexer),
 		indentedCode => {
@@ -487,17 +484,27 @@ class MarkdownLexer extends Lexer {
 		'````*' => {
 			var current = lexer.current;
 			var tokens = [];
-			
+			var language = '';
+			untyped lexer.pos--;
 			try while (true) {
 				var token:String = lexer.token( codeBlockRule );
 				switch (token) {
 					case '```': break;
 					case _:
+						var c = token.charCodeAt(token.length - 1);
+						var a = 'a'.code, z = 'z'.code;
+						var A = 'A'.code, Z = 'Z'.code;
+						var _0 = '0'.code, _9 = '9'.code;
+						
+						if (token.startsWith('`') && ((c >= a && c <= z) || (c >= A && c <= Z ) || (c >= _0 && c <= _9))) {
+							language = token.replace('`', '');
+							continue;
+						}
 				}
 				tokens.push( token );
 			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
 			
-			Mo.make(lexer, Keyword(Code( true, '', tokens.join('') )));
+			Mo.make(lexer, Keyword(Code( true, language, tokens.join('') )));
 		},
 		unorderedList => Mo.make(lexer, Keyword(Collection( false, parse( lexer.current, 'md-unordered-list', span ) ))),
 		orderedList => {
@@ -527,10 +534,14 @@ class MarkdownLexer extends Lexer {
 					
 				case _:
 					//trace( lexer.current );
-					//trace( lexer.current.replace('\r', '\\r').replace('\n', '\\n') );
+					//trace( lexer.current.replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t') );
 					Mo.make(lexer, Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) )));
 			}
-		}
+		},
+		'\t' => Mo.make(lexer, Tab(1)),
+		'\r' => Mo.make(lexer, Carriage),
+		'\n' => Mo.make(lexer, Newline),
+		' ' => Mo.make(lexer, Space(1)),
 	] );
 	
 	public static var root = blocks;
