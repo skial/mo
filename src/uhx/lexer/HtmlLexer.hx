@@ -123,10 +123,14 @@ class HtmlLexer extends Lexer {
 				try while (true) {
 					var token = lexer.token( openClose );
 					switch (token.token) {
+						case Const(CString(x)) if (x.trim() == '/'):
+							continue;
+							
 						case Const(CString('/')), GreaterThan, Space(1):
 							continue;
 							
 						case _:
+							untyped console.log( token );
 							break;
 					}
 				} catch (e:Dynamic) { };
