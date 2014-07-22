@@ -61,7 +61,7 @@ class HtmlLexer extends Lexer {
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
 	'>' => Mo.make( lexer, GreaterThan ),
-	' ' => Mo.make( lexer, Space(1) ),
+	' +' => Mo.make( lexer, Space(lexer.current.length) ),
 	'\n' => Mo.make( lexer, Newline ),
 	'\r' => Mo.make( lexer, Carriage ),
 	'\t' => Mo.make( lexer, Tab(1) ),
@@ -74,11 +74,12 @@ class HtmlLexer extends Lexer {
 	'\n' => Mo.make( lexer, Newline ),
 	'\t' => Mo.make( lexer, Tab(1) ),
 	'/>' => lexer.token( openClose ),
-	'![a-zA-Z0-9_\\-]+' => {
+	'![a-zA-Z0-9_\\-]*' => {
 		var tag = lexer.current.substring(1, lexer.current.length);
 		var attrs = [];
+		
 		try while (true) {
-			var token:Array<String> = lexer.token( attributes );
+			var token:Array<String> = lexer.token( instructions );
 			attrs.push( token );
 			
 		} catch (e:Eof) { } catch (e:UnexpectedChar) {
@@ -87,8 +88,8 @@ class HtmlLexer extends Lexer {
 			try while (true) {
 				var token = lexer.token( openClose );
 				switch (token.token) {
-					case Const(CString('/')), GreaterThan, Space(1):
-						continue;
+					case GreaterThan:
+						break;
 						
 					case _:
 						break;
@@ -122,18 +123,23 @@ class HtmlLexer extends Lexer {
 				// I cant see at the moment how to handle this better.
 				try while (true) {
 					var token = lexer.token( openClose );
+					
 					switch (token.token) {
 						case Const(CString(x)) if (x.trim() == '/'):
 							continue;
 							
-						case Const(CString('/')), GreaterThan, Space(1):
+						case Const(CString('/')), Space(_):
 							continue;
 							
+						case GreaterThan:
+							break;
+							
 						case _:
-							untyped console.log( token );
 							break;
 					}
-				} catch (e:Dynamic) { };
+				} catch (e:Dynamic) {
+					untyped console.log( e );
+				};
 				
 			}
 			
@@ -182,6 +188,12 @@ class HtmlLexer extends Lexer {
 				tokens.push( token );
 			} catch (e:Eof) {
 				
+			} catch (e:UnexpectedChar) {
+				untyped console.log( e );
+				untyped console.log( lexer.input.readString( 
+					lexer.pos,
+					lexer.input.length
+				) );
 			} catch (e:Dynamic) {
 				untyped console.log( e );
 			}
@@ -258,6 +270,37 @@ class HtmlLexer extends Lexer {
 	'"' => '"',
 	'\'' => '\'',
 	'[^\'" ]+' => lexer.current
+	] );
+	
+	public static var instructions = Mo.rules( [
+	'[^\r\n\t<> \\[]+' => [lexer.current, ''],
+	' ' => lexer.token( instructions ),
+	'\\[' => {
+		var value = '';
+		var original = lexer.current;
+		try while (true) {
+			var token = lexer.token( instructionText );
+			
+			switch (token) {
+				case ']' if (original == '['):
+					value = '[$value]';
+					break;
+					
+				case _:
+					
+			}
+			
+			value += token;
+		} catch (e:Dynamic) {
+			untyped console.log( e );
+		}
+		[value, ''];
+	},
+	] );
+	
+	public static var instructionText = Mo.rules( [
+	'[^\\]]+' => lexer.current,
+	'\\]' => ']',
 	] );
 	
 	public static var root = openClose;
