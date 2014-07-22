@@ -74,8 +74,32 @@ class HtmlLexer extends Lexer {
 	'\n' => Mo.make( lexer, Newline ),
 	'\t' => Mo.make( lexer, Tab(1) ),
 	'/>' => lexer.token( openClose ),
-	'!' => {
-		Mo.make( lexer, Keyword( Instruction('', ['' => '']) ) );
+	'![a-zA-Z0-9_\\-]+' => {
+		var tag = lexer.current.substring(1, lexer.current.length);
+		var attrs = [];
+		try while (true) {
+			var token:Array<String> = lexer.token( attributes );
+			attrs.push( token );
+			
+		} catch (e:Eof) { } catch (e:UnexpectedChar) {
+			// This skips over the self closing characters `/>`
+			// I cant see at the moment how to handle this better.
+			try while (true) {
+				var token = lexer.token( openClose );
+				switch (token.token) {
+					case Const(CString('/')), GreaterThan, Space(1):
+						continue;
+						
+					case _:
+						break;
+				}
+			} catch (e:Dynamic) { };
+			
+		} catch (e:Dynamic) {
+			untyped console.log( e );
+		}
+		
+		Mo.make( lexer, Keyword( Instruction(tag, [for (pair in attrs) pair[0] => pair[1]]) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Mo.make( lexer, Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) ) );
@@ -90,11 +114,23 @@ class HtmlLexer extends Lexer {
 			var token:Array<String> = lexer.token( attributes );
 			attrs.push( token );
 			
-		} catch (e:Eof) {
-			
-		} catch (e:UnexpectedChar) {
+		} catch (e:Eof) { } catch (e:UnexpectedChar) {
 			if (e.char == '/') {
 				isVoid = true;
+				
+				// This skips over the self closing characters `/>`
+				// I cant see at the moment how to handle this better.
+				try while (true) {
+					var token = lexer.token( openClose );
+					switch (token.token) {
+						case Const(CString('/')), GreaterThan, Space(1):
+							continue;
+							
+						case _:
+							break;
+					}
+				} catch (e:Dynamic) { };
+				
 			}
 			
 		} catch (e:Dynamic) {
@@ -106,7 +142,7 @@ class HtmlLexer extends Lexer {
 		
 		if (!isVoid) {
 			
-			position = openTags.push( entity );
+			position = openTags.push( entity ) - 1;
 			
 			try while (true) {
 				var token:Token<HtmlKeywords> = lexer.token( openClose );
@@ -122,16 +158,18 @@ class HtmlLexer extends Lexer {
 						for (i in 0...openTags.length) {
 							tag = openTags[i];
 							
-							if (tag != null && t == tag.name) {
+							if (!tag.complete && t == tag.name) {
 								tag.complete = true;
 								index = i;
+								
 								break;
 							}
 						}
 						
-						if (index != -1) {
-							openTags[index] = null;
+						if (index == position) {
 							break;
+						} else if (index > -1) {
+							continue;
 						}
 						
 					case _:
@@ -148,15 +186,15 @@ class HtmlLexer extends Lexer {
 			entity.complete = true;
 		}
 		
-		if (openTags[position] != null && !openTags[position].complete) {
+		if (position == -1 || !openTags[position].complete) {
 			Mo.make( lexer, Keyword( Ref(entity) ) );
 		} else {
 			entity.complete = true;
 			Mo.make( lexer, Keyword( entity.get() ) );
 		}
 	},
-	'<' => Mo.make( lexer, LessThan ),
-	'>' => Mo.make( lexer, GreaterThan ),
+	//'<' => Mo.make( lexer, LessThan ),
+	//'>' => Mo.make( lexer, GreaterThan ),
 	] );
 	
 	public static var attributes = Mo.rules( [
@@ -217,131 +255,6 @@ class HtmlLexer extends Lexer {
 	'[^\'" ]+' => lexer.current
 	] );
 	
-	/*public static var tags = Mo.rules( [
-		' ' => Mo.make( lexer, Space(1) ),
-		'\n' => Mo.make( lexer, Newline ),
-		'\r' => Mo.make( lexer, Carriage ),
-		'\t' => Mo.make( lexer, Tab(1) ),
-		'![$tagChars]+' => {
-			var current = lexer.current;
-			var att = mapAttributes(ByteData.ofString(current.substring(2, current.length - 1)), 'instruction');
-			var tag = att.get('tag');
-			att.remove('tag');
-			
-			Mo.make( lexer, Keyword( Instruction(tag, att) ) );
-		},
-		'/[$tagChars]+' => {
-			Mo.make( lexer, Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) ) );
-		},
-		'[^/][$tagChars]*' => {
-			var current = lexer.current.substring(1, lexer.current.length - 1).trim();
-			untyped console.log( current );
-			var isVoid = current.endsWith('/');
-			
-			if (isVoid) current = current.substring(0, current.length - 1);
-			
-			var att = mapAttributes(ByteData.ofString(current), current);
-			var tag = att.get('tag');
-			att.remove('tag');
-			
-			var parsed:Tokens = [];
-			var entity = new HtmlReference(tag, att, parsed, isVoid, false);
-			var position = openTags.push( entity );
-			
-			if (!isVoid) try while (true) {
-				var token:Token<HtmlKeywords> = lexer.token( tags );
-				
-				switch (token.token) {
-						
-					case Keyword( End( t ) ):
-						var index = -1;
-						var tag = null;
-						
-						for (i in 0...openTags.length) {
-							tag = openTags[i];
-							
-							if (tag != null && t == tag.name) {
-								tag.complete = true;
-								index = i;
-								break;
-							}
-						}
-						
-						if (index != -1) {
-							openTags[index] = null;
-							break;
-						}
-						
-					case _:
-				}
-				
-				parsed.push( token );
-			} catch (e:Eof) { 
-				
-			} catch (e:Dynamic) {
-				trace( e );
-			} else {
-				entity.complete = true;
-			}
-			
-			if (openTags[position] != null && !openTags[position].complete) {
-				Mo.make( lexer, Keyword( Ref(entity) ) );
-			} else {
-				entity.complete = true;
-				Mo.make( lexer, Keyword( entity.get() ) );
-			}
-		},
-		'[^</!>]+' => {
-			Mo.make( lexer, Const(CString(lexer.current)) );
-		},
-		'>' => lexer.token( openClose ),
-		//'<' => lexer.token( tags ),
-	] );*/
-	
 	public static var root = openClose;
 	
-	/*private static function mapAttributes(value:ByteData, name:String):Map<String,String> { 
-		var map = new Map<String,String>();
-		var attributes:Ruleset<Void> = null;
-		attributes = Mo.rules( [
-			'[ \n\r\t]' => lexer.token(attributes),
-			//'[$attributeChars]+[ ]*=[ ]*("[^"]+"|\'[^\']+\'|[$attributeChars]+)' => {
-			'[^\t\r\n\'" ]+[ \t\r\n]*=[ \t\r\n]*("[^"]+"|\'[^\']+\'|[^\t\r\n ]+)' => {
-				untyped console.log(lexer.current);
-				var c = lexer.current;
-				var p = c.split('=');
-				var h = c.charCodeAt(c.length - 1) == '"'.code || c.charCodeAt(c.length - 1) == "'".code;
-				var r = h ? p[1].substring(1, p[1].length - 1) : p[1];
-				map.set(p[0], r);
-			},
-			/*'[$attributeChars]+=[$attributeChars]+' => {
-				var c = lexer.current;
-				var p = c.split('=');
-				map.set(p[0], p[1]);
-			},*/
-			/*//'[$attributeChars]+' => {
-			'[^\t\r\n\'" ]+' => {
-				untyped console.log(lexer.current);
-				if (!map.exists('tag')) {
-					map.set('tag', lexer.current);
-				} else {
-					map.set(lexer.current, '');
-				}
-			},
-		] );
-		
-		var lexer = new HtmlLexer( value, '$name-attributes' );
-		
-		try {
-			while (true) {
-				lexer.token( attributes );
-			}
-		} catch (e:Eof) { }
-		catch (e:Dynamic) {
-			trace( e );
-		}
-		
-		return map;
-	}
-	*/
 }
