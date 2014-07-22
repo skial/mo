@@ -46,4 +46,6 @@ enum TokenDef<Kwd> {
 	Underscore;				//	_
 	Tilde;					//	~
 	GraveAccent;			//	`
+	GreaterThan;			//	>
+	LessThan;				//	<
 }
