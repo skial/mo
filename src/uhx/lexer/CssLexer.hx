@@ -233,6 +233,12 @@ class CssLexer extends Lexer {
 			return Type( i > -1 ? name.substring(0, i).rtrim() : name );
 		} );
 	},
+	'#[$ident]+$combinator' => {
+		var name = lexer.current;
+		handleSelectors(lexer, function(i) {
+			return ID( i > -1 ? name.substring(1, i).rtrim() : name.substring(1, name.length) );
+		} );
+	},
 	'([$s]*\\.[$ident]+)+$combinator' => {
 		var parts = [];
 		
@@ -249,7 +255,7 @@ class CssLexer extends Lexer {
 			}
 			
 			return Class( parts );
-		});
+		} );
 	},
 	'::?[$ident]+[ ]*(\\([^()]*\\))?($combinator|[ ]*)' => {
 		var current = lexer.current.trim();
@@ -267,7 +273,7 @@ class CssLexer extends Lexer {
 			}
 			
 			return Pseudo(current.substring(1, index).trim(), expression);
-		});
+		} );
 	},
 	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n]+)?\\]' => {
 		var c = lexer.current;
