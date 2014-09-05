@@ -17,7 +17,7 @@ private typedef Tokens = Array<Token<HtmlKeywords>>;
 enum HtmlKeywords {
 	End(name:String);
 	Ref(entity:HtmlReference);
-	Instruction(name:String, attributes:StringMap<String>);
+	Instruction(name:String, attributes:Array<String>);
 	Tag(name:String, attributes:Map<String,String>, tokens:Tokens, selfClosing:Bool, complete:Bool);
 }
 
@@ -77,9 +77,10 @@ class HtmlLexer extends Lexer {
 	'![a-zA-Z0-9_\\-]*' => {
 		var tag = lexer.current.substring(1, lexer.current.length);
 		var attrs = [];
+		var tokens = [];
 		
 		try while (true) {
-			var token:Array<String> = lexer.token( instructions );
+			var token:String = lexer.token( instructions );
 			attrs.push( token );
 			
 		} catch (e:Eof) { } catch (e:UnexpectedChar) {
@@ -87,6 +88,7 @@ class HtmlLexer extends Lexer {
 			// I cant see at the moment how to handle this better.
 			try while (true) {
 				var token = lexer.token( openClose );
+				
 				switch (token.token) {
 					case GreaterThan:
 						break;
@@ -94,13 +96,15 @@ class HtmlLexer extends Lexer {
 					case _:
 						break;
 				}
+				
+				tokens.push( token );
 			} catch (e:Dynamic) { };
 			
 		} catch (e:Dynamic) {
 			untyped console.log( e );
 		}
 		
-		Mo.make( lexer, Keyword( Instruction(tag, [for (pair in attrs) pair[0] => pair[1]]) ) );
+		Mo.make( lexer, Keyword( Instruction(tag, attrs) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Mo.make( lexer, Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) ) );
@@ -273,11 +277,12 @@ class HtmlLexer extends Lexer {
 	] );
 	
 	public static var instructions = Mo.rules( [
-	'[^\r\n\t<> \\[]+' => [lexer.current, ''],
-	' ' => lexer.token( instructions ),
+	'[^\r\n\t<> \\[]+' => lexer.current,
+	'[\r\n\t ]+' => lexer.token( instructions ),
 	'\\[' => {
 		var value = '';
 		var original = lexer.current;
+		
 		try while (true) {
 			var token = lexer.token( instructionText );
 			
@@ -294,13 +299,42 @@ class HtmlLexer extends Lexer {
 		} catch (e:Dynamic) {
 			untyped console.log( e );
 		}
-		[value, ''];
+		value;
 	},
+	'<' => {
+		var value = '';
+		var counter = 0;
+		
+		try while (true) {
+			var token = lexer.token( instructionText );
+			
+			switch (token) {
+				case '>' if (counter > 0):
+					counter--;
+					
+				case '>':
+					break;
+					
+				case '<':
+					counter++;
+					
+				case _:
+					
+			}
+			
+			value += token;
+		} catch (e:Dynamic) {
+			untyped console.log( e );
+		}
+		'<$value>';
+	}
 	] );
 	
 	public static var instructionText = Mo.rules( [
-	'[^\\]]+' => lexer.current,
+	'[^\\]<>]+' => lexer.current,
 	'\\]' => ']',
+	'<' => '<',
+	'>' => '>'
 	] );
 	
 	public static var root = openClose;
