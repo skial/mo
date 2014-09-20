@@ -61,40 +61,43 @@ private class HtmlReference {
 	public var Phrasing = 4;
 	public var Embedded = 5;
 	public var Interactive = 6;
+	public var Palpable = 7;
+	public var Scripted = 8;
 }
 
 @:enum abstract HtmlTag(String) from String to String {
 	public static function categories(tag:String):Array<Category> {
 		return switch (tag) {
 			// Metadata Content
-			case Base, Link, Meta, Template, Title: [0];
+			case Base, Link, Meta, Title: [0];
 			// Flow Content
 			case Style: [0, 1];
-			case Address, BlockQuote, Dialog, 
-				 Div, Dl, FieldSet, Figure, 
-				 Footer, Form, Header, Hr, 
-				 Main, Menu, Ol, P, Pre,
-				 Table, Ul: [1];
+			case Dialog, Hr: [1];
 			// Sectioning Content
-			case Article, Aside, Nav, Section: [1, 2];
 			// Heading Content
-			case H1, H2, H3, H4, H5, H6: [1, 3];
 			// Phrasing Content
-			case NoScript, Script: [0, 1, 4];
-			case Abbr, Area, B, Bdi, Bdo, Br,
-				 Cite, Code, Data, DataList, Del,
-				 Dfn, Em, I, Ins, Kbd, Link, Map,
-				 Mark, Meta, Meter, Output, Progress,
-				 Q, Ruby, S, Samp, Small, Span, Strong,
-				 Sub, Sup, Template, Time, U, Var, Wbr: [1, 4];
+			case NoScript: [0, 1, 4];
+			case Area, Br, DataList, Del, Link, Meta, Time, Wbr: [1, 4];
 			// Embedded Content
-			case Canvas, Math, Svg: [1, 4, 5];
 			// Interactive Content
-			case Details: [1, 6];
-			case A, Button, Input, Keygen, Label, 
-				 Select, TextArea: [1, 4, 6];
-			case Audio, Embed, Iframe, Img, Object,
-				 Video:[1, 4, 5, 6];
+			case TextArea: [1, 4, 6];
+			// Palpable
+			case H1, H2, H3, H4, H5, H6: [1, 3, 7];
+			case Address, BlockQuote, Div, Dl, FieldSet, Figure,
+				 Footer, Form, Header, Main, Menu, Ol, P, Pre, 
+				 Table, Ul: [1, 7];
+			case Article, Aside, Nav, Section: [1, 2, 7];
+			case A: [1, 4, 6, 7];
+			case Abbr, B, Bdi, Bdo, Cite, Code, Data, Dfn, Em, 
+				 I, Ins, Kbd, Map, Mark, Meter, Output, Progress,
+				 Q, Ruby, S, Samp,  Small, Span, Strong,
+				 Sub, Sup, U, Var: [1, 4, 7];
+			case Details: [1, 6, 7];
+			case Canvas, Math, Svg: [1, 4, 5, 7];
+			case Button, Input, Keygen, Label, Select: [1, 4, 6, 7];
+			case Audio, Embed, Iframe, Img, Object, Video: [1, 4, 5, 6, 7];
+			// Scripted
+			case Script, Template: [0, 1, 4, 8];
 			// Unknown
 			case _: [ -1];
 		}
@@ -259,6 +262,7 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9]+' => {
 		var tokens:Tokens = [];
 		var tag:String = lexer.current;
+		var categories = HtmlTag.categories( tag );
 		var attrs:Array<Array<String>> = [];
 		var isVoid = false;
 		
@@ -301,7 +305,7 @@ class HtmlLexer extends Lexer {
 		var entity = new HtmlReference(
 			tag, 
 			[for (pair in attrs) pair[0] => pair[1]], 
-			HtmlTag.categories(tag), 
+			categories, 
 			tokens, 
 			isVoid, 
 			false
@@ -310,51 +314,12 @@ class HtmlLexer extends Lexer {
 		
 		if (!isVoid) {
 			
-			position = openTags.push( entity ) - 1;
-			
-			try while (true) {
-				var token:Token<HtmlKeywords> = lexer.token( openClose );
-				
-				switch (token.token) {
-					case GreaterThan:
-						continue;
-						
-					case Keyword( End( t ) ):
-						var index = -1;
-						var tag = null;
-						
-						for (i in 0...openTags.length) {
-							tag = openTags[i];
-							
-							if (!tag.complete && t == tag.name) {
-								tag.complete = true;
-								index = i;
-								
-								break;
-							}
-						}
-						
-						if (index == position) {
-							break;
-						} else if (index > -1) {
-							continue;
-						}
-						
-					case _:
-				}
-				
-				tokens.push( token );
-			} catch (e:Eof) {
-				
-			} catch (e:UnexpectedChar) {
-				untyped console.log( e );
-				untyped console.log( lexer.input.readString( 
-					lexer.pos,
-					lexer.input.length
-				) );
-			} catch (e:Dynamic) {
-				untyped console.log( e );
+			switch (categories) {
+				case _:
+					position = buildChildren( entity, lexer );
+					
 			}
+			
 			
 		} else {
 			entity.complete = true;
@@ -492,5 +457,57 @@ class HtmlLexer extends Lexer {
 	] );
 	
 	public static var root = openClose;
+	
+	private static function buildChildren(ref:HtmlReference, lexer:Lexer):Int {
+		var position = openTags.push( ref ) - 1;
+		
+		try while (true) {
+			var token:Token<HtmlKeywords> = lexer.token( openClose );
+			
+			switch (token.token) {
+				case GreaterThan:
+					continue;
+					
+				case Keyword( End( t ) ):
+					var index = -1;
+					var tag = null;
+					
+					for (i in 0...openTags.length) {
+						tag = openTags[i];
+						
+						if (!tag.complete && t == tag.name) {
+							tag.complete = true;
+							index = i;
+							
+							break;
+						}
+					}
+					
+					if (index == position) {
+						break;
+						
+					} else if (index > -1) {
+						continue;
+						
+					}
+					
+				case _:
+			}
+			
+			ref.tokens.push( token );
+		} catch (e:Eof) {
+			
+		} catch (e:UnexpectedChar) {
+			untyped console.log( e );
+			untyped console.log( lexer.input.readString( 
+				lexer.pos,
+				lexer.input.length
+			) );
+		} catch (e:Dynamic) {
+			untyped console.log( e );
+		}
+		
+		return position;
+	}
 	
 }
