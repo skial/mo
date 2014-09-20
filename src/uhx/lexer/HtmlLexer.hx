@@ -43,10 +43,149 @@ private class HtmlReference {
 	
 }
 
+@:enum abstract Category(Int) from Int to Int {
+	public var Metadata = 0;
+	public var Flow = 1;
+	public var Sectioning = 2;
+	public var Heading = 3;
+	public var Phrasing = 4;
+	public var Embedded = 5;
+	public var Interactive = 6;
+}
+
+@:enum abstract HtmlTags(String) from String to String {
+	public static function categories(tag:HtmlTags):Array<Category> {
+		switch (tag) {
+			// Metadata Content
+			case Base, Link, Meta, Template, Title: [0];
+			// Flow Content
+			case Style: [0, 1];
+			case Address, BlockQuote, Dialog, 
+				 Div, Dl, FieldSet, Figure, 
+				 Footer, Form, Header, Hr, 
+				 Main, Menu, Ol, P, Pre,
+				 Table, Ul: [1];
+			// Sectioning Content
+			case Article, Aside, Nav, Section: [1, 2];
+			// Heading Content
+			case H1, H2, H3, H4, H5, H6: [1, 3];
+			// Phrasing Content
+			case NoScript, Script: [0, 1, 4];
+			case Abbr, Area, B, Bdi, Bdo, Br,
+				 Cite, Code, Data, DataList, Del,
+				 Dfn, Em, I, Ins, Kbd, Link, Map,
+				 Mark, Meta, Meter, Output, Progress,
+				 Q, Ruby, S, Samp, Small, Span, Strong,
+				 Sub, Sup, Template, Time, U, Var, Wbr: [1, 4];
+			// Embedded Content
+			case Canvas,
+				 Math, Svg: [1, 4, 5];
+			// Interactive Content
+			case Details: [1, 6];
+			case A, Button, Input, Keygen, Label, 
+				 Select, TextArea: [1, 4, 6];
+			case Audio, Embed, Iframe, Img, Object,
+				 Video:[1, 4, 5, 6];
+		}
+	}
+	
+	public var Base = 'base';
+	public var Link = 'link';
+	public var Meta = 'meta';
+	public var NoScript = 'noscript';
+	public var Script = 'script';
+	public var Style = 'style';
+	public var Template = 'template';
+	public var Title = 'title';
+	public var A = 'a';
+	public var Abbr = 'abbr';
+	public var Address = 'address';
+	public var Area = 'area';
+	public var Article = 'article';
+	public var Aside = 'aside';
+	public var Audio = 'audio';
+	public var B = 'b';
+	public var Bdi = 'bdi';
+	public var Bdo = 'bdo';
+	public var BlockQuote = 'blockquote';
+	public var Br = 'br';
+	public var Button = 'button';
+	public var Canvas = 'canvas';
+	public var Cite = 'cite';
+	public var Code = 'code';
+	public var Data = 'data';
+	public var DataList = 'datalist';
+	public var Del = 'del';
+	public var Details = 'details';
+	public var Dfn = 'dfn';
+	public var Dialog = 'dialog';
+	public var Div = 'div';
+	public var Dl = 'dl';
+	public var Em = 'em';
+	public var Embed = 'embed';
+	public var FieldSet = 'fieldset';
+	public var Figure = 'figure';
+	public var Footer = 'footer';
+	public var Form = 'form';
+	public var H1 = 'h1';
+	public var H2 = 'h2';
+	public var H3 = 'h3';
+	public var H4 = 'h4';
+	public var H5 = 'h5';
+	public var H6 = 'h6';
+	public var Header = 'header';
+	public var Hr = 'hr';
+	public var I = 'i';
+	public var Iframe = 'iframe';
+	public var Img = 'img';
+	public var Input = 'input';
+	public var Ins = 'ins';
+	public var Kbd = 'kbd';
+	public var Keygen = 'keygen';
+	public var Label = 'label';
+	public var Link = 'link';
+	public var Main = 'main';
+	public var Map = 'map';
+	public var Mark = 'mark';
+	public var Math = 'math';
+	public var Menu = 'menu';
+	public var Meta = 'meta';
+	public var Meter = 'meter';
+	public var Nav = 'nav';
+	public var Object = 'object';
+	public var Ol = 'ol';
+	public var Output = 'output';
+	public var P = 'p';
+	public var Pre = 'pre';
+	public var Progress = 'progress';
+	public var Q = 'q';
+	public var Ruby = 'ruby';
+	public var S = 's';
+	public var Samp = 'samp';
+	public var Section = 'section';
+	public var Select = 'select';
+	public var Small = 'small';
+	public var Span = 'span';
+	public var Strong = 'strong';
+	public var Sub = 'sub';
+	public var Sup = 'sup';
+	public var Svg = 'svg';
+	public var Table = 'table';
+	public var Template = 'template';
+	public var TextArea = 'textarea';
+	public var Time = 'time';
+	public var U = 'u';
+	public var Ul = 'ul';
+	public var Var = 'var';
+	public var Video = 'video';
+	public var Wbr = 'wbr';
+}
+
 /**
  * ...
  * @author Skial Bainn
  */
+
 class HtmlLexer extends Lexer {
 
 	public function new(content:ByteData, name:String) {
