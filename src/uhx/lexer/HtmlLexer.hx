@@ -18,7 +18,14 @@ enum HtmlKeywords {
 	End(name:String);
 	Ref(entity:HtmlReference);
 	Instruction(name:String, attributes:Array<String>);
-	Tag(name:String, attributes:Map<String,String>, tokens:Tokens, selfClosing:Bool, complete:Bool);
+	Tag(
+		name:String, 
+		attributes:Map<String,String>, 
+		categories:Array<Category>, 
+		tokens:Tokens, 
+		selfClosing:Bool, 
+		complete:Bool
+	);
 }
 
 private class HtmlReference {
@@ -27,23 +34,26 @@ private class HtmlReference {
 	public var tokens:Tokens;
 	public var complete:Bool;
 	public var selfClosing:Bool;
+	public var categories:Array<Category>;
 	public var attributes:Map<String,String>;
 	
-	public function new(name:String, attributes:Map<String,String>, tokens:Tokens, selfClosing:Bool, complete:Bool) {
+	public function new(name:String, attributes:Map<String,String>, categories:Array<Category>, tokens:Tokens, selfClosing:Bool, complete:Bool) {
 		this.name = name;
 		this.attributes = attributes;
+		this.categories = categories;
 		this.tokens = tokens;
 		this.selfClosing = selfClosing;
 		this.complete = complete;
 	}
 	
 	public function get():HtmlKeywords {
-		return Tag( name, attributes, tokens, selfClosing, complete );
+		return Tag( name, attributes, categories, tokens, selfClosing, complete );
 	}
 	
 }
 
 @:enum abstract Category(Int) from Int to Int {
+	public var Unknown = -1;
 	public var Metadata = 0;
 	public var Flow = 1;
 	public var Sectioning = 2;
@@ -53,9 +63,9 @@ private class HtmlReference {
 	public var Interactive = 6;
 }
 
-@:enum abstract HtmlTags(String) from String to String {
-	public static function categories(tag:HtmlTags):Array<Category> {
-		switch (tag) {
+@:enum abstract HtmlTag(String) from String to String {
+	public static function categories(tag:String):Array<Category> {
+		return switch (tag) {
 			// Metadata Content
 			case Base, Link, Meta, Template, Title: [0];
 			// Flow Content
@@ -78,14 +88,15 @@ private class HtmlReference {
 				 Q, Ruby, S, Samp, Small, Span, Strong,
 				 Sub, Sup, Template, Time, U, Var, Wbr: [1, 4];
 			// Embedded Content
-			case Canvas,
-				 Math, Svg: [1, 4, 5];
+			case Canvas, Math, Svg: [1, 4, 5];
 			// Interactive Content
 			case Details: [1, 6];
 			case A, Button, Input, Keygen, Label, 
 				 Select, TextArea: [1, 4, 6];
 			case Audio, Embed, Iframe, Img, Object,
 				 Video:[1, 4, 5, 6];
+			// Unknown
+			case _: [ -1];
 		}
 	}
 	
@@ -143,13 +154,11 @@ private class HtmlReference {
 	public var Kbd = 'kbd';
 	public var Keygen = 'keygen';
 	public var Label = 'label';
-	public var Link = 'link';
 	public var Main = 'main';
 	public var Map = 'map';
 	public var Mark = 'mark';
 	public var Math = 'math';
 	public var Menu = 'menu';
-	public var Meta = 'meta';
 	public var Meter = 'meter';
 	public var Nav = 'nav';
 	public var Object = 'object';
@@ -171,7 +180,6 @@ private class HtmlReference {
 	public var Sup = 'sup';
 	public var Svg = 'svg';
 	public var Table = 'table';
-	public var Template = 'template';
 	public var TextArea = 'textarea';
 	public var Time = 'time';
 	public var U = 'u';
@@ -250,7 +258,7 @@ class HtmlLexer extends Lexer {
 	},
 	'[a-zA-Z0-9]+' => {
 		var tokens:Tokens = [];
-		var tag = lexer.current;
+		var tag:String = lexer.current;
 		var attrs:Array<Array<String>> = [];
 		var isVoid = false;
 		
@@ -290,7 +298,14 @@ class HtmlLexer extends Lexer {
 			untyped console.log( e );
 		}
 		
-		var entity = new HtmlReference(tag, [for (pair in attrs) pair[0] => pair[1]], tokens, isVoid, false);
+		var entity = new HtmlReference(
+			tag, 
+			[for (pair in attrs) pair[0] => pair[1]], 
+			HtmlTag.categories(tag), 
+			tokens, 
+			isVoid, 
+			false
+		);
 		var position = -1;
 		
 		if (!isVoid) {
