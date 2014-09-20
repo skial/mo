@@ -68,37 +68,26 @@ private class HtmlReference {
 @:enum abstract HtmlTag(String) from String to String {
 	public static function categories(tag:String):Array<Category> {
 		return switch (tag) {
-			// Metadata Content
 			case Base, Link, Meta, Title: [0];
-			// Flow Content
 			case Style: [0, 1];
 			case Dialog, Hr: [1];
-			// Sectioning Content
-			// Heading Content
-			// Phrasing Content
 			case NoScript: [0, 1, 4];
 			case Area, Br, DataList, Del, Link, Meta, Time, Wbr: [1, 4];
-			// Embedded Content
-			// Interactive Content
 			case TextArea: [1, 4, 6];
-			// Palpable
 			case H1, H2, H3, H4, H5, H6: [1, 3, 7];
 			case Address, BlockQuote, Div, Dl, FieldSet, Figure,
 				 Footer, Form, Header, Main, Menu, Ol, P, Pre, 
 				 Table, Ul: [1, 7];
 			case Article, Aside, Nav, Section: [1, 2, 7];
-			case A: [1, 4, 6, 7];
 			case Abbr, B, Bdi, Bdo, Cite, Code, Data, Dfn, Em, 
 				 I, Ins, Kbd, Map, Mark, Meter, Output, Progress,
 				 Q, Ruby, S, Samp,  Small, Span, Strong,
 				 Sub, Sup, U, Var: [1, 4, 7];
 			case Details: [1, 6, 7];
 			case Canvas, Math, Svg: [1, 4, 5, 7];
-			case Button, Input, Keygen, Label, Select: [1, 4, 6, 7];
+			case A, Button, Input, Keygen, Label, Select: [1, 4, 6, 7];
 			case Audio, Embed, Iframe, Img, Object, Video: [1, 4, 5, 6, 7];
-			// Scripted
 			case Script, Template: [0, 1, 4, 8];
-			// Unknown
 			case _: [ -1];
 		}
 	}
@@ -296,7 +285,10 @@ class HtmlLexer extends Lexer {
 					untyped console.log( e );
 				};
 				
+			} else if (e.char == '>') {
+				untyped lexer.pos++;
 			}
+			
 			
 		} catch (e:Dynamic) {
 			untyped console.log( e );
@@ -315,6 +307,9 @@ class HtmlLexer extends Lexer {
 		if (!isVoid) {
 			
 			switch (categories) {
+				case x if (x.indexOf( Category.Scripted ) != -1):
+					position = buildScripted( entity, lexer );
+					
 				case _:
 					position = buildChildren( entity, lexer );
 					
@@ -503,6 +498,55 @@ class HtmlLexer extends Lexer {
 				lexer.pos,
 				lexer.input.length
 			) );
+		} catch (e:Dynamic) {
+			untyped console.log( e );
+		}
+		
+		return position;
+	}
+	
+	private static function scriptedRule(tag:String) return Mo.rules( [
+	'</[ ]*$tag[ ]*>' => {
+		Mo.make( lexer, Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) ) );
+	},
+	'[^\r\n\t<]+' => {
+		Mo.make( lexer, Const(CString( lexer.current )) );
+	},
+	'[\r\n\t]+' => {
+		Mo.make( lexer, Const(CString( lexer.current )) );
+	},
+	'<' => {
+		Mo.make( lexer, Const(CString( lexer.current )) );
+	},
+	] );
+	
+	private static function buildScripted(ref:HtmlReference, lexer:Lexer):Int {
+		var position = openTags.push( ref ) - 1;
+		var rule = scriptedRule( ref.name );
+		
+		try while (true) {
+			var token = lexer.token( rule );
+			
+			switch (token.token) {
+				case Keyword(End( x )) if (x == ref.name):
+					// Set the reference as complete.
+					ref.complete = true;
+					// Combine all tokens into one token.
+					ref.tokens = [
+						Mo.make(lexer, Const(CString( 
+							[for (t in ref.tokens) switch(t.token) {
+								case Const(CString(x)): x;
+								case _: '';
+							}].join('')
+						)))
+					];
+					break;
+					
+				case _:
+					
+			}
+			
+			ref.tokens.push( token );
 		} catch (e:Dynamic) {
 			untyped console.log( e );
 		}
