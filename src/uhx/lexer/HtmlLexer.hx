@@ -156,6 +156,19 @@ private class HtmlReference {
 	public var Var = 'var';
 	public var Video = 'video';
 	public var Wbr = 'wbr';
+	
+	public var Col = 'col';
+	public var Command = 'command';
+	public var FigCaption = 'figcaption';
+	public var HGroup = 'hgroup';
+	public var Param = 'param';
+	public var RP = 'rp';
+	public var RT = 'rt';
+	public var Source = 'source';
+	public var Summary = 'summary';
+	public var Track = 'track';
+	
+	public var Content = 'content';
 }
 
 /**
@@ -437,14 +450,26 @@ class HtmlLexer extends Lexer {
 	
 	// Get the categories the each element fall into.
 	private static function categories(tag:String):Array<Category> {
+		/**
+		Unknown = -1;
+		Metadata = 0;
+		Flow = 1;
+		Sectioning = 2;
+		Heading = 3;
+		Phrasing = 4;
+		Embedded = 5;
+		Interactive = 6;
+		Palpable = 7;
+		Scripted = 8;
+		 */
 		return switch (tag) {
 			case Base, Link, Meta, Title: [0];
 			case Style: [0, 1];
 			case Dialog, Hr: [1];
-			case NoScript: [0, 1, 4];
+			case NoScript, Command: [0, 1, 4];
 			case Area, Br, DataList, Del, Link, Meta, Time, Wbr: [1, 4];
 			case TextArea: [1, 4, 6];
-			case H1, H2, H3, H4, H5, H6: [1, 3, 7];
+			case H1, H2, H3, H4, H5, H6, HGroup: [1, 3, 7];
 			case Address, BlockQuote, Div, Dl, FieldSet, Figure,
 				 Footer, Form, Header, Main, Menu, Ol, P, Pre, 
 				 Table, Ul: [1, 7];
@@ -465,8 +490,9 @@ class HtmlLexer extends Lexer {
 	// Get the expected content model for the html element.
 	private static function model(tag:String):Model {
 		return switch (tag) {
-			case Area, Base, Br, /*Col, Command,*/ Embed, Hr, Img,
-				 Input, Keygen, Link, Meta, /*Param, Source, Track,*/ Wbr:
+			case Area, Base, Br, Col, Command, Embed, Hr, Img,
+				 Input, Keygen, Link, Meta, Param, Source, Track,
+				 Wbr:
 				Model.Empty;
 				
 			case NoScript, Script, Style, Title, Template:
