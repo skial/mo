@@ -49,12 +49,12 @@ enum AttributeType {
 	Contains;			//	att*=val
 }
 
-enum CombinatorType {
-	None;				// Used in `type.class` and `type:pseudo`
-	Child;				//	`>`
-	Descendant;			//	` `
-	Adjacent;			//	`+`
-	General;			//	`~`
+@:enum abstract CombinatorType(Int) from Int to Int {
+	public var None = 1;				// Used in `type.class` and `type:pseudo`
+	public var Child = 2;				//	`>`
+	public var Descendant = 3;			//	` `
+	public var Adjacent = 4;			//	`+`
+	public var General = 5;				//	`~`
 }
 
 private typedef Queries = Array<CssMedia>;
