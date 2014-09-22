@@ -32,7 +32,6 @@ private class HtmlReference {
 	public var name:String;
 	public var tokens:Tokens;
 	public var complete:Bool;
-	public var selfClosing:Bool;
 	public var categories:Array<Category>;
 	public var attributes:Map<String,String>;
 	
