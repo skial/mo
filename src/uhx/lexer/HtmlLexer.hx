@@ -11,6 +11,7 @@ import haxe.ds.StringMap;
 import hxparse.UnexpectedChar;
 
 using StringTools;
+using uhx.lexer.HtmlLexer;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 
@@ -65,33 +66,13 @@ private class HtmlReference {
 	public var Scripted = 8;
 }
 
+@:enum abstract Model(Int) from Int to Int {
+	public var Empty = 1;
+	public var Text = 2;
+	public var Elements = 3;
+}
+
 @:enum abstract HtmlTag(String) from String to String {
-	public static function categories(tag:String):Array<Category> {
-		return switch (tag) {
-			case Base, Link, Meta, Title: [0];
-			case Style: [0, 1];
-			case Dialog, Hr: [1];
-			case NoScript: [0, 1, 4];
-			case Area, Br, DataList, Del, Link, Meta, Time, Wbr: [1, 4];
-			case TextArea: [1, 4, 6];
-			case H1, H2, H3, H4, H5, H6: [1, 3, 7];
-			case Address, BlockQuote, Div, Dl, FieldSet, Figure,
-				 Footer, Form, Header, Main, Menu, Ol, P, Pre, 
-				 Table, Ul: [1, 7];
-			case Article, Aside, Nav, Section: [1, 2, 7];
-			case Abbr, B, Bdi, Bdo, Cite, Code, Data, Dfn, Em, 
-				 I, Ins, Kbd, Map, Mark, Meter, Output, Progress,
-				 Q, Ruby, S, Samp,  Small, Span, Strong,
-				 Sub, Sup, U, Var: [1, 4, 7];
-			case Details: [1, 6, 7];
-			case Canvas, Math, Svg: [1, 4, 5, 7];
-			case A, Button, Input, Keygen, Label, Select: [1, 4, 6, 7];
-			case Audio, Embed, Iframe, Img, Object, Video: [1, 4, 5, 6, 7];
-			case Script, Template: [0, 1, 4, 8];
-			case _: [ -1];
-		}
-	}
-	
 	public var Base = 'base';
 	public var Link = 'link';
 	public var Meta = 'meta';
@@ -251,9 +232,15 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9]+' => {
 		var tokens:Tokens = [];
 		var tag:String = lexer.current;
-		var categories = HtmlTag.categories( tag );
+		var categories = tag.categories();
+		var model = tag.model();
 		var attrs:Array<Array<String>> = [];
-		var isVoid = false;
+		var isVoid = 
+		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
+			true;
+		} else {
+			false;
+		}
 		
 		try while (true) {
 			var token:Array<String> = lexer.token( attributes );
@@ -308,7 +295,7 @@ class HtmlLexer extends Lexer {
 			
 			switch (categories) {
 				case x if (x.indexOf( Category.Metadata ) != -1):
-					position = buildScripted( entity, lexer );
+					position = buildMetadata( entity, lexer );
 					
 				case _:
 					position = buildChildren( entity, lexer );
@@ -453,6 +440,50 @@ class HtmlLexer extends Lexer {
 	
 	public static var root = openClose;
 	
+	// Get the categories the each element fall into.
+	private static function categories(tag:String):Array<Category> {
+		return switch (tag) {
+			case Base, Link, Meta, Title: [0];
+			case Style: [0, 1];
+			case Dialog, Hr: [1];
+			case NoScript: [0, 1, 4];
+			case Area, Br, DataList, Del, Link, Meta, Time, Wbr: [1, 4];
+			case TextArea: [1, 4, 6];
+			case H1, H2, H3, H4, H5, H6: [1, 3, 7];
+			case Address, BlockQuote, Div, Dl, FieldSet, Figure,
+				 Footer, Form, Header, Main, Menu, Ol, P, Pre, 
+				 Table, Ul: [1, 7];
+			case Article, Aside, Nav, Section: [1, 2, 7];
+			case Abbr, B, Bdi, Bdo, Cite, Code, Data, Dfn, Em, 
+				 I, Ins, Kbd, Map, Mark, Meter, Output, Progress,
+				 Q, Ruby, S, Samp,  Small, Span, Strong,
+				 Sub, Sup, U, Var: [1, 4, 7];
+			case Details: [1, 6, 7];
+			case Canvas, Math, Svg: [1, 4, 5, 7];
+			case A, Button, Input, Keygen, Label, Select: [1, 4, 6, 7];
+			case Audio, Embed, Iframe, Img, Object, Video: [1, 4, 5, 6, 7];
+			case Script, Template: [0, 1, 4, 8];
+			case _: [ -1];
+		}
+	}
+	
+	// Get the expected content model for the html element.
+	private static function model(tag:String):Model {
+		return switch (tag) {
+			case Area, Base, Br, /*Col, Command,*/ Embed, Hr, Img,
+				 Input, Keygen, Link, Meta, /*Param, Source, Track,*/ Wbr:
+				Model.Empty;
+				
+			case NoScript, Script, Style, Title, Template:
+				Model.Text;
+				
+			case _:
+				Model.Elements;
+				
+		}
+	}
+	
+	// Build descendant html elements
 	private static function buildChildren(ref:HtmlReference, lexer:Lexer):Int {
 		var position = openTags.push( ref ) - 1;
 		
@@ -520,7 +551,8 @@ class HtmlLexer extends Lexer {
 	},
 	] );
 	
-	private static function buildScripted(ref:HtmlReference, lexer:Lexer):Int {
+	// Build Html Category of type Metadata
+	private static function buildMetadata(ref:HtmlReference, lexer:Lexer):Int {
 		var position = openTags.push( ref ) - 1;
 		var rule = scriptedRule( ref.name );
 		
