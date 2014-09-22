@@ -182,9 +182,6 @@ class HtmlLexer extends Lexer {
 		super( content, name );
 	}
 	
-	public static var tagChars = 'a-zA-Z0-9 \\-\\^\\[\\]\\(\\)\\*\\+\\?\\!\\|"\'£$%&_={}:;@~#,/><';
-	public static var attributeChars = 'a-zA-Z0-9\\-\\^\\[\\]\\(\\)\\*\\+\\?\\!\\|"\'£$%&_{}:;@~#,/';
-	
 	public static var openTags:Array<HtmlReference> = [];
 	
 	public static var openClose = Mo.rules( [
