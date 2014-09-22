@@ -23,9 +23,7 @@ enum HtmlKeywords {
 		name:String, 
 		attributes:Map<String,String>, 
 		categories:Array<Category>, 
-		tokens:Tokens, 
-		selfClosing:Bool, 
-		complete:Bool
+		tokens:Tokens
 	);
 }
 
@@ -38,17 +36,16 @@ private class HtmlReference {
 	public var categories:Array<Category>;
 	public var attributes:Map<String,String>;
 	
-	public function new(name:String, attributes:Map<String,String>, categories:Array<Category>, tokens:Tokens, selfClosing:Bool, complete:Bool) {
+	public function new(name:String, attributes:Map<String,String>, categories:Array<Category>, tokens:Tokens, complete:Bool) {
 		this.name = name;
 		this.attributes = attributes;
 		this.categories = categories;
 		this.tokens = tokens;
-		this.selfClosing = selfClosing;
 		this.complete = complete;
 	}
 	
 	public function get():HtmlKeywords {
-		return Tag( name, attributes, categories, tokens, selfClosing, complete );
+		return Tag( name, attributes, categories, tokens );
 	}
 	
 }
@@ -286,7 +283,6 @@ class HtmlLexer extends Lexer {
 			[for (pair in attrs) pair[0] => pair[1]], 
 			categories, 
 			tokens, 
-			isVoid, 
 			false
 		);
 		var position = -1;
