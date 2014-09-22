@@ -307,7 +307,7 @@ class HtmlLexer extends Lexer {
 		if (!isVoid) {
 			
 			switch (categories) {
-				case x if (x.indexOf( Category.Scripted ) != -1):
+				case x if (x.indexOf( Category.Metadata ) != -1):
 					position = buildScripted( entity, lexer );
 					
 				case _:
