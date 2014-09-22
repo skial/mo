@@ -235,7 +235,7 @@ class HtmlLexer extends Lexer {
 	'/[^\r\n\t <>]+>' => {
 		Mo.make( lexer, Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) ) );
 	},
-	'[a-zA-Z0-9]+' => {
+	'[a-zA-Z0-9:]+' => {
 		var tokens:Tokens = [];
 		var tag:String = lexer.current;
 		var categories = tag.categories();
