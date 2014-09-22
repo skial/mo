@@ -383,7 +383,7 @@ class HtmlLexer extends Lexer {
 	] );
 	
 	public static var instructions = Mo.rules( [
-	'[^\r\n\t<> \\[]+' => lexer.current,
+	'[^\r\n\t<> "\\[]+' => lexer.current,
 	'[\r\n\t ]+' => lexer.token( instructions ),
 	'\\[' => {
 		var value = '';
@@ -433,6 +433,26 @@ class HtmlLexer extends Lexer {
 			untyped console.log( e );
 		}
 		'<$value>';
+	},
+	'"' => {
+		var value = '';
+		
+		try while (true) {
+			var token = lexer.token( Mo.rules([ '"' => '"', '[^"]+' => lexer.current ])  );
+			
+			switch (token) {
+				case '"':
+					break;
+					
+				case _:
+					
+			}
+			
+			value += token;
+		} catch (e:Dynamic) {
+			untyped console.log( e );
+		}
+		'$value';
 	}
 	] );
 	
