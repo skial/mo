@@ -1,5 +1,6 @@
 package uhx.lexer;
 
+import haxe.EnumTools;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
@@ -27,15 +28,24 @@ enum HtmlKeywords {
 	);
 }
 
-abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
-	public inline function new(v:HtmlKeywords) this = v;
+abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeywords> {
+	public var attributes(get, never):Iterable<{name:String, value:String}>;
+	public var childNodes(get, never):Iterable<DOMNode>;
+	public var parentNode(get, never):DOMNode;
+	public var firstChild(get, never):DOMNode;
+	public var lastChild(get, never):DOMNode;
+	public var nextSibling(get, never):DOMNode;
+	public var previousSibling(get, never):DOMNode;
+	public var textContent(get, set):String;
+	
+	public inline function new(v:Token<HtmlKeywords>) this = v;
 	
 	public function hasChildNodes():Bool {
 		return switch (this) {
-			case Tag(_, _, _, t):
+			case Keyword(Tag(_, _, _, t)):
 				t.length > 0;
 				
-			case Ref(e):
+			case Keyword(Ref(e)):
 				e.tokens.length > 0;
 				
 			case _:
@@ -46,10 +56,10 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 	
 	public function getAttribute(name:String):String {
 		return switch (this) {
-			case Tag(_, a, _, _): 
+			case Keyword(Tag(_, a, _, _)): 
 				a.exists( name ) ? a.get( name ) : '';
 				
-			case Ref(e): 
+			case Keyword(Ref(e)): 
 				e.attributes.exists( name ) ? e.attributes.get( name ) : '';
 				
 			case _: 
@@ -59,10 +69,10 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 	
 	public function setAttribute(name:String, value:String):Void {
 		switch (this) {
-			case Tag(_, a, _, _):
+			case Keyword(Tag(_, a, _, _)):
 				a.set( name, value );
 				
-			case Ref(e):
+			case Keyword(Ref(e)):
 				e.attributes.set( name, value );
 				
 			case _:
@@ -72,10 +82,10 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 	
 	public function removeAttribute(name:String):Void {
 		switch (this) {
-			case Tag(_, a, _, _):
+			case Keyword(Tag(_, a, _, _)):
 				a.remove( name );
 				
-			case Ref(e):
+			case Keyword(Ref(e)):
 				e.attributes.remove( name );
 				
 			case _:
@@ -85,11 +95,11 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 	
 	public function appendChild(newChild:DOMNode):DOMNode {
 		switch (this) {
-			case Tag(_, _, _, t):
-				t.push( Keyword( newChild ) );
+			case Keyword(Tag(_, _, _, t)):
+				t.push( newChild );
 				
-			case Ref(e):
-				e.tokens.push( Keyword( newChild ) );
+			case Keyword(Ref(e)):
+				e.tokens.push( newChild );
 				
 			case _:
 				
@@ -100,11 +110,11 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 	
 	public function insertChild(newChild:DOMNode, index:Int):Void {
 		switch (this) {
-			case Tag(_, _, _, t):
-				t.insert( index, Keyword( newChild ) );
+			case Keyword(Tag(_, _, _, t)):
+				t.insert( index, newChild );
 				
-			case Ref(e):
-				e.tokens.insert( index, Keyword( newChild ) );
+			case Keyword(Ref(e)):
+				e.tokens.insert( index, newChild );
 				
 			case _:
 				
@@ -112,14 +122,12 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 	}
 	
 	public function insertBefore(newChild:DOMNode, refChild:DOMNode):DOMNode {
-		var index = 0;
-		
 		switch (this) {
-			case Tag(_, _, _, t):
-				//t.indexOf(
+			case Keyword(Tag(_, _, _, t)):
+				t.insert( t.indexOf( refChild ), refChild );
 				
-			case Ref(e):
-				
+			case Keyword(Ref(e)):
+				e.tokens.insert( e.tokens.indexOf( refChild ), refChild );
 				
 			case _:
 				
@@ -127,6 +135,103 @@ abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
 		
 		return newChild;
 	}
+	
+	public function removeChild(oldChild:DOMNode):DOMNode {
+		switch (this) {
+			case Keyword(Tag(_, _, _, t)):
+				t.remove( oldChild );
+				
+			case Keyword(Ref(e)):
+				e.tokens.remove( oldChild );
+				
+			case _:
+				
+		}
+		
+		return oldChild;
+	}
+	
+	public function cloneNode(deep:Bool):DOMNode {
+		return switch (this) {
+			case Keyword(Tag(n, a, c, t):
+				Keyword(Tag(n, [for (k in a.keys()) k => a.get(k)], c.copy(), t.copy()));
+				
+			case Keyword(Ref(e):
+				Keyword(Ref(e.clone( deep )));
+				
+			case Keyword(Instruction(n, a):
+				Keyword(Instruction(n, a.copy()));
+				
+			case Keyword(End(n)):
+				Keyword(End(n));
+				
+		}
+	}
+	
+	public function get_attributes():Iterable<{name:String, value:String}> {
+		var list = new List();
+		
+		switch (this) {
+			case Keyword(Tag(_, a, _, _)):
+				for (k in a.keys()) {
+					list.push( { name: k, value: a.get( k ) } );
+				}
+				
+			case Keyword(Ref(e)):
+				for (k in e.attributes.keys()) {
+					list.push( { name: k, value: e.attributes.get( k ) } );
+				}
+				
+			case _:
+				
+		}
+		
+		return list;
+	}
+	
+	public inline function get_childNodes():Array<DOMNode> {
+		return switch (this) {
+			case Keyword(Tag(_, _, _, t)): 
+				t;
+				
+			case Keyword(Ref(e)): 
+				e.tokens;
+				
+			case _: 
+				[];
+		}
+	}
+	
+	public inline function get_parentNode():DOMNode {
+		return this;
+	}
+	
+	public inline function get_firstChild():DOMNode {
+		return switch (this) {
+			case Keyword(Tag(_, _, _, t)):
+				t[0];
+				
+			case Keyword(Ref(e)):
+				e.tokens[0];
+				
+			case _:
+				null;
+		}
+	}
+	
+	public inline function get_lastChild():DOMNode {
+		return switch (this) {
+			case Keyword(Tag(_, _, _, t)):
+				t[t.length-1];
+				
+			case Keyword(Ref(e)):
+				e.tokens[e.tokens.length-1];
+				
+			case _:
+				null;
+		}
+	}
+	
 }
 
 private class HtmlReference {
@@ -147,6 +252,10 @@ private class HtmlReference {
 	
 	public function get():HtmlKeywords {
 		return Tag( name, attributes, categories, tokens );
+	}
+	
+	public function clone(deep:Bool):HtmlReference {
+		return new HtmlReference(name, [for (k in attributes.keys()) k => attributes.get(k)], categories.copy(), tokens.copy());
 	}
 	
 }
