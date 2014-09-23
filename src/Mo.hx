@@ -4,7 +4,6 @@ import haxe.macro.Printer;
 import uhx.mo.Token;
 import hxparse.Lexer;
 import haxe.rtti.Meta;
-import uhx.mo.TokenDef;
 import hxparse.Ruleset;
 import haxe.ds.StringMap;
 
@@ -122,10 +121,6 @@ class Mo {
 		}
 		
 		return name.toLowerCase();
-	}
-	
-	public static function make<T>(lex:Lexer, tok:TokenDef<T>):Token<T> {
-		return new Token<T>(tok, lex.curPos());
 	}
 	
 	public static macro function rules<T>(rules:ExprOf<StringMap<T>>):ExprOf<Ruleset<T>> {
