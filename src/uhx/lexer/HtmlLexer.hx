@@ -4,7 +4,7 @@ import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
-import uhx.mo.TokenDef;
+import uhx.mo.Token;
 import hxparse.Ruleset;
 import hxparse.Position;
 import haxe.ds.StringMap;
@@ -25,6 +25,108 @@ enum HtmlKeywords {
 		categories:Array<Category>, 
 		tokens:Tokens
 	);
+}
+
+abstract DOMNode(HtmlKeywords) from HtmlKeywords to HtmlKeywords {
+	public inline function new(v:HtmlKeywords) this = v;
+	
+	public function hasChildNodes():Bool {
+		return switch (this) {
+			case Tag(_, _, _, t):
+				t.length > 0;
+				
+			case Ref(e):
+				e.tokens.length > 0;
+				
+			case _:
+				false;
+				
+		}
+	}
+	
+	public function getAttribute(name:String):String {
+		return switch (this) {
+			case Tag(_, a, _, _): 
+				a.exists( name ) ? a.get( name ) : '';
+				
+			case Ref(e): 
+				e.attributes.exists( name ) ? e.attributes.get( name ) : '';
+				
+			case _: 
+				'';
+		}
+	}
+	
+	public function setAttribute(name:String, value:String):Void {
+		switch (this) {
+			case Tag(_, a, _, _):
+				a.set( name, value );
+				
+			case Ref(e):
+				e.attributes.set( name, value );
+				
+			case _:
+				
+		}
+	}
+	
+	public function removeAttribute(name:String):Void {
+		switch (this) {
+			case Tag(_, a, _, _):
+				a.remove( name );
+				
+			case Ref(e):
+				e.attributes.remove( name );
+				
+			case _:
+				
+		}
+	}
+	
+	public function appendChild(newChild:DOMNode):DOMNode {
+		switch (this) {
+			case Tag(_, _, _, t):
+				t.push( Keyword( newChild ) );
+				
+			case Ref(e):
+				e.tokens.push( Keyword( newChild ) );
+				
+			case _:
+				
+		}
+		
+		return newChild;
+	}
+	
+	public function insertChild(newChild:DOMNode, index:Int):Void {
+		switch (this) {
+			case Tag(_, _, _, t):
+				t.insert( index, Keyword( newChild ) );
+				
+			case Ref(e):
+				e.tokens.insert( index, Keyword( newChild ) );
+				
+			case _:
+				
+		}
+	}
+	
+	public function insertBefore(newChild:DOMNode, refChild:DOMNode):DOMNode {
+		var index = 0;
+		
+		switch (this) {
+			case Tag(_, _, _, t):
+				//t.indexOf(
+				
+			case Ref(e):
+				
+				
+			case _:
+				
+		}
+		
+		return newChild;
+	}
 }
 
 private class HtmlReference {
@@ -186,19 +288,19 @@ class HtmlLexer extends Lexer {
 	
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
-	'>' => Mo.make( lexer, GreaterThan ),
-	' +' => Mo.make( lexer, Space(lexer.current.length) ),
-	'\n' => Mo.make( lexer, Newline ),
-	'\r' => Mo.make( lexer, Carriage ),
-	'\t' => Mo.make( lexer, Tab(1) ),
-	'[^<>]+' => Mo.make( lexer, Const( CString( lexer.current ) ) ),
+	'>' => GreaterThan,
+	' +' => Space(lexer.current.length),
+	'\n' => Newline,
+	'\r' => Carriage,
+	'\t' => Tab(1),
+	'[^<>]+' => Const( CString( lexer.current ) ),
 	] );
 	
 	public static var tags = Mo.rules( [ 
-	' +' => Mo.make( lexer, Space(lexer.current.length) ),
-	'\r' => Mo.make( lexer, Carriage ),
-	'\n' => Mo.make( lexer, Newline ),
-	'\t' => Mo.make( lexer, Tab(1) ),
+	' +' => Space(lexer.current.length),
+	'\r' => Carriage,
+	'\n' => Newline,
+	'\t' => Tab(1),
 	'/>' => lexer.token( openClose ),
 	'![a-zA-Z0-9_\\-]*' => {
 		var tag = lexer.current.substring(1, lexer.current.length);
@@ -215,7 +317,7 @@ class HtmlLexer extends Lexer {
 			try while (true) {
 				var token = lexer.token( openClose );
 				
-				switch (token.token) {
+				switch (token) {
 					case GreaterThan:
 						break;
 						
@@ -230,10 +332,10 @@ class HtmlLexer extends Lexer {
 			untyped console.log( e );
 		}
 		
-		Mo.make( lexer, Keyword( Instruction(tag, attrs) ) );
+		Keyword( Instruction(tag, attrs) );
 	},
 	'/[^\r\n\t <>]+>' => {
-		Mo.make( lexer, Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) ) );
+		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
 	},
 	'[a-zA-Z0-9:]+' => {
 		var tokens:Tokens = [];
@@ -261,7 +363,7 @@ class HtmlLexer extends Lexer {
 				try while (true) {
 					var token = lexer.token( openClose );
 					
-					switch (token.token) {
+					switch (token) {
 						case Const(CString(x)) if (x.trim() == '/'):
 							continue;
 							
@@ -313,10 +415,10 @@ class HtmlLexer extends Lexer {
 		}
 		
 		if (position > -1 && !openTags[position].complete) {
-			Mo.make( lexer, Keyword( Ref(entity) ) );
+			Keyword( Ref(entity) );
 		} else {
 			entity.complete = true;
-			Mo.make( lexer, Keyword( entity.get() ) );
+			Keyword( entity.get() );
 		}
 	},
 	//'<' => Mo.make( lexer, LessThan ),
@@ -528,7 +630,7 @@ class HtmlLexer extends Lexer {
 		try while (true) {
 			var token:Token<HtmlKeywords> = lexer.token( openClose );
 			
-			switch (token.token) {
+			switch (token) {
 				case GreaterThan:
 					continue;
 					
@@ -576,16 +678,16 @@ class HtmlLexer extends Lexer {
 	
 	private static function scriptedRule(tag:String) return Mo.rules( [
 	'</[ ]*$tag[ ]*>' => {
-		Mo.make( lexer, Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) ) );
+		Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) );
 	},
 	'[^\r\n\t<]+' => {
-		Mo.make( lexer, Const(CString( lexer.current )) );
+		Const(CString( lexer.current ));
 	},
 	'[\r\n\t]+' => {
-		Mo.make( lexer, Const(CString( lexer.current )) );
+		Const(CString( lexer.current ));
 	},
 	'<' => {
-		Mo.make( lexer, Const(CString( lexer.current )) );
+		Const(CString( lexer.current ));
 	},
 	] );
 	
@@ -597,18 +699,18 @@ class HtmlLexer extends Lexer {
 		try while (true) {
 			var token = lexer.token( rule );
 			
-			switch (token.token) {
+			switch (token) {
 				case Keyword(End( x )) if (x == ref.name):
 					// Set the reference as complete.
 					ref.complete = true;
 					// Combine all tokens into one token.
 					ref.tokens = [
-						Mo.make(lexer, Const(CString( 
-							[for (t in ref.tokens) switch(t.token) {
+						Const(CString( 
+							[for (t in ref.tokens) switch(t) {
 								case Const(CString(x)): x;
 								case _: '';
 							}].join('')
-						)))
+						))
 					];
 					break;
 					

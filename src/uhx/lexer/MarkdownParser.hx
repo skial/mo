@@ -5,7 +5,6 @@ import haxe.io.Eof;
 import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
-import uhx.mo.TokenDef;
 import uhx.lexer.MarkdownLexer;
 
 using Mo;
@@ -26,7 +25,7 @@ class MarkdownParser {
 	}
 	
 	public function filterResources(tokens:Array<Token<MarkdownKeywords>>, map:Map<String, {url:String, title:String}>) {
-		for (token in tokens) switch (token.token) {
+		for (token in tokens) switch (token) {
 			case Keyword(Resource(text, url, title)):
 				map.set(text.toLowerCase().trim(), { url:url, title:title } );
 				
@@ -65,7 +64,7 @@ class MarkdownParser {
 	public function printString(token:Token<MarkdownKeywords>):String {
 		var result = '';
 		
-		switch (token.token) {
+		switch (token) {
 			case Dot: 
 				result += '.';
 				
@@ -133,7 +132,7 @@ class MarkdownParser {
 	public function printHTML(token:Token<MarkdownKeywords>, res:Map<String, { url:String, title:String }>):String {
 		var result = '';
 		
-		switch (token.token) {
+		switch (token) {
 			case Dot: 
 				result += '.';
 				
@@ -346,7 +345,7 @@ class MarkdownParser {
 		return element('iframe', [
 			width == '' ? '' : ' width="$width"', 
 			height == '' ? '' : ' height="$height"',
-			' src="//${url.normalize()}"',
+			' src="${url.normalize()}"',
 			' frameborder="0"', ' webkitallowfullscreen=""',
 			' mozallowfullscreen=""', ' allowfullscreen=""'
 		] );

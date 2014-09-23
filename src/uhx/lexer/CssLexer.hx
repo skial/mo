@@ -8,7 +8,6 @@ import uhx.mo.Token;
 import hxparse.Lexer;
 import byte.ByteData;
 import hxparse.Ruleset;
-import uhx.mo.TokenDef;
 
 using StringTools;
 
@@ -91,14 +90,14 @@ class CssLexer extends Lexer {
 		return Keyword(AtRule(rule.substring(1, index), /*query.length > 1? CssMedia.Group(query) : query[0]*/query, tokens));
 	}
 	
-	private static function handleRuleSet(lexer:Lexer, make:String->Tokens->TokenDef<CssKeywords>, breakOn:TokenDef<CssKeywords>) {
+	private static function handleRuleSet(lexer:Lexer, make:String->Tokens->Token<CssKeywords>, breakOn:Token<CssKeywords>) {
 		var current = lexer.current;
 		var rule = current.substring(0, current.length - 1);
 		var tokens:Tokens = [];
 		
 		try while (true) {
 			var token:Token<CssKeywords> = lexer.token( root );
-			switch (token.token) {
+			switch (token) {
 				case x if(x == breakOn): break;
 				case _:
 			}
@@ -109,7 +108,7 @@ class CssLexer extends Lexer {
 			trace( e );
 		}
 		
-		return Mo.make(lexer, make(rule.trim(), tokens));
+		return make(rule.trim(), tokens);
 	}
 	
 	public static var root = Mo.rules([
@@ -127,7 +126,7 @@ class CssLexer extends Lexer {
 			trace( e );
 		}
 		
-		return Mo.make(lexer, Comment( tokens.join('').trim() ));
+		return Comment( tokens.join('').trim() );
 	},
 	'[^\r\n/@}{][$selector,"\'/ \\[\\]\\(\\)$s]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
 	'@[$selector \\(\\),]+{' => {
@@ -135,14 +134,14 @@ class CssLexer extends Lexer {
 	},
 	declaration => {
 		var tokens = parse(ByteData.ofString(lexer.current), 'declaration', declarations);
-		Mo.make(lexer, Keyword(Declaration(tokens[0], tokens[1])));
+		Keyword(Declaration(tokens[0], tokens[1]));
 	},
-	'{' => Mo.make(lexer, BraceOpen),
-	'}' => Mo.make(lexer, BraceClose),
-	';' => Mo.make(lexer, Semicolon),
-	':' => Mo.make(lexer, Colon),
-	'#' => Mo.make(lexer, Hash),
-	',' => Mo.make(lexer, Comma),
+	'{' => BraceOpen,
+	'}' => BraceClose,
+	';' => Semicolon,
+	':' => Colon,
+	'#' => Hash,
+	',' => Comma,
 	]);
 	
 	public static var comments = Mo.rules([

@@ -7,7 +7,6 @@ import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
 import hxparse.Ruleset;
-import uhx.mo.TokenDef;
 import haxe.ds.StringMap;
 import hxparse.RuleBuilder;
 
@@ -162,7 +161,7 @@ class MarkdownLexer extends Lexer {
 		
 		current = lines.join( LF );
 		
-		return Mo.make(lexer, Keyword(Blockquote( parse( current, 'md-blockquote', blocks ) )));
+		return Keyword(Blockquote( parse( current, 'md-blockquote', blocks ) ));
 	}
 	
 	private static function handleHeader(lexer:Lexer) {
@@ -180,7 +179,7 @@ class MarkdownLexer extends Lexer {
 			current = current.substring(0, current.length - 1);
 		}
 		
-		return Mo.make(lexer, Keyword(Header(false, len, parse(current.trim(), 'md-header', span) )));
+		return Keyword(Header(false, len, parse(current.trim(), 'md-header', span) ));
 	}
 	
 	private static function handleAltHeader(lexer:Lexer) {
@@ -193,7 +192,7 @@ class MarkdownLexer extends Lexer {
 			current = current.substring(0, current.length - 1);
 		}
 		
-		return Mo.make(lexer, Keyword(Header(true, h1?1:2, parse(current.rtrim(), 'md-alt-header', span) )));
+		return Keyword(Header(true, h1?1:2, parse(current.rtrim(), 'md-alt-header', span) ));
 	}
 	
 	private static function handleResource(value:String) {
@@ -323,23 +322,23 @@ class MarkdownLexer extends Lexer {
 	] );
 	
 	private static var emphasis = Mo.rules( [
-	'\r' => Mo.make(lexer, Carriage),
-	'\n' => Mo.make(lexer, Newline),
-	'\\*' => Mo.make(lexer, Asterisk),
-	'\\_' => Mo.make(lexer, Underscore),
-	'~' => Mo.make(lexer, Tilde),
-	'`' => Mo.make(lexer, GraveAccent),
-	'\t' => Mo.make(lexer, Tab(1)),
-	' ' => Mo.make(lexer, Space(1)),
-	'[^\r\n\t\\_\\*~` ]+' => Mo.make(lexer, Const(CString(lexer.current))),
+	'\r' => Carriage,
+	'\n' => Newline,
+	'\\*' => Asterisk,
+	'\\_' => Underscore,
+	'~' => Tilde,
+	'`' => GraveAccent,
+	'\t' => Tab(1),
+	' ' => Space(1),
+	'[^\r\n\t\\_\\*~` ]+' => Const(CString(lexer.current)),
 	] );
 	
 	public static var span = Mo.rules( [
-		//dot => Mo.make(lexer, Dot),
-		'\t' => Mo.make(lexer, Tab(1)),
-		'\n' => Mo.make(lexer, Newline),
-		'\r' => Mo.make(lexer, Carriage),
-		' ' => Mo.make(lexer, Space(1)),
+		//dot => Dot,
+		'\t' => Tab(1),
+		'\n' => Newline,
+		'\r' => Carriage,
+		' ' => Space(1),
 		//inlineCodeRule => {
 		'``*' => {
 			var current = lexer.current;
@@ -354,7 +353,7 @@ class MarkdownLexer extends Lexer {
 				tokens.push( token );
 			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
 			
-			Mo.make(lexer, Keyword(Code( false, '', tokens.join('') )));
+			Keyword(Code( false, '', tokens.join('') ));
 		},
 		//italic => {
 		'\\*|\\_' => {
@@ -364,7 +363,7 @@ class MarkdownLexer extends Lexer {
 			
 			try while (true) {
 				var token:Token<MarkdownKeywords> = lexer.token( emphasis );
-				switch (token.token) {
+				switch (token) {
 					case Underscore if (underscore): break;
 					case Asterisk if (!underscore): break;
 					case _:
@@ -372,7 +371,7 @@ class MarkdownLexer extends Lexer {
 				tokens.push( token );
 			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
 			
-			Mo.make(lexer, Keyword(Italic( underscore, tokens )));
+			Keyword(Italic( underscore, tokens ));
 		},
 		//bold => {
 		'\\*\\*|\\_\\_' => {
@@ -383,7 +382,7 @@ class MarkdownLexer extends Lexer {
 			try while (true) {
 				tokens.push( lexer.token( emphasis ) );
 				
-				switch (tokens.slice(tokens.length-2).map(function(t) return t.token)) {
+				switch (tokens.slice(tokens.length-2).map(function(t) return t)) {
 					case [Underscore, Underscore] if (underscore): 
 						tokens.pop();
 						tokens.pop();
@@ -399,7 +398,7 @@ class MarkdownLexer extends Lexer {
 				
 			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
 			
-			Mo.make(lexer, Keyword(Bold( underscore, tokens )));
+			Keyword(Bold( underscore, tokens ));
 		},
 		//strike => {
 		'~~' => {
@@ -409,7 +408,7 @@ class MarkdownLexer extends Lexer {
 			try while (true) {
 				tokens.push( lexer.token( emphasis ) );
 				
-				switch (tokens.slice(tokens.length-2).map(function(t) return t.token)) {
+				switch (tokens.slice(tokens.length-2).map(function(t) return t)) {
 					case [Tilde, Tilde]: 
 						tokens.pop();
 						tokens.pop();
@@ -420,50 +419,50 @@ class MarkdownLexer extends Lexer {
 				
 			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
 			
-			Mo.make(lexer, Keyword(Strike( tokens )));
+			Keyword(Strike( tokens ));
 		},
 		blockquote => {
 			handleBlockQuote(lexer);
 		},
 		unorderedItem => {
 			var current = lexer.current;
-			Mo.make(lexer, Keyword(Item( current.substring(0, 1), parse( current.substring(1).ltrim(), 'md-unordered-item', span ) )));
+			Keyword(Item( current.substring(0, 1), parse( current.substring(1).ltrim(), 'md-unordered-item', span ) ));
 		},
 		orderedItem => {
 			var current = lexer.current;
 			var index = current.indexOf('.');
-			Mo.make(lexer, Keyword(Item( current.substring(0, index), parse( current.substring(index + 1).ltrim(), 'md-ordered-item', span ) )));
+			Keyword(Item( current.substring(0, index), parse( current.substring(index + 1).ltrim(), 'md-ordered-item', span ) ));
 		},
 		link => {
 			//trace( 'link' );
 			var res = handleResource( lexer.current );
-			Mo.make(lexer, Keyword(Link(false, res.text, res.url, res.title)));
+			Keyword(Link(false, res.text, res.url, res.title));
 		},
 		image => {
 			//trace( 'img' );
 			var res = handleResource( lexer.current.substring(1) );
-			Mo.make(lexer, Keyword(Image(false, res.text, res.url, res.title)));
+			Keyword(Image(false, res.text, res.url, res.title));
 		},
 		'!$reference' => {
 			//trace( 'img reference' );
 			var res = handleResource( lexer.current.substring(1) );
-			Mo.make(lexer, Keyword(Image(true, res.text, res.url, res.title)));
+			Keyword(Image(true, res.text, res.url, res.title));
 		},
 		reference => { 
 			//trace( 'reference' );
 			var res = handleResource( lexer.current );
-			Mo.make(lexer, Keyword(Link(true, res.text, res.url, res.title)));
+			Keyword(Link(true, res.text, res.url, res.title));
 		},
 		resource => {
 			//trace( 'resource' );
 			var res = handleResource( lexer.current );
-			Mo.make(lexer, Keyword(Resource(res.text, res.url, res.title)));
+			Keyword(Resource(res.text, res.url, res.title));
 		},
-		'[\\-]+' => Mo.make(lexer, Hyphen(lexer.current.length)),
+		'[\\-]+' => Hyphen(lexer.current.length),
 		//'  [ ]*$CR?$LF' => Mo.make(lexer, Keyword(Break)),
 		//'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
-		'[^\t\r\n\\*\\_~`\\[ ]+' => Mo.make(lexer, Const(CString( lexer.current ))),
-		'~' => Mo.make(lexer, Tilde),
+		'[^\t\r\n\\*\\_~`\\[ ]+' => Const(CString( lexer.current )),
+		'~' => Tilde,
 		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
 		/*'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
@@ -479,7 +478,7 @@ class MarkdownLexer extends Lexer {
 		header => handleHeader(lexer),
 		altHeader => handleAltHeader(lexer),
 		indentedCode => {
-			Mo.make(lexer, Keyword(Code(false, '', lexer.current.ltrim())));
+			Keyword(Code(false, '', lexer.current.ltrim()));
 		},
 		'````*' => {
 			var current = lexer.current;
@@ -504,11 +503,11 @@ class MarkdownLexer extends Lexer {
 				tokens.push( token );
 			} catch (e:Eof) { } catch (e:Dynamic) trace( e );
 			
-			Mo.make(lexer, Keyword(Code( true, language, tokens.join('') )));
+			Keyword(Code( true, language, tokens.join('') ));
 		},
-		unorderedList => Mo.make(lexer, Keyword(Collection( false, parse( lexer.current, 'md-unordered-list', span ) ))),
+		unorderedList => Keyword(Collection( false, parse( lexer.current, 'md-unordered-list', span ) )),
 		orderedList => {
-			Mo.make(lexer, Keyword(Collection( true, parse( lexer.current, 'md-ordered-list', span ) )));
+			Keyword(Collection( true, parse( lexer.current, 'md-ordered-list', span ) ));
 		},
 		/*horizontalRule => {
 			var current = lexer.current;
@@ -530,18 +529,18 @@ class MarkdownLexer extends Lexer {
 				case '***', '* *', '---', '- -', '___', '_ _':
 					var char = current.substring(0, 2);
 					char = char.endsWith(' ') ? char : char.substring(0, 1);
-					Mo.make(lexer, Keyword(Horizontal(char)));
+					Keyword(Horizontal(char));
 					
 				case _:
 					//trace( lexer.current );
 					//trace( lexer.current.replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t') );
-					Mo.make(lexer, Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) )));
+					Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) ));
 			}
 		},
-		'\t' => Mo.make(lexer, Tab(1)),
-		'\r' => Mo.make(lexer, Carriage),
-		'\n' => Mo.make(lexer, Newline),
-		' ' => Mo.make(lexer, Space(1)),
+		'\t' => Tab(1),
+		'\r' => Carriage,
+		'\n' => Newline,
+		' ' => Space(1),
 	] );
 	
 	public static var root = blocks;

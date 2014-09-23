@@ -27,31 +27,34 @@ class CssParser {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			untyped console.log( lexer.input.readString( lexer.curPos().pmin, lexer.curPos().pmax ) );
+			//untyped console.log( lexer.input.readString( lexer.curPos().pmin, lexer.curPos().pmax ) );
 		}
 		
 		return tokens;
 	}
 	
 	public function printHTML(token:Token<CssKeywords>, ?tag:String = 'span'):String {
-		var css = token.token.toCSS();
+		var css = token.toCSS();
 		var result = '<$tag class="$css">' +
-		(switch (token.token) {
+		(switch (token) {
 			case Keyword( RuleSet(s, t) ):
 				var css = s.toCSS();
 				'<$tag class="$css">' + printSelector( s ) + '</$tag>'
 				+ '<$tag class="brace open"> {\r\n</$tag>'
-				+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
+				//+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
+				+ t.map( function(i) return '\t' + printHTML( i ) ).join( '\r\n' )
 				+ '<$tag class="brace close">\r\n}</$tag>';
 				
 			case Keyword( AtRule(n, q, t) ):
 				'@$n'
-				+ '(' + [for (i in q) printMediaQuery( i )].join(' ') + ') <$tag class="brace open">{\r\n</$tag>'
-				+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
+				//+ '(' + [for (i in q) printMediaQuery( i )].join(' ') + ') <$tag class="brace open">{\r\n</$tag>'
+				+ q.map( function(i) return printMediaQuery( i ) ).join(' ') + ') <$tag class="brace open">{\r\n</$tag>'
+				//+ [for (i in t) '\t' + printHTML( i )].join('\r\n')
+				+ t.map( function(i) return '\t' + printHTML( i ) ).join( '\r\n' )
 				+ '<$tag class="brace close">\r\n}</$tag>';
 				
 			case Keyword( Declaration(n, v) ):
-				'<$tag>$n</$tag><$tag class="colon">: </$tag><$tag>$v</$tag>';
+				'<$tag>$n</$tag><$tag class="colon">: </$tag><$tag>$v</$tag><$tag class="semicolon">;</$tag>';
 				
 			case _: '<wbr>&shy;' + printString( token );
 		})
@@ -70,7 +73,7 @@ class CssParser {
 			tab = space = newline = '';
 		}
 		
-		switch (token.token) {
+		switch (token) {
 			case BraceOpen:
 				result = '{';
 				
@@ -96,12 +99,17 @@ class CssParser {
 				result += printSelector( s, compress );
 				result += '$space{$newline';
 				result += [for (i in t) '$tab' + printString( i, compress)].join( newline );
+				//result += t.map( function(i) return '$tab' + printString( i, compress ) ).join( newline );
 				result += '$newline}';
 				
 			case Keyword( AtRule(n, q, t) ):
 				result = '@$n';
 				result += ' ' + [for (i in q) printMediaQuery( i, compress )].join(' ') + ' {$newline';
+				//result += ' ' + q.map( function(i) return printMediaQuery( i, compress ) ).join(' ') + ' {$newline';
+				//result += ' ' + [for (i in q) printMediaQuery( i, compress )].join(' ') + ' {$newline';
+				//result += ' ' + q.map( function(i) return printMediaQuery( i, compress ) ).join(' ') + ' {$newline';
 				result += [for (i in t) '$tab' + printString( i, compress ).replace(compress? '': '\n', compress? '' : '\n\t')].join( newline );
+				//result += t.map( function(i) return '$tab' + printString( i, compress ).replace(compress?'':'\n', compress?'':'\n\t') ).join( newline );
 				result += '$newline}';
 				
 			case Keyword( Declaration(n, v) ):
@@ -147,6 +155,7 @@ class CssParser {
 			case Class(n):
 				if (n.length > 0) {
 					result = '.' + [for (i in n) '$i'].join('.');
+					//result = '.' + n.map( function(i) return '$i' ).join('.');
 				}
 				
 			case ID(n):
@@ -250,6 +259,7 @@ class CssParser {
 				
 			case Group(q) if(q.length > 0):
 				result = [for (a in q) [for (b in a) printMediaQuery( b, compress )].join(' ') ].join(',$space');
+				//result = q.map( function(i) return i.map( function(a) return printMediaQuery( a, compress ) ).join(' ') ).join(',$space');
 				
 			case Expr(n, v):
 				result = '($n:$space$v)';
