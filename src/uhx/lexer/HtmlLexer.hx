@@ -24,7 +24,8 @@ enum HtmlKeywords {
 		name:String, 
 		attributes:Map<String,String>, 
 		categories:Array<Category>, 
-		tokens:Tokens
+		tokens:Tokens,
+		parent:Token<HtmlKeywords>
 	);
 }
 
@@ -40,9 +41,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public inline function new(v:Token<HtmlKeywords>) this = v;
 	
+	public inline function token():Token<HtmlKeywords> return this;
+	
 	public function hasChildNodes():Bool {
 		return switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t.length > 0;
 				
 			case Keyword(Ref(e)):
@@ -56,7 +59,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function getAttribute(name:String):String {
 		return switch (this) {
-			case Keyword(Tag(_, a, _, _)): 
+			case Keyword(Tag(_, a, _, _, _)): 
 				a.exists( name ) ? a.get( name ) : '';
 				
 			case Keyword(Ref(e)): 
@@ -69,7 +72,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function setAttribute(name:String, value:String):Void {
 		switch (this) {
-			case Keyword(Tag(_, a, _, _)):
+			case Keyword(Tag(_, a, _, _, _)):
 				a.set( name, value );
 				
 			case Keyword(Ref(e)):
@@ -82,7 +85,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function removeAttribute(name:String):Void {
 		switch (this) {
-			case Keyword(Tag(_, a, _, _)):
+			case Keyword(Tag(_, a, _, _, _)):
 				a.remove( name );
 				
 			case Keyword(Ref(e)):
@@ -95,7 +98,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function appendChild(newChild:DOMNode):DOMNode {
 		switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t.push( newChild );
 				
 			case Keyword(Ref(e)):
@@ -110,7 +113,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function insertChild(newChild:DOMNode, index:Int):Void {
 		switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t.insert( index, newChild );
 				
 			case Keyword(Ref(e)):
@@ -123,7 +126,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function insertBefore(newChild:DOMNode, refChild:DOMNode):DOMNode {
 		switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t.insert( t.indexOf( refChild ), refChild );
 				
 			case Keyword(Ref(e)):
@@ -138,7 +141,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function removeChild(oldChild:DOMNode):DOMNode {
 		switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t.remove( oldChild );
 				
 			case Keyword(Ref(e)):
@@ -153,18 +156,26 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function cloneNode(deep:Bool):DOMNode {
 		return switch (this) {
-			case Keyword(Tag(n, a, c, t):
-				Keyword(Tag(n, [for (k in a.keys()) k => a.get(k)], c.copy(), t.copy()));
+			case Keyword(Tag(n, a, c, t, p)):
+				Keyword(Tag(
+					n, 
+					[for (k in a.keys()) k => a.get(k)], 
+					c.copy(), 
+					t.copy(),
+					(p:DOMNode).cloneNode( deep )
+				));
 				
-			case Keyword(Ref(e):
+			case Keyword(Ref(e)):
 				Keyword(Ref(e.clone( deep )));
 				
-			case Keyword(Instruction(n, a):
+			case Keyword(Instruction(n, a)):
 				Keyword(Instruction(n, a.copy()));
 				
 			case Keyword(End(n)):
 				Keyword(End(n));
 				
+			case _:
+				this;
 		}
 	}
 	
@@ -172,7 +183,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		var list = new List();
 		
 		switch (this) {
-			case Keyword(Tag(_, a, _, _)):
+			case Keyword(Tag(_, a, _, _, _)):
 				for (k in a.keys()) {
 					list.push( { name: k, value: a.get( k ) } );
 				}
@@ -191,7 +202,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public inline function get_childNodes():Array<DOMNode> {
 		return switch (this) {
-			case Keyword(Tag(_, _, _, t)): 
+			case Keyword(Tag(_, _, _, t, _)): 
 				t;
 				
 			case Keyword(Ref(e)): 
@@ -203,12 +214,21 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	}
 	
 	public inline function get_parentNode():DOMNode {
-		return this;
+		return switch (this) {
+			case Keyword(Tag(_, _, _, _, p)):
+				p;
+				
+			case Keyword(Ref(e)):
+				e.parent;
+				
+			case _:
+				null;
+		}
 	}
 	
 	public inline function get_firstChild():DOMNode {
 		return switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t[0];
 				
 			case Keyword(Ref(e)):
@@ -221,7 +241,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public inline function get_lastChild():DOMNode {
 		return switch (this) {
-			case Keyword(Tag(_, _, _, t)):
+			case Keyword(Tag(_, _, _, t, _)):
 				t[t.length-1];
 				
 			case Keyword(Ref(e)):
@@ -232,6 +252,24 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		}
 	}
 	
+	public function get_nextSibling():DOMNode {
+		var parent = (this:DOMNode).parentNode;
+		return parent.childNodes[parent.childNodes.indexOf( this ) + 1];
+	}
+	
+	public function get_previousSibling():DOMNode {
+		var parent = (this:DOMNode).parentNode;
+		return parent.childNodes[parent.childNodes.indexOf( this ) - 1];
+	}
+	
+	public function get_textContent():String {
+		return '';
+	}
+	
+	public function set_textContent(text:String):String {
+		return text;
+	}
+	
 }
 
 private class HtmlReference {
@@ -239,11 +277,17 @@ private class HtmlReference {
 	public var name:String;
 	public var tokens:Tokens;
 	public var complete:Bool;
+	public var parent:Null<Token<HtmlKeywords>>;
 	public var categories:Array<Category>;
 	public var attributes:Map<String,String>;
 	
-	public function new(name:String, attributes:Map<String,String>, categories:Array<Category>, tokens:Tokens, complete:Bool) {
+	public function new(
+		name:String, attributes:Map<String,String>, 
+		categories:Array<Category>, tokens:Tokens, 
+		parent:Null<Token<HtmlKeywords>>, complete:Bool
+	) {
 		this.name = name;
+		this.parent = parent;
 		this.attributes = attributes;
 		this.categories = categories;
 		this.tokens = tokens;
@@ -251,11 +295,18 @@ private class HtmlReference {
 	}
 	
 	public function get():HtmlKeywords {
-		return Tag( name, attributes, categories, tokens );
+		return Tag( name, attributes, categories, tokens, parent );
 	}
 	
 	public function clone(deep:Bool):HtmlReference {
-		return new HtmlReference(name, [for (k in attributes.keys()) k => attributes.get(k)], categories.copy(), tokens.copy());
+		return new HtmlReference(
+			name, 
+			[for (k in attributes.keys()) k => attributes.get(k)], 
+			categories.copy(), 
+			tokens.copy(), 
+			parent,
+			complete
+		);
 	}
 	
 }
@@ -498,11 +549,12 @@ class HtmlLexer extends Lexer {
 			untyped console.log( e );
 		}
 		
-		var entity = new HtmlReference(
+		var ref = new HtmlReference(
 			tag, 
 			[for (pair in attrs) pair[0] => pair[1]], 
 			categories, 
-			tokens, 
+			tokens,
+			null,
 			false
 		);
 		var position = -1;
@@ -511,23 +563,23 @@ class HtmlLexer extends Lexer {
 			
 			switch (categories) {
 				case x if (x.indexOf( Category.Metadata ) != -1):
-					position = buildMetadata( entity, lexer );
+					position = buildMetadata( ref, lexer );
 					
 				case _:
-					position = buildChildren( entity, lexer );
+					position = buildChildren( ref, lexer );
 					
 			}
 			
 			
 		} else {
-			entity.complete = true;
+			ref.complete = true;
 		}
 		
 		if (position > -1 && !openTags[position].complete) {
-			Keyword( Ref(entity) );
+			Keyword( Ref(ref) );
 		} else {
-			entity.complete = true;
-			Keyword( entity.get() );
+			ref.complete = true;
+			Keyword( ref.get() );
 		}
 	},
 	//'<' => Mo.make( lexer, LessThan ),
@@ -765,6 +817,12 @@ class HtmlLexer extends Lexer {
 						continue;
 						
 					}
+					
+				case Keyword( Tag(_, _, _, _, p) ):
+					p = Keyword( Ref( ref ) );
+					
+				case Keyword( Ref(e) ):
+					e.parent = Keyword( Ref( ref ) );
 					
 				case _:
 			}
