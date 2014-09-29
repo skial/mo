@@ -30,6 +30,10 @@ enum HtmlKeywords {
 }
 
 abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeywords> {
+	public var innerHTML(get, set):String;
+	public var nodeType(get, never):Int;
+	public var nodeValue(get, set):String;
+	public var nodeName(get, never):String;
 	public var attributes(get, never):Iterable<{name:String, value:String}>;
 	public var childNodes(get, never):Iterable<DOMNode>;
 	public var parentNode(get, never):DOMNode;
@@ -179,6 +183,114 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		}
 	}
 	
+	@:to public function toString():String {
+		var result = '';
+		
+		for (child in (this:DOMNode).childNodes) switch (child.token()) {
+			case Keyword(Tag(n, _, _, t, _)):
+				result += '<$n>' + [for (i in t) (i:DOMNode).toString()] + '</$n>';
+				
+			case Keyword(Ref(e)):
+				result += '<${e.name}>' + [for (i in e.tokens) (i:DOMNode).toString()] + '</${e.name}>';
+				
+			case Const(CString(s)):
+				result += s;
+				
+			case _:
+				
+		}
+		
+		return result;
+	}
+	
+	public inline function get_innerHTML():String {
+		return toString();
+	}
+	
+	public function set_innerHTML(value:String):String {
+		var lexer = new HtmlLexer( ByteData.ofString( value ), 'innerHTML' );
+		var tokens = [];
+		
+		try while (true) {
+			tokens.push( lexer.token( HtmlLexer.root ) );
+		} catch (e:Dynamic) { }
+		
+		switch (this) {
+			case Keyword(Tag(_, _, _, t, _)):
+				t = tokens;
+				
+			case Keyword(Ref(e)):
+				e.tokens = tokens;
+				
+			case _:
+				
+		}
+		return value;
+	}
+	
+	public function get_nodeType():Int {
+		return switch (this) {
+			case Keyword(Tag(_, _, _, _, _)), Keyword(Ref(_)):
+				1;
+				
+			case Const(CString(_)):
+				2;
+				
+			case Keyword(Instruction(_, _)):
+				3;
+				
+			case Keyword(End(_)):
+				-1;
+				
+			case _:
+				-1;
+		}
+	}
+	
+	public function get_nodeValue():String {
+		return switch (this) {
+			case Const(CString(s)): 
+				s;
+				
+			case Keyword(Instruction(_, a)):
+				a.join(' ');
+				
+			case _:
+				null;
+		}
+	}
+	
+	public function set_nodeValue(value:String):String {
+		switch (this) {
+			case Const(CString(s)): 
+				s = value;
+				
+			case Keyword(Instruction(_, a)):
+				a = [value];
+				
+			case _:
+				
+		}
+		
+		return value;
+	}
+	
+	public function get_nodeName():String {
+		return switch (this) {
+			case Keyword(Tag(n, _, _, _, _)),Keyword(End(n)):
+				n;
+				
+			case Const(CString(_)):
+				'#text';
+				
+			case Keyword(Instruction(_, _)):
+				'#comment';
+				
+			case _:
+				null;
+		}
+	}
+	
 	public function get_attributes():Iterable<{name:String, value:String}> {
 		var list = new List();
 		
@@ -211,6 +323,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case _: 
 				[];
 		}
+	}
+	
+	public inline function iterator():Iterator<DOMNode> {
+		return get_childNodes().iterator();
 	}
 	
 	public inline function get_parentNode():DOMNode {
