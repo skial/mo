@@ -36,12 +36,11 @@ class HttpMessageParser {
 	
 	public function toMap(tokens:Array<Token<HttpMessageKeywords>>):StringMap<String> {
 		var result = new StringMap<String>();
-		var iterator = tokens.iterator();
 		var current = null;
 		
 		try for (token in tokens) {
 			
-			switch (token.token) {
+			switch (token) {
 				case Keyword( KwdHttp( version ) ): 
 					result.set( 'http', version );
 					
@@ -63,7 +62,7 @@ class HttpMessageParser {
 	}
 	
 	public function printString(token:Token<HttpMessageKeywords>):String {
-		return switch (token.token) {
+		return switch (token) {
 			case Tab(n): [for (i in 0...n) '\t'].join('');
 			case Space(n): [for (i in 0...n) ' '].join('');
 			case Newline: '\n';
@@ -77,10 +76,10 @@ class HttpMessageParser {
 	}
 	
 	public function printHTML(token:Token<HttpMessageKeywords>, ?tag:String = 'span'):String {
-		var name = token.token.toCSS();
+		var name = token.toCSS();
 		var result = new StringBuf();
 		
-		switch (token.token) {
+		switch (token) {
 			case Keyword(KwdHttp(v)): 
 				result.add( '<$tag class="$name">http</$tag>' );
 				result.add( '<$tag class="space"> </$tag>' );

@@ -4,7 +4,6 @@ import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
-import uhx.mo.TokenDef;
 import haxe.ds.StringMap;
 
 using Std;
@@ -52,36 +51,32 @@ class HttpMessageLexer extends Lexer {
 		return '[$copy]+';
 	}();
 	
-	public static function mk<T>(lex:Lexer, tok:TokenDef<T>):Token<T> {
-		return new Token<T>(tok, lex.curPos());
-	}
-	
 	public static var root = Mo.rules( [
-		LF => mk(lexer, Newline),
-		CR => mk(lexer, Carriage),
-		HT => mk(lexer, Tab(lexer.current.length)),
-		SP + '+' => mk(lexer, Space(lexer.current.length)),
-		DQ => mk(lexer, DoubleQuote),
+		LF => Newline,
+		CR => Carriage,
+		HT => Tab(lexer.current.length),
+		SP + '+' => Space(lexer.current.length),
+		DQ => DoubleQuote,
 		SEP => {
 			var sep = lexer.current;
 			if (check( sep )) {
 				check = function(v) return false;
 				callback();	
 			}
-			return mk(lexer, Keyword( KwdSeparator( sep ) ));
+			return Keyword( KwdSeparator( sep ) );
 		},
 		NAME => {
 			var result = switch (lexer.current) {
 				case _.toLowerCase() => 'http':
 					buf = new StringBuf();
 					try lexer.token( response ) catch (e:Eof) throw e;
-					mk(lexer, Keyword( KwdHttp( buf.toString() ) ));
+					Keyword( KwdHttp( buf.toString() ) );
 					
 				case _.isStatusCode() => true:
 					buf = new StringBuf();
 					var code = lexer.current.parseFloat();
 					try lexer.token( response ) catch (e:Eof) throw e;
-					mk(lexer, Keyword( KwdStatus( code, buf.toString() ) ));
+					Keyword( KwdStatus( code, buf.toString() ) );
 					
 				case _:
 					var name = lexer.current;
@@ -91,7 +86,7 @@ class HttpMessageLexer extends Lexer {
 						lexer.token( value );
 					}
 					lexer.token( root );
-					mk(lexer, Keyword( KwdHeader( name.trim(), buf.toString() ) ) );
+					Keyword( KwdHeader( name.trim(), buf.toString() ) );
 			}
 			return result;
 		},

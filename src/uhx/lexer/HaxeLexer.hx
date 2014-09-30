@@ -5,7 +5,6 @@ import hxparse.RuleBuilder;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
-import uhx.mo.TokenDef;
 
 enum HaxeKeywords {
 	Function;
@@ -68,96 +67,92 @@ class HaxeLexer extends Lexer implements RuleBuilder {
 	
 	public static var keywords = @:mapping(0) HaxeKeywords;
 	
-	public static function mk<T>(lex:Lexer, tok:TokenDef<T>):Token<T> {
-		return new Token<T>(tok, lex.curPos());
-	}
-	
 	public static var root = Mo.rules( [
-		'\n' => mk(lexer, Newline),
-		'\r' => mk(lexer, Carriage),
-		'\t*' => mk(lexer, Tab(lexer.current.length)),
-		' *' => mk(lexer, Space(lexer.current.length)),
-		"0x[0-9a-fA-F]+" => mk(lexer, Const(CInt(lexer.current))),
-		"[0-9]+" => mk(lexer, Const(CInt(lexer.current))),
-		"[0-9]+\\.[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		"\\.[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		"[0-9]+[eE][\\+\\-]?[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		"[0-9]+\\.[0-9]*[eE][\\+\\-]?[0-9]+" => mk(lexer, Const(CFloat(lexer.current))),
-		"[0-9]+\\.\\.\\." => mk(lexer, Interval(lexer.current.substr(0,-3))),
-		"//[^\n\r]*" => mk(lexer, CommentLine(lexer.current.substr(2))),
-		"+\\+" => mk(lexer, Unop(OpIncrement)),
-		"--" => mk(lexer, Unop(OpDecrement)),
-		"~" => mk(lexer, Unop(OpNegBits)),
-		"%=" => mk(lexer, Binop(OpAssignOp(OpMod))),
-		"&=" => mk(lexer, Binop(OpAssignOp(OpAnd))),
-		"|=" => mk(lexer, Binop(OpAssignOp(OpOr))),
-		"^=" => mk(lexer, Binop(OpAssignOp(OpXor))),
-		"+=" => mk(lexer, Binop(OpAssignOp(OpAdd))),
-		"-=" => mk(lexer, Binop(OpAssignOp(OpSub))),
-		"*=" => mk(lexer, Binop(OpAssignOp(OpMult))),
-		"/=" => mk(lexer, Binop(OpAssignOp(OpDiv))),
-		"<<=" => mk(lexer, Binop(OpAssignOp(OpShl))),
-		"==" => mk(lexer, Binop(OpEq)),
-		"!=" => mk(lexer, Binop(OpNotEq)),
-		"<=" => mk(lexer, Binop(OpLte)),
-		"&&" => mk(lexer, Binop(OpBoolAnd)),
-		"|\\|" => mk(lexer, Binop(OpBoolOr)),
-		"<<" => mk(lexer, Binop(OpShl)),
-		"->" => mk(lexer, Arrow),
-		"\\.\\.\\." => mk(lexer, Binop(OpInterval)),
-		"=>" => mk(lexer, Binop(OpArrow)),
-		"!" => mk(lexer, Unop(OpNot)),
-		"<" => mk(lexer, Binop(OpLt)),
-		">" => mk(lexer, Binop(OpGt)),
-		";" => mk(lexer, Semicolon),
-		":" => mk(lexer, Colon),
-		"," => mk(lexer, Comma),
-		"\\." => mk(lexer, Dot),
-		"%" => mk(lexer, Binop(OpMod)),
-		"&" => mk(lexer, Binop(OpAnd)),
-		"|" => mk(lexer, Binop(OpOr)),
-		"^" => mk(lexer, Binop(OpXor)),
-		"+" => mk(lexer, Binop(OpAdd)),
-		"*" => mk(lexer, Binop(OpMult)),
-		"/" => mk(lexer, Binop(OpDiv)),
-		"-" => mk(lexer, Binop(OpSub)),
-		"=" => mk(lexer, Binop(OpAssign)),
-		"[" => mk(lexer, BracketOpen),
-		"]" => mk(lexer, BracketClose),
-		"{" => mk(lexer, BraceOpen),
-		"}" => mk(lexer, BraceClose),
-		"\\(" => mk(lexer, ParenthesesOpen),
-		"\\)" => mk(lexer, ParenthesesClose),
-		"?" => mk(lexer, Question),
-		"@" => mk(lexer, At),
+		'\n' => Newline,
+		'\r' => Carriage,
+		'\t*' => Tab(lexer.current.length),
+		' *' => Space(lexer.current.length),
+		"0x[0-9a-fA-F]+" => Const(CInt(lexer.current)),
+		"[0-9]+" => Const(CInt(lexer.current)),
+		"[0-9]+\\.[0-9]+" => Const(CFloat(lexer.current)),
+		"\\.[0-9]+" => Const(CFloat(lexer.current)),
+		"[0-9]+[eE][\\+\\-]?[0-9]+" => Const(CFloat(lexer.current)),
+		"[0-9]+\\.[0-9]*[eE][\\+\\-]?[0-9]+" => Const(CFloat(lexer.current)),
+		"[0-9]+\\.\\.\\." => Interval(lexer.current.substr(0,-3)),
+		"//[^\n\r]*" => CommentLine(lexer.current.substr(2)),
+		"+\\+" => Unop(OpIncrement),
+		"--" => Unop(OpDecrement),
+		"~" => Unop(OpNegBits),
+		"%=" => Binop(OpAssignOp(OpMod)),
+		"&=" => Binop(OpAssignOp(OpAnd)),
+		"|=" => Binop(OpAssignOp(OpOr)),
+		"^=" => Binop(OpAssignOp(OpXor)),
+		"+=" => Binop(OpAssignOp(OpAdd)),
+		"-=" => Binop(OpAssignOp(OpSub)),
+		"*=" => Binop(OpAssignOp(OpMult)),
+		"/=" => Binop(OpAssignOp(OpDiv)),
+		"<<=" => Binop(OpAssignOp(OpShl)),
+		"==" => Binop(OpEq),
+		"!=" => Binop(OpNotEq),
+		"<=" => Binop(OpLte),
+		"&&" => Binop(OpBoolAnd),
+		"|\\|" => Binop(OpBoolOr),
+		"<<" => Binop(OpShl),
+		"->" => Arrow,
+		"\\.\\.\\." => Binop(OpInterval),
+		"=>" => Binop(OpArrow),
+		"!" => Unop(OpNot),
+		"<" => Binop(OpLt),
+		">" => Binop(OpGt),
+		";" => Semicolon,
+		":" => Colon,
+		"," => Comma,
+		"\\." => Dot,
+		"%" => Binop(OpMod),
+		"&" => Binop(OpAnd),
+		"|" => Binop(OpOr),
+		"^" => Binop(OpXor),
+		"+" => Binop(OpAdd),
+		"*" => Binop(OpMult),
+		"/" => Binop(OpDiv),
+		"-" => Binop(OpSub),
+		"=" => Binop(OpAssign),
+		"[" => BracketOpen,
+		"]" => BracketClose,
+		"{" => BraceOpen,
+		"}" => BraceClose,
+		"\\(" => ParenthesesOpen,
+		"\\)" => ParenthesesClose,
+		"?" => Question,
+		"@" => At,
 		'"' => {
 			buf = new StringBuf();
 			var pmin = lexer.curPos();
 			var pmax = try lexer.token(string) catch (e:Eof) throw e;
-			mk(lexer, Const(CString(buf.toString())));
+			Const(CString(buf.toString()));
 		},
 		"'" => {
 			buf = new StringBuf();
 			var pmin = lexer.curPos();
 			var pmax = try lexer.token(string2) catch (e:Eof) throw e;
-			mk(lexer, Const(CString(buf.toString())));
+			Const(CString(buf.toString()));
 		},
 		'/\\*' => {
 			buf = new StringBuf();
 			var pmin = lexer.curPos();
 			var pmax = try lexer.token(comment) catch (e:Eof) throw e;
-			mk(lexer, Comment(buf.toString()));
+			Comment(buf.toString());
 		},
-		"#" + ident => mk(lexer, Conditional(lexer.current.substr(1))),
-		"$" + ident => mk(lexer, Dollar(lexer.current.substr(1))),
+		"#" + ident => Conditional(lexer.current.substr(1)),
+		"$" + ident => Dollar(lexer.current.substr(1)),
 		ident => {
 			var kwd = keywords.get(lexer.current);
 			if (kwd != null)
-				mk(lexer, Keyword(kwd));
+				Keyword(kwd);
 			else
-				mk(lexer, Const(CIdent(lexer.current)));
+				Const(CIdent(lexer.current));
 		},
-		idtype => mk(lexer, Const(CIdent(lexer.current))),
+		idtype => Const(CIdent(lexer.current)),
 	] );
 	
 	public static var string = Mo.rules( [

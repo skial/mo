@@ -6,7 +6,6 @@ import haxe.rtti.Meta;
 import hxparse.Parser;
 import hxparse.ParserBuilder;
 import uhx.mo.Token;
-import uhx.mo.TokenDef;
 import uhx.lexer.HaxeLexer.HaxeKeywords;
 
 using Mo;
@@ -43,7 +42,7 @@ class HaxeParser {
 	}
 	
 	public function printString(token:Token<HaxeKeywords>):String {
-		return switch( token.token ) {
+		return switch( token ) {
 			case At: '@';
 			case Dot: '.';
 			case Colon: ':';
@@ -102,10 +101,10 @@ class HaxeParser {
 	}
 	
 	public function printHTML(token:Token<HaxeKeywords>, ?tag:String = 'span'):String {
-		var css = token.token.toCSS();
+		var css = token.toCSS();
 		var result = '<$tag class="$css">' + 
 		
-		( switch( token.token ) {
+		( switch( token ) {
 			case Carriage: '';
 			case Const(CString(v)): '"$v"'.htmlEscape();
 			case Keyword(kwd): printString( token );
