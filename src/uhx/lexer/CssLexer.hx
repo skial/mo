@@ -156,7 +156,7 @@ class CssLexer extends Lexer {
 		var result = null;
 		var len = current.length - 1;
 		var idx = -1;
-		var type = null;
+		var type:Null<CombinatorType> = null;
 		
 		while (len > 0) {
 			switch (current.charCodeAt(len)) {
