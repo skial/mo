@@ -162,7 +162,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 					[for (k in a.keys()) k => a.get(k)], 
 					c.copy(), 
 					t.copy(),
-					(p:DOMNode).cloneNode( deep )
+					function() return (p():DOMNode).cloneNode( deep )
 				));
 				
 			case Keyword(Ref(e)):
@@ -346,10 +346,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public inline function get_parentNode():DOMNode {
 		return switch (this) {
 			case Keyword(Tag(_, _, _, _, p)):
-				p;
+				p();
 				
 			case Keyword(Ref(e)):
-				e.parent;
+				e.parent();
 				
 			case _:
 				null;

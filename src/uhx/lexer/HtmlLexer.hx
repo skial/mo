@@ -25,7 +25,7 @@ enum HtmlKeywords {
 		attributes:Map<String,String>, 
 		categories:Array<Category>, 
 		tokens:Tokens,
-		parent:Token<HtmlKeywords>
+		parent:Void->Token<HtmlKeywords>
 	);
 }
 
@@ -34,25 +34,35 @@ private class HtmlReference {
 	public var name:String;
 	public var tokens:Tokens;
 	public var complete:Bool;
-	public var parent:Null<Token<HtmlKeywords>>;
+	public var parent:Void->Token<HtmlKeywords>;
 	public var categories:Array<Category>;
 	public var attributes:Map<String,String>;
+	
+	private var result:Token<HtmlKeywords> = null;
 	
 	public function new(
 		name:String, attributes:Map<String,String>, 
 		categories:Array<Category>, tokens:Tokens, 
-		parent:Null<Token<HtmlKeywords>>, complete:Bool
+		parent:Null<Void->Token<HtmlKeywords>>, complete:Bool
 	) {
 		this.name = name;
-		this.parent = parent;
+		if (parent != null) {
+			this.parent = parent;
+		} else {
+			this.parent = this.get;
+		}
 		this.attributes = attributes;
 		this.categories = categories;
 		this.tokens = tokens;
 		this.complete = complete;
 	}
 	
-	public function get():HtmlKeywords {
-		return Tag( name, attributes, categories, tokens, parent );
+	public function get():Token<HtmlKeywords> {
+		if (result == null) {
+			result = Keyword(Tag( name, attributes, categories, tokens, parent ));
+		}
+		
+		return result;
 	}
 	
 	public function clone(deep:Bool):HtmlReference {
@@ -212,6 +222,7 @@ class HtmlLexer extends Lexer {
 		super( content, name );
 	}
 	
+	public static var parent:Void->Token<HtmlKeywords> = null;
 	public static var openTags:Array<HtmlReference> = [];
 	
 	public static var openClose = Mo.rules( [
@@ -322,9 +333,10 @@ class HtmlLexer extends Lexer {
 			[for (pair in attrs) pair[0] => pair[1]], 
 			categories, 
 			tokens,
-			null,
+			parent,
 			false
 		);
+		
 		var position = -1;
 		
 		if (!isVoid) {
@@ -347,7 +359,7 @@ class HtmlLexer extends Lexer {
 			Keyword( Ref(ref) );
 		} else {
 			ref.complete = true;
-			Keyword( ref.get() );
+			ref.get();
 		}
 	},
 	//'<' => Mo.make( lexer, LessThan ),
@@ -556,7 +568,11 @@ class HtmlLexer extends Lexer {
 	private static function buildChildren(ref:HtmlReference, lexer:Lexer):Int {
 		var position = openTags.push( ref ) - 1;
 		
+		var previousParent = parent;
+		parent = ref.get;
+		
 		try while (true) {
+			
 			var token:Token<HtmlKeywords> = lexer.token( openClose );
 			
 			switch (token) {
@@ -586,11 +602,19 @@ class HtmlLexer extends Lexer {
 						
 					}
 					
-				case Keyword( Tag(_, _, _, _, p) ):
-					p = Keyword( Ref( ref ) );
+				/*case Keyword( Tag(n, a, c, t, p) ):
+					// I just want to change the `p` parent variable, not recreate it.
+					token = Keyword( Tag(n, a, c, t, ref.get) );
+					//p = ref.get;
 					
 				case Keyword( Ref(e) ):
-					e.parent = Keyword( Ref( ref ) );
+					untyped console.log( e.name, e.parent().name );
+					//e.parent = ref.get;
+					//untyped console.log( e.name, e.parent().name );
+					var clone = e.clone(true);
+					clone.parent = ref.get;
+					token = Keyword(Ref( clone ));
+					untyped console.log( e.name, clone.parent().name );*/
 					
 				case _:
 			}
@@ -607,6 +631,8 @@ class HtmlLexer extends Lexer {
 		} catch (e:Dynamic) {
 			untyped console.log( e );
 		}
+		
+		parent = previousParent;
 		
 		return position;
 	}
