@@ -49,7 +49,7 @@ enum AttributeType {
 }
 
 @:enum abstract CombinatorType(Int) from Int to Int {
-	public var None = 1;				// Used in `type.class` and `type:pseudo`
+	public var None = 1;				// Used in `type.class`, `type:pseudo` and `type[attribute]`
 	public var Child = 2;				//	`>`
 	public var Descendant = 3;			//	` `
 	public var Adjacent = 4;			//	`+`
@@ -77,7 +77,7 @@ class CssLexer extends Lexer {
 	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|';
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
-	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.)?';
+	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
@@ -164,8 +164,8 @@ class CssLexer extends Lexer {
 					type = Descendant;
 					idx = len;
 					
-				case '.'.code, ':'.code:
-					// Used for `type.class` or `type:pseudo` instances.
+				case '.'.code, ':'.code, '['.code:
+					// Used for `type.class`, `type:pseudo` or `type[attribute]` instances.
 					// Not an actual css spec combinator.
 					type = None;
 					idx = len;
@@ -238,7 +238,7 @@ class CssLexer extends Lexer {
 			return ID( i > -1 ? name.substring(1, i).rtrim() : name.substring(1, name.length) );
 		} );
 	},
-	'([$s]*\\.[$ident]+)+$combinator' => {
+	'([\t\r\n]*\\.[$ident]+)+$combinator' => {
 		var parts = [];
 		
 		if (lexer.current.lastIndexOf('.') != 0) {
