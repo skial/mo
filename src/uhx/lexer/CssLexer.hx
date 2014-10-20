@@ -288,6 +288,7 @@ class CssLexer extends Lexer {
 			case 2: value = std.Type.enumParameters(t[2])[0];
 			case _:
 		}
+		
 		Attribute(name, type == null ? cast t[0] : type, value);
 	},
 	'([^,]+,[^,]+)+' => {
@@ -327,8 +328,18 @@ class CssLexer extends Lexer {
 	'\\^=' => Prefix,
 	'$=' => Suffix,
 	'\\*=' => Contains,
-	'[$s]*[^$s=~$\\|\\^\\*]+[$s]*' => Name(lexer.current.trim()),
-	'[$s]*[^$s=~$\\|\\^\\*]+' => Value(lexer.current.trim()),
+	'[$s]*[^$s=~$\\|\\^\\*]+[$s]*' => {
+		var value = lexer.current.trim();
+		if (value.startsWith('"')) value = value.substring(1);
+		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
+		Name(value);
+	},
+	'[$s]*[^$s=~$\\|\\^\\*]+' => {
+		var value = lexer.current.trim();
+		if (value.startsWith('"')) value = value.substring(1);
+		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
+		Value(value);
+	}
 	]);
 	
 	public static var declarations = Mo.rules([
