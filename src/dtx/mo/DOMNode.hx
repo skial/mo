@@ -9,7 +9,7 @@ import byte.ByteData;
  * @author Skial Bainn
  */
 abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeywords> {
-	public var innerHTML(get, set):String;
+	//public var innerHTML(get, set):String;
 	public var nodeType(get, never):Int;
 	public var nodeValue(get, set):String;
 	public var nodeName(get, never):String;
@@ -38,7 +38,23 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	@:allow(dtx)
 	function _setInnerHTML( html:String ):String {
 		if (nodeType == DOMType.ELEMENT_NODE) {
-			innerHTML = html;
+			var lexer = new HtmlLexer( ByteData.ofString( html ), 'innerHTML' );
+			var tokens = [];
+			
+			try while (true) {
+				tokens.push( lexer.token( HtmlLexer.root ) );
+			} catch (e:Dynamic) { }
+			
+			switch (this) {
+				case Keyword(Tag(_, _, _, t, _)):
+					t = tokens;
+					
+				case Keyword(Ref(e)):
+					e.tokens = tokens;
+					
+				case _:
+					
+			}
 		}
 		return html;
 	}
@@ -203,7 +219,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		return result;
 	}
 	
-	public inline function get_innerHTML():String {
+	/*public inline function get_innerHTML():String {
 		return toString();
 	}
 	
@@ -226,7 +242,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				
 		}
 		return value;
-	}
+	}*/
 	
 	public function get_nodeType():Int {
 		return switch (this) {
