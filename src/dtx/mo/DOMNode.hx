@@ -179,7 +179,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		}
 	}
 	
-	@:to public function toString():String {
+	/**
+	 * Do **not** put @:to on this method. It messes with 
+	 * `using Detox; ... '#selector'.find()` and `ele.find('#selector')`.
+	 */
+	public function toString():String {
 		var result = '';
 		
 		for (child in (this:DOMNode).childNodes) switch (child.token()) {
