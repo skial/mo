@@ -279,16 +279,16 @@ class CssLexer extends Lexer {
 		
 		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
 		var name = '';
-		var type = null;
+		var type:AttributeType = null;
 		var value = '';
 		
 		for (i in 0...t.length) switch(i) {
 			case 0: name = std.Type.enumParameters(t[0])[0];
-			case 1: type = t[1];
+			case 1: type = cast t[1];
 			case 2: value = std.Type.enumParameters(t[2])[0];
 			case _:
 		}
-		Attribute(name, type == null ? t[0] : type, value);
+		Attribute(name, type == null ? cast t[0] : type, value);
 	},
 	'([^,]+,[^,]+)+' => {
 		var tokens = [];
