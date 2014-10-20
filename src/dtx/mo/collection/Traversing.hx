@@ -1,5 +1,9 @@
 package dtx.mo.collection;
 
+import uhx.mo.Token;
+import uhx.lexer.HtmlLexer;
+import dtx.single.ElementManipulation;
+
 /**
  * ...
  * @author Skial Bainn
@@ -12,7 +16,7 @@ class Traversing {
 		if (collection != null && selector != null && selector != "") {
 			for (node in collection) {
 				if (dtx.single.ElementManipulation.isElement(node) || dtx.single.ElementManipulation.isDocument(node)) {
-					
+					newDOMCollection.addCollection( uhx.select.Html.find( (node.childNodes:Array<Token<HtmlKeywords>>), selector ) );
 				}
 				
 			}
