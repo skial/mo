@@ -3,6 +3,7 @@ package dtx.mo;
 import dtx.DOMNode;
 import uhx.mo.Token;
 import uhx.lexer.HtmlLexer;
+import uhx.lexer.HtmlLexer.HtmlRef;
 
 @:access(dtx.std)
 class Tools {
@@ -11,7 +12,7 @@ class Tools {
 
 	static inline function get_document():DocumentOrElement {
 		if (document == null) {
-			document = Keyword(Tag('html', new Map(), [], [], null));
+			document = Keyword(Tag( new HtmlRef('html', new Map(), [], [], null, true) ));
 		}
 		return document;
 	}
@@ -25,7 +26,7 @@ class Tools {
 	}
 	
 	public static function create(tagName:String):DOMNode {
-		return new DOMNode(Keyword(Tag(tagName, new Map(), [], [], null)));
+		return new DOMNode(Keyword(Tag( new HtmlRef(tagName, new Map(), [], [], null, true) )));
 	}
 	
 	static var firstTag:EReg = ~/<([a-z]+)[ \/>]/;
