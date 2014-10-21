@@ -27,7 +27,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public inline function token():Token<HtmlKeywords> return this;
 	
 	@:allow(dtx)
-	function _getInnerHTML():String {
+	inline function _getInnerHTML():String {
 		var html = "";
 		for (child in childNodes) {
 			html += child.toString();
@@ -36,7 +36,8 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	}
 	
 	@:allow(dtx)
-	function _setInnerHTML( html:String ):String {
+	inline function _setInnerHTML(html:String):String {
+		
 		if (nodeType == DOMType.ELEMENT_NODE) {
 			var lexer = new HtmlLexer( ByteData.ofString( html ), 'innerHTML' );
 			var tokens = [];
@@ -46,16 +47,19 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			} catch (e:Dynamic) { }
 			
 			switch (this) {
-				case Keyword(Tag(_, _, _, t, _)):
-					t = tokens;
+				case Keyword(Tag(n, a, c, t, p)):
+					this = Keyword(Tag(n, a, c, tokens, p));
 					
 				case Keyword(Ref(e)):
 					e.tokens = tokens;
+					this = Keyword(Ref(e));
 					
 				case _:
 					
 			}
+			
 		}
+		
 		return html;
 	}
 	

@@ -25,17 +25,7 @@ class Tools {
 	}
 	
 	public static function create(tagName:String):DOMNode {
-		var elm:DOMNode = null;
-		if (tagName != null) {
-			// Haxe doesn't validate the name, so we should.
-			// I'm going to use a simplified (but not entirely accurate) validation.  See:
-			// http://stackoverflow.com/questions/3158274/what-would-be-a-regex-for-valid-xml-names
-			
-			// If it is valid, create, if it's not, return null
-			var valid = ~/^[a-zA-Z_:]([a-zA-Z0-9_:\.])*$/;
-			elm = (valid.match(tagName)) ? Keyword(Tag(tagName, new Map(), [], [], null)) : null;
-		}
-		return elm;
+		return new DOMNode(Keyword(Tag(tagName, new Map(), [], [], null)));
 	}
 	
 	static var firstTag:EReg = ~/<([a-z]+)[ \/>]/;
@@ -44,15 +34,7 @@ class Tools {
 		var q:DOMCollection;
 		if (html != null && html != "") {
 			var n:DOMNode = create("div");
-			
-			//
-			// TODO: report this bug to haxe mailing list.
-			// this is allowed:
-			// n.setInnerHTML("");
-			// But this doesn't get swapped out to it's "using" function
-			// Presumably because this class is a dependency of the Detox?
-			// Either way haxe shouldn't do that...
-			dtx.single.ElementManipulation.setInnerHTML(n, html);
+			n = dtx.single.ElementManipulation.setInnerHTML(n, html);
 			q = dtx.single.Traversing.children(n, false);
 		}
 		else
