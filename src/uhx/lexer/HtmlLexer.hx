@@ -17,14 +17,12 @@ private typedef Tokens = Array<Token<HtmlKeywords>>;
 
 class Ref<Child> {
 	
-	public var name:String;
 	public var tokens:Child;
 	public var parent:Void->Token<HtmlKeywords>;
 	
 	private var cachedParent:Token<HtmlKeywords>;
 	
-	public function new(name:String, tokens:Child, ?parent:Void->Token<HtmlKeywords>) {
-		this.name = name;
+	public function new(tokens:Child, ?parent:Void->Token<HtmlKeywords>) {
 		this.tokens = tokens;
 		this.parent = parent == null ? getParent : parent;
 	}
@@ -41,8 +39,11 @@ class Ref<Child> {
 
 class InstructionRef extends Ref<Array<String>> {
 	
+	public var name:String;
+	
 	public function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
-		super(name, tokens, parent);
+		this.name = name;
+		super(tokens, parent);
 	}
 	
 	public function clone(deep:Bool) {
@@ -53,12 +54,14 @@ class InstructionRef extends Ref<Array<String>> {
 
 class HtmlRef extends Ref<Tokens> {
 	
+	public var name:String;
 	public var complete:Bool = false;
 	public var categories:Array<Category> = [];
 	public var attributes:Map<String,String> = new Map();
 	
 	public function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
-		super(name, tokens, parent);
+		super(tokens, parent);
+		this.name = name;
 		this.complete = complete;
 		this.attributes = attributes;
 		this.categories = categories;
@@ -71,17 +74,18 @@ class HtmlRef extends Ref<Tokens> {
 }
 
 typedef R<Child> = {
-	var name:String;
 	var tokens:Child;
 	var parent:Void->Token<HtmlKeywords>;
 }
 
 typedef InstructionR = {> R<Array<String>>,
+	var name:String;
 	function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
 	function clone(deep:Bool):InstructionR;
 }
 
 typedef HtmlR = {> R<Tokens>,
+	var name:String;
 	var complete:Bool;
 	var categories:Array<Category>;
 	var attributes:Map<String, String>;
@@ -93,6 +97,7 @@ enum HtmlKeywords {
 	End(name:String);
 	Tag(ref:HtmlR);
 	Instruction(ref:InstructionR);
+	Text(ref:Ref<String>);
 }
 
 @:enum abstract Category(Int) from Int to Int {
@@ -249,7 +254,8 @@ class HtmlLexer extends Lexer {
 	'\n' => Newline,
 	'\r' => Carriage,
 	'\t' => Tab(1),
-	'[^<>]+' => Const( CString( lexer.current ) ),
+	//'[^<>]+' => Const( CString( lexer.current ) ),
+	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, parent )) ),
 	] );
 	
 	public static var tags = Mo.rules( [ 
@@ -322,10 +328,12 @@ class HtmlLexer extends Lexer {
 					var token = lexer.token( openClose );
 					
 					switch (token) {
-						case Const(CString(x)) if (x.trim() == '/'):
+						//case Const(CString(x)) if (x.trim() == '/'):
+						case Keyword(HtmlKeywords.Text(e)) if (e.tokens.trim() == '/'):
 							continue;
 							
-						case Const(CString('/')), Space(_):
+						//case Const(CString('/')), Space(_):
+						case Keyword(HtmlKeywords.Text( { tokens:'/' } )), Space(_):
 							continue;
 							
 						case GreaterThan:
@@ -587,8 +595,7 @@ class HtmlLexer extends Lexer {
 		var position = openTags.push( ref ) - 1;
 		
 		var previousParent = parent;
-		parent = ref.parent;
-		
+		parent = function() return Keyword(Tag(ref));
 		
 		var tag = null;
 		var index = -1;
@@ -670,12 +677,13 @@ class HtmlLexer extends Lexer {
 					ref.complete = true;
 					// Combine all tokens into one token.
 					ref.tokens = [
-						Const(CString( 
+						Keyword( HtmlKeywords.Text(new Ref( 
 							[for (t in ref.tokens) switch(t) {
 								case Const(CString(x)): x;
 								case _: '';
 							}].join('')
-						))
+						, function() return Keyword(Tag(ref))
+						)) )
 					];
 					break;
 					
