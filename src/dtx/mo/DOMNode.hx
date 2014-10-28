@@ -178,7 +178,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				result += '<${e.name}>' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
 				
 			case Keyword(Instruction(e)):
-				result += '<!${e.name}' + [for (i in e.tokens) i].join(' ') + '>';
+				if (e.tokens[e.tokens.length - 1] == '--') {
+					result += '<!-- ' + [for (i in 0...e.tokens.length - 1) e.tokens[i]].join(' ') + ' -->';
+				} else {
+					result += '<!${e.name}' + [for (i in e.tokens) i].join(' ') + '>';
+				}
 				
 			case Const(CString(s)):
 				result += s;
@@ -248,10 +252,14 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				s;
 				
 			case Keyword(Instruction( { tokens:a } )):
-				a.join(' ');
+				if (a[a.length - 1] == '--') {
+					' ' + a.slice(0, a.length - 1).join(' ') + ' ';
+				} else {
+					a.join(' ');
+				}
 				
 			case _:
-				null;
+				'';
 		}
 	}
 	
