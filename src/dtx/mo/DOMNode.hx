@@ -26,6 +26,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public inline function token():Token<HtmlKeywords> return this;
 	
+	@:op(A == B) 
+	public static inline function toBool(a:DOMNode, b:DOMNode):Bool {
+		return a.equals( b );
+	}
+	
 	@:allow(dtx)
 	inline function _getInnerHTML():String {
 		var html = "";
@@ -149,6 +154,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function cloneNode(deep:Bool):DOMNode {
 		return switch (this) {
+			case Keyword(HtmlKeywords.Text(e)):
+				Keyword(HtmlKeywords.Text(new Ref(e.tokens, e.parent)));
+				
 			case Keyword(Tag(e)):
 				Keyword(Tag(e.clone( deep )));
 				
@@ -183,6 +191,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				} else {
 					result += '<!${e.name}' + [for (i in e.tokens) i].join(' ') + '>';
 				}
+				
+			case Keyword(HtmlKeywords.Text(e)):
+				result += e.tokens;
 				
 			case Const(CString(s)):
 				result += s;
@@ -231,7 +242,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 						
 				}
 				
-			case Const(CString(_)):
+			case Keyword(HtmlKeywords.Text(_)):
 				uhx.lexer.HtmlLexer.NodeType.Text;
 				
 			case Keyword(Instruction(_)):
@@ -241,6 +252,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				uhx.lexer.HtmlLexer.NodeType.Unknown;
 				
 			case _:
+				trace( this );
 				uhx.lexer.HtmlLexer.NodeType.Unknown;
 				
 		}
@@ -250,6 +262,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		return switch (this) {
 			case Const(CString(s)): 
 				s;
+				
+			case Keyword(HtmlKeywords.Text(e)):
+				e.tokens;
 				
 			case Keyword(Instruction( { tokens:a } )):
 				if (a[a.length - 1] == '--') {
@@ -270,6 +285,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				// TODO figure out less hacky solution;
 				s.getParameters()[0] = value;
 				
+			case Keyword(HtmlKeywords.Text(e)):
+				e.tokens = value;
+				
 			case Keyword(Instruction(ref)):
 				ref.tokens = [value];
 				//this = Keyword(Instruction(n, [value]));
@@ -288,7 +306,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Keyword(End(n)):
 				n;
 				
-			case Const(CString(_)):
+			case Const(CString(_)) | Keyword(HtmlKeywords.Text(_)):
 				'#text';
 				
 			case Keyword(Instruction(_)):
@@ -331,6 +349,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public inline function get_parentNode():DOMNode {
 		return switch (this) {
+			case Keyword(HtmlKeywords.Text(e)):
+				e.parent();
+				
 			case Keyword(Tag(e)):
 				e.parent();
 				
@@ -379,6 +400,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Const(CString(s)):
 				result += s;
 				
+			case Keyword(HtmlKeywords.Text(e)):
+				result += e.tokens;
+				
 			case Keyword(Tag(e)):
 				for (i in (e.tokens:Array<DOMNode>)) {
 					result += i.textContent;
@@ -398,8 +422,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				// TODO find less hacky solution.
 				s.getParameters()[0] = text;
 				
+			case Keyword(HtmlKeywords.Text(e)):
+				e.tokens = text;
+				
 			case Keyword(Tag(e)):
-				e.tokens = [Const(CString(text))];
+				e.tokens = [Keyword(HtmlKeywords.Text( new Ref(text, function() return this) ))];
 				//this = Keyword(Tag(e));
 				
 			case Keyword(Instruction(e)):
