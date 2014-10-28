@@ -1,11 +1,10 @@
 package uhx.lexer;
 
-import haxe.EnumTools;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
-import uhx.mo.Token;
+import haxe.EnumTools;
 import hxparse.Ruleset;
 import hxparse.Position;
 import haxe.ds.StringMap;
@@ -16,13 +15,81 @@ using uhx.lexer.HtmlLexer;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 
-enum HtmlKeywords {
-	End(name:String);
-	Tag(ref:HtmlRef);
-	Instruction(ref:InstructionRef);
+class Ref<Child> {
+	
+	public var name:String;
+	public var tokens:Child;
+	public var parent:Void->Token<HtmlKeywords>;
+	
+	private var cachedParent:Token<HtmlKeywords>;
+	
+	public function new(name:String, tokens:Child, ?parent:Void->Token<HtmlKeywords>) {
+		this.name = name;
+		this.tokens = tokens;
+		this.parent = parent == null ? getParent : parent;
+	}
+	
+	public function getParent():Token<HtmlKeywords> {
+		if (cachedParent == null) {
+			cachedParent = Keyword(Tag( cast this ));
+		}
+		
+		return cachedParent;
+	}
+	
 }
 
-class InstructionRef {
+class InstructionRef extends Ref<Array<String>> {
+	
+	public function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
+		super(name, tokens, parent);
+	}
+	
+	public function clone(deep:Bool) {
+		return new InstructionRef(name, tokens.copy(), parent);
+	}
+	
+}
+
+class HtmlRef extends Ref<Tokens> {
+	
+	public var complete:Bool = false;
+	public var categories:Array<Category> = [];
+	public var attributes:Map<String,String> = new Map();
+	
+	public function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
+		super(name, tokens, parent);
+		this.complete = complete;
+		this.attributes = attributes;
+		this.categories = categories;
+	}
+	
+	public function clone(deep:Bool) {
+		return new HtmlRef(name, [for (k in attributes.keys()) k => attributes.get(k)], categories.copy(), tokens.copy(), parent, complete);
+	}
+	
+}
+
+typedef R<Child> = {
+	var name:String;
+	var tokens:Child;
+	var parent:Void->Token<HtmlKeywords>;
+}
+
+typedef InstructionR = {> R<Array<String>>,
+	function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
+	function clone(deep:Bool):InstructionR;
+}
+
+typedef HtmlR = {> R<Tokens>,
+	var complete:Bool;
+	var categories:Array<Category>;
+	var attributes:Map<String, String>;
+	function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
+	function clone(deep:Bool):HtmlR;
+}
+
+/*class InstructionRef {
 	
 	public var name:String;
 	public var attributes:Array<String>;
@@ -85,6 +152,13 @@ class HtmlRef {
 		);
 	}
 	
+}*/
+
+
+enum HtmlKeywords {
+	End(name:String);
+	Tag(ref:HtmlR);
+	Instruction(ref:InstructionR);
 }
 
 @:enum abstract Category(Int) from Int to Int {
@@ -345,8 +419,7 @@ class HtmlLexer extends Lexer {
 			[for (pair in attrs) pair[0] => pair[1]], 
 			categories, 
 			tokens,
-			parent,
-			false
+			parent
 		);
 		
 		var position = -1;
@@ -580,7 +653,7 @@ class HtmlLexer extends Lexer {
 		var position = openTags.push( ref ) - 1;
 		
 		var previousParent = parent;
-		parent = ref.get;
+		parent = ref.parent;
 		
 		
 		var tag = null;
