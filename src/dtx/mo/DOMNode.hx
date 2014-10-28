@@ -178,7 +178,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				result += '<${e.name}>' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
 				
 			case Keyword(Instruction(e)):
-				result += '<!${e.name}' + [for (i in e.attributes) i].join(' ') + '>';
+				result += '<!${e.name}' + [for (i in e.tokens) i].join(' ') + '>';
 				
 			case Const(CString(s)):
 				result += s;
@@ -247,7 +247,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Const(CString(s)): 
 				s;
 				
-			case Keyword(Instruction( { attributes:a } )):
+			case Keyword(Instruction( { tokens:a } )):
 				a.join(' ');
 				
 			case _:
@@ -263,7 +263,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				s.getParameters()[0] = value;
 				
 			case Keyword(Instruction(ref)):
-				ref.attributes = [value];
+				ref.tokens = [value];
 				//this = Keyword(Instruction(n, [value]));
 				
 			case _:
@@ -326,6 +326,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Keyword(Tag(e)):
 				e.parent();
 				
+			case Keyword(Instruction(e)):
+				e.parent();
+				
 			case _:
 				null;
 		}
@@ -386,7 +389,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				
 			case Keyword(Instruction(e)):
 				//this = Keyword(Instruction(n, [text]));
-				e.attributes = [text];
+				e.tokens = [text];
 				
 			case _:
 				
