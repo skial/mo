@@ -73,8 +73,8 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function getAttribute(name:String):String {
 		return switch (this) {
-			case Keyword(Tag(e)): 
-				e.attributes.exists( name ) ? e.attributes.get( name ) : '';
+			case Keyword(Tag(e)) if (e.attributes.exists( name )): 
+				StringTools.htmlUnescape( e.attributes.get( name ) );
 				
 			case _: 
 				'';
@@ -376,6 +376,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		var result = '';
 		
 		switch (this) {
+			case Const(CString(s)):
+				result += s;
+				
 			case Keyword(Tag(e)):
 				for (i in (e.tokens:Array<DOMNode>)) {
 					result += i.textContent;
@@ -391,6 +394,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public /*inline*/ function set_textContent(text:String):String {
 		switch (this) {
+			case Const(s):
+				// TODO find less hacky solution.
+				s.getParameters()[0] = text;
+				
 			case Keyword(Tag(e)):
 				e.tokens = [Const(CString(text))];
 				//this = Keyword(Tag(e));
