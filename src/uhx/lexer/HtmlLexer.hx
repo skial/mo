@@ -1,11 +1,10 @@
 package uhx.lexer;
 
-import haxe.EnumTools;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
-import uhx.mo.Token;
+import haxe.EnumTools;
 import hxparse.Ruleset;
 import hxparse.Position;
 import haxe.ds.StringMap;
@@ -16,66 +15,89 @@ using uhx.lexer.HtmlLexer;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 
-enum HtmlKeywords {
-	End(name:String);
-	Ref(entity:HtmlReference);
-	Instruction(name:String, attributes:Array<String>);
-	Tag(
-		name:String, 
-		attributes:Map<String,String>, 
-		categories:Array<Category>, 
-		tokens:Tokens,
-		parent:Void->Token<HtmlKeywords>
-	);
-}
-
-private class HtmlReference {
+class Ref<Child> {
 	
-	public var name:String;
-	public var tokens:Tokens;
-	public var complete:Bool;
+	public var tokens:Child;
 	public var parent:Void->Token<HtmlKeywords>;
-	public var categories:Array<Category>;
-	public var attributes:Map<String,String>;
 	
-	private var result:Token<HtmlKeywords> = null;
+	private var cachedParent:Token<HtmlKeywords>;
 	
-	public function new(
-		name:String, attributes:Map<String,String>, 
-		categories:Array<Category>, tokens:Tokens, 
-		parent:Null<Void->Token<HtmlKeywords>>, complete:Bool
-	) {
-		this.name = name;
-		if (parent != null) {
-			this.parent = parent;
-		} else {
-			this.parent = this.get;
-		}
-		this.attributes = attributes;
-		this.categories = categories;
+	public function new(tokens:Child, ?parent:Void->Token<HtmlKeywords>) {
 		this.tokens = tokens;
-		this.complete = complete;
+		this.parent = parent == null ? getParent : parent;
 	}
 	
-	public function get():Token<HtmlKeywords> {
-		if (result == null) {
-			result = Keyword(Tag( name, attributes, categories, tokens, parent ));
+	public function getParent():Token<HtmlKeywords> {
+		if (cachedParent == null) {
+			cachedParent = Keyword(Tag( cast this ));
 		}
 		
-		return result;
+		return cachedParent;
 	}
 	
-	public function clone(deep:Bool):HtmlReference {
-		return new HtmlReference(
-			name, 
-			[for (k in attributes.keys()) k => attributes.get(k)], 
-			categories.copy(), 
-			tokens.copy(), 
-			parent,
-			complete
-		);
+}
+
+class InstructionRef extends Ref<Array<String>> {
+	
+	public var name:String;
+	
+	public function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
+		this.name = name;
+		super(tokens, parent);
 	}
 	
+	public function clone(deep:Bool) {
+		return new InstructionRef(name, tokens.copy(), parent);
+	}
+	
+}
+
+class HtmlRef extends Ref<Tokens> {
+	
+	public var name:String;
+	public var complete:Bool = false;
+	public var categories:Array<Category> = [];
+	public var attributes:Map<String,String> = new Map();
+	
+	public function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
+		super(tokens, parent);
+		this.name = name;
+		this.complete = complete;
+		this.attributes = attributes;
+		this.categories = categories;
+	}
+	
+	public function clone(deep:Bool) {
+		return new HtmlRef(name, [for (k in attributes.keys()) k => attributes.get(k)], categories.copy(), tokens.copy(), parent, complete);
+	}
+	
+}
+
+typedef R<Child> = {
+	var tokens:Child;
+	var parent:Void->Token<HtmlKeywords>;
+}
+
+typedef InstructionR = {> R<Array<String>>,
+	var name:String;
+	function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
+	function clone(deep:Bool):InstructionR;
+}
+
+typedef HtmlR = {> R<Tokens>,
+	var name:String;
+	var complete:Bool;
+	var categories:Array<Category>;
+	var attributes:Map<String, String>;
+	function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
+	function clone(deep:Bool):HtmlR;
+}
+
+enum HtmlKeywords {
+	End(name:String);
+	Tag(ref:HtmlR);
+	Instruction(ref:InstructionR);
+	Text(ref:Ref<String>);
 }
 
 @:enum abstract Category(Int) from Int to Int {
@@ -223,7 +245,7 @@ class HtmlLexer extends Lexer {
 	}
 	
 	public static var parent:Void->Token<HtmlKeywords> = null;
-	public static var openTags:Array<HtmlReference> = [];
+	public static var openTags:Array<HtmlRef> = [];
 	
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
@@ -232,7 +254,8 @@ class HtmlLexer extends Lexer {
 	'\n' => Newline,
 	'\r' => Carriage,
 	'\t' => Tab(1),
-	'[^<>]+' => Const( CString( lexer.current ) ),
+	//'[^<>]+' => Const( CString( lexer.current ) ),
+	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, parent )) ),
 	] );
 	
 	public static var tags = Mo.rules( [ 
@@ -268,10 +291,11 @@ class HtmlLexer extends Lexer {
 			} catch (e:Dynamic) { };
 			
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
+			trace( e );
 		}
 		
-		Keyword( Instruction(tag, attrs) );
+		Keyword( Instruction( new InstructionRef( tag, attrs ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
@@ -282,6 +306,7 @@ class HtmlLexer extends Lexer {
 		var categories = tag.categories();
 		var model = tag.model();
 		var attrs:Array<Array<String>> = [];
+		
 		var isVoid = 
 		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
 			true;
@@ -303,10 +328,12 @@ class HtmlLexer extends Lexer {
 					var token = lexer.token( openClose );
 					
 					switch (token) {
-						case Const(CString(x)) if (x.trim() == '/'):
+						//case Const(CString(x)) if (x.trim() == '/'):
+						case Keyword(HtmlKeywords.Text(e)) if (e.tokens.trim() == '/'):
 							continue;
 							
-						case Const(CString('/')), Space(_):
+						//case Const(CString('/')), Space(_):
+						case Keyword(HtmlKeywords.Text( { tokens:'/' } )), Space(_):
 							continue;
 							
 						case GreaterThan:
@@ -316,7 +343,8 @@ class HtmlLexer extends Lexer {
 							break;
 					}
 				} catch (e:Dynamic) {
-					untyped console.log( e );
+					//untyped console.log( e );
+					trace( e );
 				};
 				
 			} else if (e.char == '>') {
@@ -325,16 +353,15 @@ class HtmlLexer extends Lexer {
 			
 			
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
 		}
 		
-		var ref = new HtmlReference(
+		var ref = new HtmlRef(
 			tag, 
 			[for (pair in attrs) pair[0] => pair[1]], 
 			categories, 
 			tokens,
-			parent,
-			false
+			parent
 		);
 		
 		var position = -1;
@@ -355,12 +382,7 @@ class HtmlLexer extends Lexer {
 			ref.complete = true;
 		}
 		
-		if (position > -1 && !openTags[position].complete) {
-			Keyword( Ref(ref) );
-		} else {
-			ref.complete = true;
-			ref.get();
-		}
+		Keyword( Tag(ref) );
 	},
 	//'<' => Mo.make( lexer, LessThan ),
 	//'>' => Mo.make( lexer, GreaterThan ),
@@ -410,7 +432,8 @@ class HtmlLexer extends Lexer {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
+			trace( e );
 		}
 		
 		[key, value];
@@ -446,7 +469,8 @@ class HtmlLexer extends Lexer {
 			
 			value += token;
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
+			trace( e );
 		}
 		value;
 	},
@@ -473,7 +497,8 @@ class HtmlLexer extends Lexer {
 			
 			value += token;
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
+			trace( e );
 		}
 		'<$value>';
 	},
@@ -493,7 +518,8 @@ class HtmlLexer extends Lexer {
 			
 			value += token;
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
+			trace( e );
 		}
 		'$value';
 	}
@@ -565,12 +591,14 @@ class HtmlLexer extends Lexer {
 	}
 	
 	// Build descendant html elements
-	private static function buildChildren(ref:HtmlReference, lexer:Lexer):Int {
+	private static function buildChildren(ref:HtmlRef, lexer:Lexer):Int {
 		var position = openTags.push( ref ) - 1;
 		
 		var previousParent = parent;
-		parent = ref.get;
+		parent = function() return Keyword(Tag(ref));
 		
+		var tag = null;
+		var index = -1;
 		try while (true) {
 			
 			var token:Token<HtmlKeywords> = lexer.token( openClose );
@@ -580,15 +608,15 @@ class HtmlLexer extends Lexer {
 					continue;
 					
 				case Keyword( End( t ) ):
-					var index = -1;
-					var tag = null;
+					index = -1;
+					tag = null;
 					
 					for (i in 0...openTags.length) {
 						tag = openTags[i];
 						
-						if (!tag.complete && t == tag.name) {
-							tag.complete = true;
+						if (tag != null && !tag.complete && t == tag.name) {
 							index = i;
+							tag.complete = true;
 							
 							break;
 						}
@@ -602,20 +630,6 @@ class HtmlLexer extends Lexer {
 						
 					}
 					
-				/*case Keyword( Tag(n, a, c, t, p) ):
-					// I just want to change the `p` parent variable, not recreate it.
-					token = Keyword( Tag(n, a, c, t, ref.get) );
-					//p = ref.get;
-					
-				case Keyword( Ref(e) ):
-					untyped console.log( e.name, e.parent().name );
-					//e.parent = ref.get;
-					//untyped console.log( e.name, e.parent().name );
-					var clone = e.clone(true);
-					clone.parent = ref.get;
-					token = Keyword(Ref( clone ));
-					untyped console.log( e.name, clone.parent().name );*/
-					
 				case _:
 			}
 			
@@ -623,13 +637,10 @@ class HtmlLexer extends Lexer {
 		} catch (e:Eof) {
 			
 		} catch (e:UnexpectedChar) {
-			untyped console.log( e );
-			untyped console.log( lexer.input.readString( 
-				lexer.pos,
-				lexer.input.length
-			) );
+			trace( e );
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			trace( e );
+			//trace( haxe.CallStack.exceptionStack() );
 		}
 		
 		parent = previousParent;
@@ -653,7 +664,7 @@ class HtmlLexer extends Lexer {
 	] );
 	
 	// Build Html Category of type Metadata
-	private static function buildMetadata(ref:HtmlReference, lexer:Lexer):Int {
+	private static function buildMetadata(ref:HtmlRef, lexer:Lexer):Int {
 		var position = openTags.push( ref ) - 1;
 		var rule = scriptedRule( ref.name );
 		
@@ -666,12 +677,13 @@ class HtmlLexer extends Lexer {
 					ref.complete = true;
 					// Combine all tokens into one token.
 					ref.tokens = [
-						Const(CString( 
+						Keyword( HtmlKeywords.Text(new Ref( 
 							[for (t in ref.tokens) switch(t) {
 								case Const(CString(x)): x;
 								case _: '';
 							}].join('')
-						))
+						, function() return Keyword(Tag(ref))
+						)) )
 					];
 					break;
 					
@@ -681,7 +693,8 @@ class HtmlLexer extends Lexer {
 			
 			ref.tokens.push( token );
 		} catch (e:Dynamic) {
-			untyped console.log( e );
+			//untyped console.log( e );
+			trace( e );
 		}
 		
 		return position;
