@@ -155,7 +155,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function cloneNode(deep:Bool):DOMNode {
 		return switch (this) {
 			case Keyword(HtmlKeywords.Text(e)):
-				Keyword(HtmlKeywords.Text(new Ref(e.tokens, e.parent)));
+				Keyword(HtmlKeywords.Text(e.clone( deep )));
 				
 			case Keyword(Tag(e)):
 				Keyword(Tag(e.clone( deep )));

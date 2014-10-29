@@ -27,9 +27,15 @@ class Ref<Child> {
 		this.parent = parent == null ? getParent : parent;
 	}
 	
+	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
+	// `parent` should be null as the element isnt attached to any document.
+	public function clone(deep:Bool) {
+		return new Ref<Child>(tokens, null);
+	}
+	
 	public function getParent():Token<HtmlKeywords> {
 		if (cachedParent == null) {
-			cachedParent = Keyword(Tag( cast this ));
+			cachedParent = Keyword(HtmlKeywords.Text( cast this ));
 		}
 		
 		return cachedParent;
@@ -46,8 +52,18 @@ class InstructionRef extends Ref<Array<String>> {
 		super(tokens, parent);
 	}
 	
-	public function clone(deep:Bool) {
-		return new InstructionRef(name, tokens.copy(), parent);
+	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
+	// `parent` should be null as the element isnt attached to any document.
+	override public function clone(deep:Bool) {
+		return new InstructionRef('$name', deep ? tokens.copy() : tokens, null);
+	}
+	
+	override public function getParent():Token<HtmlKeywords> {
+		if (cachedParent == null) {
+			cachedParent = Keyword(Instruction( this ));
+		}
+		
+		return cachedParent;
 	}
 	
 }
@@ -67,8 +83,26 @@ class HtmlRef extends Ref<Tokens> {
 		this.categories = categories;
 	}
 	
-	public function clone(deep:Bool) {
-		return new HtmlRef(name, [for (k in attributes.keys()) k => attributes.get(k)], categories.copy(), tokens.copy(), parent, complete);
+	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
+	// `parent` should be null as the element isnt attached to any document.
+	override public function clone(deep:Bool) {
+		return new HtmlRef(
+			'$name', 
+			[for (k in attributes.keys()) k => attributes.get(k)], 
+			categories.copy(), 
+			deep ? tokens.copy() : 
+			tokens, 
+			null, 
+			complete
+		);
+	}
+	
+	override public function getParent():Token<HtmlKeywords> {
+		if (cachedParent == null) {
+			cachedParent = Keyword(Tag( this ));
+		}
+		
+		return cachedParent;
 	}
 	
 }
