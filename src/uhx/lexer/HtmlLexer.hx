@@ -90,8 +90,7 @@ class HtmlRef extends Ref<Tokens> {
 			'$name', 
 			[for (k in attributes.keys()) k => attributes.get(k)], 
 			categories.copy(), 
-			deep ? tokens.copy() : 
-			tokens, 
+			deep ? [for (t in tokens) (t:dtx.mo.DOMNode).cloneNode( deep )] : [for (t in tokens) t], 
 			null, 
 			complete
 		);
