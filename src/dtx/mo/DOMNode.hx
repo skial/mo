@@ -164,13 +164,13 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				Keyword(Instruction(e.clone( deep )));
 				
 			case Keyword(End(n)):
-				Keyword(End(n));
+				Keyword(End('$n'));
 				
 			case Const(CString(s)):
 				Const(CString('$s'));
 				
 			case _:
-				this;
+				null;
 		}
 	}
 	
