@@ -338,7 +338,7 @@ class HtmlLexer extends Lexer {
 		var tag:String = lexer.current;
 		var categories = tag.categories();
 		var model = tag.model();
-		var attrs:Array<Array<String>> = [];
+		var attrs = new Map<String,String>();
 		
 		var isVoid = 
 		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
@@ -349,7 +349,7 @@ class HtmlLexer extends Lexer {
 		
 		try while (true) {
 			var token:Array<String> = lexer.token( attributes );
-			attrs.push( token );
+			attrs.set( token[0], token[1] );
 			
 		} catch (e:Eof) { } catch (e:UnexpectedChar) {
 			if (e.char == '/') {
@@ -391,7 +391,7 @@ class HtmlLexer extends Lexer {
 		
 		var ref = new HtmlRef(
 			tag, 
-			[for (pair in attrs) pair[0] => pair[1]], 
+			attrs,
 			categories, 
 			tokens,
 			parent
@@ -426,47 +426,10 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9_\\-]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
-		var value = '';
-		var original = null;
-		
-		try while (true) {
-			var token = lexer.token( attributesText );
-			
-			switch (token) {
-				case '"' if (original == null):
-					original = token;
-					continue;
-					
-				case '\'' if (original == null):
-					original = token;
-					continue;
-					
-				case '"' if (token == original):
-					original = null;
-					break;
-					
-				case '\'' if (token == original):
-					original = null;
-					break;
-					
-				case _ if (original == null):
-					original = ' ';
-					
-				case ' ' if (token == original):
-					original = null;
-					break;
-					
-				case _:
-					
-			}
-			
-			value += token;
-			
-		} catch (e:Eof) {
-			
+		var value = try {
+			lexer.token( attributesValue );
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
-			trace( e );
+			'';
 		}
 		
 		[key, value];
@@ -474,11 +437,10 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9_\\-]+' => [lexer.current, '']
 	] );
 	
-	public static var attributesText = Mo.rules( [
-	' ' => ' ',
-	'"' => '"',
-	'\'' => '\'',
-	'[^\'" ]+' => lexer.current
+	public static var attributesValue = Mo.rules( [
+	'"[^"]*"' => lexer.current.substring(1, lexer.current.length-1),
+	'\'[^\']*\'' => lexer.current.substring(1, lexer.current.length-1),
+	'[^ "\'><]+' => lexer.current,
 	] );
 	
 	public static var instructions = Mo.rules( [
