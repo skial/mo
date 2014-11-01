@@ -131,7 +131,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function insertBefore(newChild:DOMNode, refChild:DOMNode):DOMNode {
 		switch (this) {
 			case Keyword(Tag(e)):
-				e.tokens.insert( e.tokens.indexOf( refChild ), refChild );
+				e.tokens.insert( e.tokens.indexOf( refChild ), newChild );
 				
 			case _:
 				
