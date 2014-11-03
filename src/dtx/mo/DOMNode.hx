@@ -186,10 +186,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				result += '<${e.name}>' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
 				
 			case Keyword(Instruction(e)):
-				if (e.tokens[e.tokens.length - 1] == '--') {
-					result += '<!-- ' + [for (i in 0...e.tokens.length - 1) e.tokens[i]].join(' ') + ' -->';
+				if (e.tokens[0] == '--' && e.tokens[e.tokens.length - 1] == '--') {
+					result += '<!-- ' + [for (i in 1...e.tokens.length - 1) e.tokens[i]].join(' ') + ' -->';
 				} else {
-					result += '<!${e.name}' + [for (i in e.tokens) i].join(' ') + '>';
+					result += '<!' + [for (i in e.tokens) i].join(' ') + '>';
 				}
 				
 			case Keyword(HtmlKeywords.Text(e)):
@@ -252,7 +252,6 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				uhx.lexer.HtmlLexer.NodeType.Unknown;
 				
 			case _:
-				trace( this );
 				uhx.lexer.HtmlLexer.NodeType.Unknown;
 				
 		}
@@ -267,8 +266,8 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				e.tokens;
 				
 			case Keyword(Instruction( { tokens:a } )):
-				if (a[a.length - 1] == '--') {
-					' ' + a.slice(0, a.length - 1).join(' ') + ' ';
+				if (a[0] == '--' && a[a.length - 1] == '--') {
+					a.slice(1, a.length - 1).join(' ');
 				} else {
 					a.join(' ');
 				}
@@ -289,7 +288,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				e.tokens = value;
 				
 			case Keyword(Instruction(ref)):
-				ref.tokens = [value];
+				if (ref.tokens[0] == '--' && ref.tokens[ref.tokens.length -1] == '--') {
+					ref.tokens = '-- $value --'.split(' ');
+				} else {
+					ref.tokens = value.split(' ');
+				}
 				//this = Keyword(Instruction(n, [value]));
 				
 			case _:
@@ -404,7 +407,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				result += e.tokens;
 				
 			case Keyword(Tag(e)):
-				for (i in (e.tokens:Array<DOMNode>)) {
+				for (i in (e.tokens:Array<DOMNode>).filter(function(f) return !f.token().match(Keyword(Instruction(_))))) {
 					result += i.textContent;
 				}
 				
