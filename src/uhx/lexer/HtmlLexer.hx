@@ -45,17 +45,17 @@ class Ref<Child> {
 
 class InstructionRef extends Ref<Array<String>> {
 	
-	public var name:String;
+	//public var name:String;
 	
-	public function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
-		this.name = name;
+	public function new(/*name:String, */tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
+		//this.name = name;
 		super(tokens, parent);
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	override public function clone(deep:Bool) {
-		return new InstructionRef('$name', deep ? tokens.copy() : tokens, null);
+		return new InstructionRef(/*'$name', */deep ? tokens.copy() : tokens, null);
 	}
 	
 	override public function getParent():Token<HtmlKeywords> {
@@ -109,11 +109,12 @@ class HtmlRef extends Ref<Tokens> {
 typedef R<Child> = {
 	var tokens:Child;
 	var parent:Void->Token<HtmlKeywords>;
+	function clone(deep:Bool):R<Child>;
 }
 
 typedef InstructionR = {> R<Array<String>>,
-	var name:String;
-	function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
+	//var name:String;
+	function new(/*name:String, */tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
 	function clone(deep:Bool):InstructionR;
 }
 
@@ -297,8 +298,10 @@ class HtmlLexer extends Lexer {
 	'\n' => Newline,
 	'\t' => Tab(1),
 	'/>' => lexer.token( openClose ),
-	'![a-zA-Z0-9_\\-]*' => {
-		var tag = lexer.current.substring(1, lexer.current.length);
+	//'![a-zA-Z0-9_\\-]*' => {
+	'!' => {
+		//var tag = lexer.current.substring(1, lexer.current.length);
+		var tag = '';
 		var attrs = [];
 		var tokens = [];
 		
@@ -328,7 +331,7 @@ class HtmlLexer extends Lexer {
 			trace( e );
 		}
 		
-		Keyword( Instruction( new InstructionRef( tag, attrs ) ) );
+		Keyword( Instruction( new InstructionRef( attrs ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
@@ -444,7 +447,9 @@ class HtmlLexer extends Lexer {
 	] );
 	
 	public static var instructions = Mo.rules( [
-	'[^\r\n\t<> "\\[]+' => lexer.current,
+	'[a-zA-Z0-9]+' => lexer.current,
+	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer.current,
+	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer.current,
 	'[\r\n\t ]+' => lexer.token( instructions ),
 	'\\[' => {
 		var value = '';
