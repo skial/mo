@@ -331,7 +331,7 @@ class HtmlLexer extends Lexer {
 			trace( e );
 		}
 		
-		Keyword( Instruction( new InstructionRef( attrs ) ) );
+		Keyword( Instruction( new InstructionRef( attrs, parent ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
