@@ -45,17 +45,17 @@ class Ref<Child> {
 
 class InstructionRef extends Ref<Array<String>> {
 	
-	public var name:String;
+	//public var name:String;
 	
-	public function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
-		this.name = name;
+	public function new(/*name:String, */tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
+		//this.name = name;
 		super(tokens, parent);
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	override public function clone(deep:Bool) {
-		return new InstructionRef('$name', deep ? tokens.copy() : tokens, null);
+		return new InstructionRef(/*'$name', */deep ? tokens.copy() : tokens, null);
 	}
 	
 	override public function getParent():Token<HtmlKeywords> {
@@ -109,11 +109,12 @@ class HtmlRef extends Ref<Tokens> {
 typedef R<Child> = {
 	var tokens:Child;
 	var parent:Void->Token<HtmlKeywords>;
+	function clone(deep:Bool):R<Child>;
 }
 
 typedef InstructionR = {> R<Array<String>>,
-	var name:String;
-	function new(name:String, tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
+	//var name:String;
+	function new(/*name:String, */tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
 	function clone(deep:Bool):InstructionR;
 }
 
@@ -297,8 +298,10 @@ class HtmlLexer extends Lexer {
 	'\n' => Newline,
 	'\t' => Tab(1),
 	'/>' => lexer.token( openClose ),
-	'![a-zA-Z0-9_\\-]*' => {
-		var tag = lexer.current.substring(1, lexer.current.length);
+	//'![a-zA-Z0-9_\\-]*' => {
+	'!' => {
+		//var tag = lexer.current.substring(1, lexer.current.length);
+		var tag = '';
 		var attrs = [];
 		var tokens = [];
 		
@@ -328,7 +331,7 @@ class HtmlLexer extends Lexer {
 			trace( e );
 		}
 		
-		Keyword( Instruction( new InstructionRef( tag, attrs ) ) );
+		Keyword( Instruction( new InstructionRef( attrs ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
@@ -338,7 +341,7 @@ class HtmlLexer extends Lexer {
 		var tag:String = lexer.current;
 		var categories = tag.categories();
 		var model = tag.model();
-		var attrs:Array<Array<String>> = [];
+		var attrs = new Map<String,String>();
 		
 		var isVoid = 
 		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
@@ -349,7 +352,7 @@ class HtmlLexer extends Lexer {
 		
 		try while (true) {
 			var token:Array<String> = lexer.token( attributes );
-			attrs.push( token );
+			attrs.set( token[0], token[1] );
 			
 		} catch (e:Eof) { } catch (e:UnexpectedChar) {
 			if (e.char == '/') {
@@ -391,7 +394,7 @@ class HtmlLexer extends Lexer {
 		
 		var ref = new HtmlRef(
 			tag, 
-			[for (pair in attrs) pair[0] => pair[1]], 
+			attrs,
 			categories, 
 			tokens,
 			parent
@@ -426,47 +429,10 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9_\\-]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
-		var value = '';
-		var original = null;
-		
-		try while (true) {
-			var token = lexer.token( attributesText );
-			
-			switch (token) {
-				case '"' if (original == null):
-					original = token;
-					continue;
-					
-				case '\'' if (original == null):
-					original = token;
-					continue;
-					
-				case '"' if (token == original):
-					original = null;
-					break;
-					
-				case '\'' if (token == original):
-					original = null;
-					break;
-					
-				case _ if (original == null):
-					original = ' ';
-					
-				case ' ' if (token == original):
-					original = null;
-					break;
-					
-				case _:
-					
-			}
-			
-			value += token;
-			
-		} catch (e:Eof) {
-			
+		var value = try {
+			lexer.token( attributesValue );
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
-			trace( e );
+			'';
 		}
 		
 		[key, value];
@@ -474,15 +440,16 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9_\\-]+' => [lexer.current, '']
 	] );
 	
-	public static var attributesText = Mo.rules( [
-	' ' => ' ',
-	'"' => '"',
-	'\'' => '\'',
-	'[^\'" ]+' => lexer.current
+	public static var attributesValue = Mo.rules( [
+	'"[^"]*"' => lexer.current.substring(1, lexer.current.length-1),
+	'\'[^\']*\'' => lexer.current.substring(1, lexer.current.length-1),
+	'[^ "\'><]+' => lexer.current,
 	] );
 	
 	public static var instructions = Mo.rules( [
-	'[^\r\n\t<> "\\[]+' => lexer.current,
+	'[a-zA-Z0-9]+' => lexer.current,
+	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer.current,
+	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer.current,
 	'[\r\n\t ]+' => lexer.token( instructions ),
 	'\\[' => {
 		var value = '';
