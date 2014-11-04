@@ -26,7 +26,11 @@ class Tools {
 	}
 	
 	public static function create(tagName:String):DOMNode {
-		return new DOMNode(Keyword(Tag( new HtmlRef(tagName, new Map(), [], [], null, true) )));
+		return tagName != null ? 
+			~/^[a-zA-Z_:]([a-zA-Z0-9_:\.])*$/.match(tagName) ?
+				new DOMNode(Keyword(Tag( new HtmlRef(tagName, new Map(), [], [], null, true) ))) 
+				: null
+			: null;
 	}
 	
 	static var firstTag:EReg = ~/<([a-z]+)[ \/>]/;
