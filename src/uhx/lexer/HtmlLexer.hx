@@ -53,9 +53,9 @@ class HtmlRef extends Ref<Tokens> {
 	public var name:String;
 	public var complete:Bool = false;
 	public var categories:Array<Category> = [];
-	public var attributes:Map<String,String> = new Map();
+	public var attributes:StringMap<String> = new StringMap();
 	
-	public function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
+	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
 		super(tokens, parent);
 		this.name = name;
 		this.complete = complete;
@@ -93,8 +93,8 @@ typedef HtmlR = {> R<Tokens>,
 	var name:String;
 	var complete:Bool;
 	var categories:Array<Category>;
-	var attributes:Map<String, String>;
-	function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
+	var attributes:StringMap<String>;
+	function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
 	function clone(deep:Bool):HtmlR;
 }
 
@@ -312,7 +312,7 @@ class HtmlLexer extends Lexer {
 		var tag:String = lexer.current;
 		var categories = tag.categories();
 		var model = tag.model();
-		var attrs = new Map<String,String>();
+		var attrs = new StringMap<String>();
 		
 		var isVoid = 
 		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
