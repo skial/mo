@@ -260,10 +260,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function get_nodeValue():String {
 		return switch (this) {
 			case Const(CString(s)): 
-				s;
+				StringTools.htmlUnescape( s );
 				
 			case Keyword(HtmlKeywords.Text(e)):
-				e.tokens;
+				StringTools.htmlUnescape( e.tokens );
 				
 			case Keyword(Instruction( { tokens:a } )):
 				if (a[0] == '--' && a[a.length - 1] == '--') {
