@@ -1,5 +1,6 @@
 package dtx.mo;
 
+import haxe.io.Eof;
 import uhx.mo.Token;
 import uhx.lexer.HtmlLexer;
 import byte.ByteData;
@@ -49,12 +50,11 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			
 			try while (true) {
 				tokens.push( lexer.token( HtmlLexer.root ) );
-			} catch (e:Dynamic) { }
+			} catch(e:Eof) { } catch (e:Dynamic) { }
 			
 			switch (this) {
 				case Keyword(Tag(e)):
 					e.tokens = tokens;
-					//this = Keyword(Tag(e));
 					
 				case _:
 					
@@ -336,7 +336,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		return list;
 	}
 	
-	public inline function get_childNodes():Array<DOMNode> {
+	public inline function get_childNodes():NodeList {
 		return switch (this) {
 			case Keyword(Tag(e)): 
 				e.tokens;
@@ -366,7 +366,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		}
 	}
 	
-	public inline function get_firstChild():DOMNode {
+	public function get_firstChild():DOMNode {
 		return switch (this) {
 			case Keyword(Tag(e)):
 				e.tokens[0];
@@ -376,7 +376,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		}
 	}
 	
-	public inline function get_lastChild():DOMNode {
+	public function get_lastChild():DOMNode {
 		return switch (this) {
 			case Keyword(Tag(e)):
 				e.tokens[e.tokens.length-1];
@@ -388,12 +388,12 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	
 	public function get_nextSibling():DOMNode {
 		var parent = (this:DOMNode).parentNode;
-		return parent.childNodes[parent.childNodes.indexOf( this ) + 1];
+		return parent != null ? parent.childNodes[parent.childNodes.indexOf( this ) + 1] : null;
 	}
 	
 	public function get_previousSibling():DOMNode {
 		var parent = (this:DOMNode).parentNode;
-		return parent.childNodes[parent.childNodes.indexOf( this ) - 1];
+		return parent != null ? parent.childNodes[parent.childNodes.indexOf( this ) - 1] : null;
 	}
 	
 	public function get_textContent():String {
