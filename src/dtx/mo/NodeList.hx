@@ -4,13 +4,14 @@ import uhx.mo.Token;
 import uhx.lexer.HtmlLexer;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
+private typedef DOMNodes = Array<DOMNode>;
 
 /**
  * ...
  * @author Skial Bainn
  */
-@:forward abstract NodeList(Array<DOMNode>) from Tokens from Array<DOMNode> to Array<DOMNode> {
-	public inline function new(v:Array<DOMNode>) this = v;
+@:forward abstract NodeList(DOMNodes) from Tokens from DOMNodes to DOMNodes {
+	@:noCompletion public inline function new(v:DOMNodes) this = v;
 	
 	@:arrayAccess @:noCompletion public inline function get(i:Int):DOMNode return this[i];
 	@:arrayAccess @:noCompletion public inline function set(i:Int, v:DOMNode):DOMNode {
