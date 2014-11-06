@@ -20,11 +20,9 @@ class Ref<Child> {
 	public var tokens:Child;
 	public var parent:Void->Token<HtmlKeywords>;
 	
-	private var cachedParent:Token<HtmlKeywords>;
-	
 	public function new(tokens:Child, ?parent:Void->Token<HtmlKeywords>) {
 		this.tokens = tokens;
-		this.parent = parent == null ? getParent : parent;
+		this.parent = parent == null ? function() return null : parent;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
@@ -32,38 +30,20 @@ class Ref<Child> {
 	public function clone(deep:Bool) {
 		return new Ref<Child>(tokens, null);
 	}
-	
-	public function getParent():Token<HtmlKeywords> {
-		if (cachedParent == null) {
-			cachedParent = Keyword(HtmlKeywords.Text( cast this ));
-		}
-		
-		return cachedParent;
-	}
+
 	
 }
 
 class InstructionRef extends Ref<Array<String>> {
 	
-	//public var name:String;
-	
-	public function new(/*name:String, */tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
-		//this.name = name;
+	public function new(tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
 		super(tokens, parent);
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	override public function clone(deep:Bool) {
-		return new InstructionRef(/*'$name', */deep ? tokens.copy() : tokens, null);
-	}
-	
-	override public function getParent():Token<HtmlKeywords> {
-		if (cachedParent == null) {
-			cachedParent = Keyword(Instruction( this ));
-		}
-		
-		return cachedParent;
+		return new InstructionRef(deep ? tokens.copy() : tokens, null);
 	}
 	
 }
@@ -73,9 +53,9 @@ class HtmlRef extends Ref<Tokens> {
 	public var name:String;
 	public var complete:Bool = false;
 	public var categories:Array<Category> = [];
-	public var attributes:Map<String,String> = new Map();
+	public var attributes:StringMap<String> = new StringMap();
 	
-	public function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
+	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
 		super(tokens, parent);
 		this.name = name;
 		this.complete = complete;
@@ -96,14 +76,6 @@ class HtmlRef extends Ref<Tokens> {
 		);
 	}
 	
-	override public function getParent():Token<HtmlKeywords> {
-		if (cachedParent == null) {
-			cachedParent = Keyword(Tag( this ));
-		}
-		
-		return cachedParent;
-	}
-	
 }
 
 typedef R<Child> = {
@@ -113,8 +85,7 @@ typedef R<Child> = {
 }
 
 typedef InstructionR = {> R<Array<String>>,
-	//var name:String;
-	function new(/*name:String, */tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
+	function new(tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
 	function clone(deep:Bool):InstructionR;
 }
 
@@ -122,8 +93,8 @@ typedef HtmlR = {> R<Tokens>,
 	var name:String;
 	var complete:Bool;
 	var categories:Array<Category>;
-	var attributes:Map<String, String>;
-	function new(name:String, attributes:Map<String, String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
+	var attributes:StringMap<String>;
+	function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
 	function clone(deep:Bool):HtmlR;
 }
 
@@ -341,7 +312,7 @@ class HtmlLexer extends Lexer {
 		var tag:String = lexer.current;
 		var categories = tag.categories();
 		var model = tag.model();
-		var attrs = new Map<String,String>();
+		var attrs = new StringMap<String>();
 		
 		var isVoid = 
 		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
