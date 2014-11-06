@@ -16,7 +16,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public var nodeName(get, never):String;
 	public var attributes(get, never):Iterable<{name:String, value:String}>;
 	public var childNodes(get, never):Iterable<DOMNode>;
-	public var parentNode(get, never):DOMNode;
+	public var parentNode(get, set):DOMNode;
 	public var firstChild(get, never):DOMNode;
 	public var lastChild(get, never):DOMNode;
 	public var nextSibling(get, never):DOMNode;
@@ -28,8 +28,21 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public inline function token():Token<HtmlKeywords> return this;
 	
 	@:op(A == B) 
-	public static inline function toBool(a:DOMNode, b:DOMNode):Bool {
+	@:noCompletion 
+	public static inline function toBool1(a:DOMNode, b:DOMNode):Bool {
 		return a.equals( b );
+	}
+	
+	@:op(A == B) 
+	@:noCompletion 
+	public static inline function toBool2(a:Null<DOMNode>, b:Null<DOMNode>):Bool {
+		return a != null && b != null && a.equals( b );
+	}
+	
+	@:op(A == B)
+	@:noCompletion
+	public inline function toBool3(b:Token<HtmlKeywords>):Bool {
+		return this.equals( b );
 	}
 	
 	@:allow(dtx)
@@ -109,6 +122,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function appendChild(newChild:DOMNode):DOMNode {
 		switch (this) {
 			case Keyword(Tag(e)):
+				newChild.parentNode = this;
 				e.tokens.push( newChild );
 				
 			case _:
@@ -121,6 +135,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function insertChild(newChild:DOMNode, index:Int):Void {
 		switch (this) {
 			case Keyword(Tag(e)):
+				newChild.parentNode = this;
 				e.tokens.insert( index, newChild );
 				
 			case _:
@@ -131,7 +146,8 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function insertBefore(newChild:DOMNode, refChild:DOMNode):DOMNode {
 		switch (this) {
 			case Keyword(Tag(e)):
-				e.tokens.insert( e.tokens.indexOf( refChild ), newChild );
+				newChild.parentNode = this;
+				e.tokens.insert( (e.tokens:NodeList).indexOf( refChild ), newChild );
 				
 			case _:
 				
@@ -144,6 +160,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		switch (this) {
 			case Keyword(Tag(e)):
 				e.tokens.remove( oldChild );
+				oldChild.parentNode = null;
 				
 			case _:
 				
@@ -364,6 +381,16 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case _:
 				null;
 		}
+	}
+	
+	public inline function set_parentNode(v:DOMNode):DOMNode {
+		switch (this) {
+			case Keyword(HtmlKeywords.Text(e)): e.parent = function() return v.token();
+			case Keyword(Tag(e)): e.parent = function() return v.token();
+			case Keyword(Instruction(e)): e.parent = function() return v.token();
+			case _:
+		}
+		return v;
 	}
 	
 	public function get_firstChild():DOMNode {
