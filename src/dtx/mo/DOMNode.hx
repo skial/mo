@@ -122,6 +122,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function appendChild(newChild:DOMNode):DOMNode {
 		switch (this) {
 			case Keyword(Tag(e)):
+				if (newChild.parentNode != null) {
+					newChild.parentNode.removeChild( newChild );
+				}
+				
 				newChild.parentNode = this;
 				e.tokens.push( newChild );
 				
@@ -135,6 +139,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function insertChild(newChild:DOMNode, index:Int):Void {
 		switch (this) {
 			case Keyword(Tag(e)):
+				if (newChild.parentNode != null) {
+					newChild.parentNode.removeChild( newChild );
+				}
+				
 				newChild.parentNode = this;
 				e.tokens.insert( index, newChild );
 				
@@ -146,6 +154,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function insertBefore(newChild:DOMNode, refChild:DOMNode):DOMNode {
 		switch (this) {
 			case Keyword(Tag(e)):
+				if (newChild.parentNode != null) {
+					newChild.parentNode.removeChild( newChild );
+				}
+				
 				newChild.parentNode = this;
 				e.tokens.insert( (e.tokens:NodeList).indexOf( refChild ), newChild );
 				
