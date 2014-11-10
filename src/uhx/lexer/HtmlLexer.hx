@@ -255,10 +255,10 @@ class HtmlLexer extends Lexer {
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
 	'>' => GreaterThan,
-	' +' => Space(lexer.current.length),
+	/*' +' => Space(lexer.current.length),
 	'\n' => Newline,
 	'\r' => Carriage,
-	'\t' => Tab(1),
+	'\t' => Tab(1),*/
 	//'[^<>]+' => Const( CString( lexer.current ) ),
 	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, parent )) ),
 	] );
