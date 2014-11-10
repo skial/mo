@@ -582,7 +582,7 @@ class HtmlLexer extends Lexer {
 					index = -1;
 					tag = null;
 					
-					for (i in 0...openTags.length) {
+					/*for (i in 0...openTags.length) {
 						tag = openTags[i];
 						
 						if (tag != null && !tag.complete && t == tag.name) {
@@ -591,6 +591,18 @@ class HtmlLexer extends Lexer {
 							
 							break;
 						}
+					}*/
+					
+					var i = openTags.length - 1;
+					while (i >= 0) {
+						tag = openTags[i];
+						if (tag != null && !tag.complete && t == tag.name) {
+							index = i;
+							tag.complete = true;
+							
+							break;
+						}
+						i--;
 					}
 					
 					if (index == position) {
