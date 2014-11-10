@@ -68,6 +68,9 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			switch (this) {
 				case Keyword(Tag(e)):
 					e.tokens = tokens;
+					/*for (t in (e.tokens:Array<DOMNode>)) {
+						t.parentNode = (this:DOMNode);
+					}*/
 					
 				case _:
 					
