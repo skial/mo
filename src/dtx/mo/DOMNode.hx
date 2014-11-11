@@ -1,6 +1,7 @@
 package dtx.mo;
 
 import haxe.io.Eof;
+import hxparse.Lexer;
 import uhx.mo.Token;
 import uhx.lexer.HtmlLexer;
 import byte.ByteData;
@@ -299,9 +300,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				
 			case Keyword(Instruction( { tokens:a } )):
 				if (a[0] == '--' && a[a.length - 1] == '--') {
-					a.slice(1, a.length - 1).join(' ');
+					//a.slice(1, a.length - 1).join(' ');
+					a.slice(1, a.length - 1).join('');
 				} else {
-					a.join(' ');
+					a.join('');
 				}
 				
 			case _:
@@ -321,9 +323,17 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				
 			case Keyword(Instruction(ref)):
 				if (ref.tokens[0] == '--' && ref.tokens[ref.tokens.length -1] == '--') {
-					ref.tokens = '-- $value --'.split(' ');
+					ref.tokens = [];
+					var l = new Lexer( ByteData.ofString('--$value--'), 'set_nodevalue' );
+					try while (true) {
+						ref.tokens.push( l.token( HtmlLexer.instructions ) );
+					} catch (e:Dynamic) { }
 				} else {
-					ref.tokens = value.split(' ');
+					ref.tokens = [];
+					var l = new Lexer( ByteData.ofString(value), 'set_nodevalue' );
+					try while (true) {
+						ref.tokens.push( l.token( HtmlLexer.instructions ) );
+					} catch (e:Dynamic) { }
 				}
 				//this = Keyword(Instruction(n, [value]));
 				
