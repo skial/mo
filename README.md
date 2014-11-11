@@ -2,7 +2,16 @@
 
 > Haitian Creole for Words
 
-The goal of Mo is to be a syntax highlighter for Haxe, using @Simn [hxparse] library.
+The primary goal of Mo is to be a syntax highlighter for Haxe.
+
+## What inside...
+
+Currently the library supports CSS, HTML, Markdown and Haxe. There is 
+partial support for Http Headers.
+	
+## Notes
+
++ Markdown support is not Common Markdown compliant, yet.
 
 ## Installation
 
@@ -15,6 +24,9 @@ The goal of Mo is to be a syntax highlighter for Haxe, using @Simn [hxparse] lib
 
 [hxparse]: http://github.com/simn/hxparse "Haxe Lexer and Parser Library"
 	
-## Setup
+## Tests
 
-None, it hasnt gotten very far.
++ [CSS Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/CssParserSpec.hx)
++ [HTML Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/HtmlLexerSpec.hx)
++ [Markdown Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/MarkdownParserSpec.hx)
++ [Haxe Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/HaxeParserSpec.hx)
