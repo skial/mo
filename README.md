@@ -31,5 +31,6 @@ There is untested support for Http Headers.
 
 + [CSS Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/CssParserSpec.hx)
 + [HTML Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/HtmlLexerSpec.hx)
+	- [Mo-Detox Tests](https://github.com/skial/uhu-spec/tree/master/src/dtx)
 + [Markdown Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/MarkdownParserSpec.hx)
 + [Haxe Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/HaxeParserSpec.hx)
