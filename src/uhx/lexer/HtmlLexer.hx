@@ -255,11 +255,6 @@ class HtmlLexer extends Lexer {
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
 	'>' => GreaterThan,
-	/*' +' => Space(lexer.current.length),
-	'\n' => Newline,
-	'\r' => Carriage,
-	'\t' => Tab(1),*/
-	//'[^<>]+' => Const( CString( lexer.current ) ),
 	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, parent )) ),
 	] );
 	
@@ -269,9 +264,7 @@ class HtmlLexer extends Lexer {
 	'\n' => Newline,
 	'\t' => Tab(1),
 	'/>' => lexer.token( openClose ),
-	//'![a-zA-Z0-9_\\-]*' => {
 	'!' => {
-		//var tag = lexer.current.substring(1, lexer.current.length);
 		var tag = '';
 		var attrs = [];
 		var tokens = [];
@@ -298,7 +291,6 @@ class HtmlLexer extends Lexer {
 			} catch (e:Dynamic) { };
 			
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
 			trace( e );
 		}
 		
@@ -335,11 +327,9 @@ class HtmlLexer extends Lexer {
 					var token = lexer.token( openClose );
 					
 					switch (token) {
-						//case Const(CString(x)) if (x.trim() == '/'):
 						case Keyword(HtmlKeywords.Text(e)) if (e.tokens.trim() == '/'):
 							continue;
 							
-						//case Const(CString('/')), Space(_):
 						case Keyword(HtmlKeywords.Text( { tokens:'/' } )), Space(_):
 							continue;
 							
@@ -350,7 +340,6 @@ class HtmlLexer extends Lexer {
 							break;
 					}
 				} catch (e:Dynamic) {
-					//untyped console.log( e );
 					trace( e );
 				};
 				
@@ -360,7 +349,7 @@ class HtmlLexer extends Lexer {
 			
 			
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
+			
 		}
 		
 		var ref = new HtmlRef(
@@ -391,8 +380,6 @@ class HtmlLexer extends Lexer {
 		
 		Keyword( Tag(ref) );
 	},
-	//'<' => Mo.make( lexer, LessThan ),
-	//'>' => Mo.make( lexer, GreaterThan ),
 	] );
 	
 	public static var attributes = Mo.rules( [
@@ -421,7 +408,6 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9]+' => lexer.current,
 	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer.current,
 	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer.current,
-	//'[\r\n\t ]+' => lexer.token( instructions ),
 	'[\r\n\t ]+' => lexer.current,
 	'\\[' => {
 		var value = '';
@@ -441,7 +427,6 @@ class HtmlLexer extends Lexer {
 			
 			value += token;
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
 			trace( e );
 		}
 		value;
@@ -469,7 +454,6 @@ class HtmlLexer extends Lexer {
 			
 			value += token;
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
 			trace( e );
 		}
 		'<$value>';
@@ -490,7 +474,6 @@ class HtmlLexer extends Lexer {
 			
 			value += token;
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
 			trace( e );
 		}
 		'$value';
@@ -583,17 +566,6 @@ class HtmlLexer extends Lexer {
 					index = -1;
 					tag = null;
 					
-					/*for (i in 0...openTags.length) {
-						tag = openTags[i];
-						
-						if (tag != null && !tag.complete && t == tag.name) {
-							index = i;
-							tag.complete = true;
-							
-							break;
-						}
-					}*/
-					
 					var i = openTags.length - 1;
 					while (i >= 0) {
 						tag = openTags[i];
@@ -624,7 +596,6 @@ class HtmlLexer extends Lexer {
 			trace( e );
 		} catch (e:Dynamic) {
 			trace( e );
-			//trace( haxe.CallStack.exceptionStack() );
 		}
 		
 		parent = previousParent;
@@ -677,7 +648,6 @@ class HtmlLexer extends Lexer {
 			
 			ref.tokens.push( token );
 		} catch (e:Dynamic) {
-			//untyped console.log( e );
 			trace( e );
 		}
 		
