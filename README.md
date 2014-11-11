@@ -2,16 +2,18 @@
 
 > Haitian Creole for Words
 
-The primary goal of Mo is to be a syntax highlighter for Haxe.
+The primary goal of Mo is to be a syntax highlighter for Haxe. Its getting
+there.
 
-## What inside...
+## Whats inside...
 
-Currently the library supports CSS, HTML, Markdown and Haxe. There is 
-partial support for Http Headers.
+Currently the library supports CSS, HTML, Markdown and Haxe syntax parsing. 
+There is untested support for Http Headers.
 	
 ## Notes
 
-+ Markdown support is not Common Markdown compliant, yet.
++ Markdown support is not Common Markdown compliant, _yet_.
++ The HTML lexer also comes with an `abstract` DOMNode/Tools/* implementations for the [Detox] library.
 
 ## Installation
 
@@ -23,6 +25,7 @@ partial support for Http Headers.
 		* install - `haxelib local master.zip`
 
 [hxparse]: http://github.com/simn/hxparse "Haxe Lexer and Parser Library"
+[detox]: https://github.com/jasononeil/detox "A cross-platform library, written in Haxe, that makes working with Xml and the DOM light weight and easy"
 	
 ## Tests
 
