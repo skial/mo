@@ -421,7 +421,8 @@ class HtmlLexer extends Lexer {
 	'[a-zA-Z0-9]+' => lexer.current,
 	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer.current,
 	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer.current,
-	'[\r\n\t ]+' => lexer.token( instructions ),
+	//'[\r\n\t ]+' => lexer.token( instructions ),
+	'[\r\n\t ]+' => lexer.current,
 	'\\[' => {
 		var value = '';
 		var original = lexer.current;
