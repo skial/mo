@@ -8,6 +8,7 @@ import uhx.mo.Token;
 import hxparse.Lexer;
 import byte.ByteData;
 import hxparse.Ruleset;
+import haxe.EitherType;
 
 using StringTools;
 
@@ -37,23 +38,24 @@ enum CssSelectors {
 	Expr(tokens:Selectors);
 }
 
-enum AttributeType {
-	Name(value:String);	// 	Just the attribute name
-	Value(value:String);//	val
-	Exact;				//	att=val
-	List;				//	att~=val
-	@split DashList;	//	att|=val
-	Prefix;				//	att^=val
-	Suffix;				//	att$=val
-	Contains;			//	att*=val
+@:enum abstract AttributeType(EitherType<Int,String>) from EitherType<Int,String> to EitherType<Int,String> {
+	//Name(value:String);	// 	Just the attribute name
+	//Value(value:String);//	val
+	public var Unknown = -1;
+	public var Exact = 0;				//	att=val
+	public var List = 1;				//	att~=val
+	/*@split */public var DashList = 2;		//	att|=val
+	public var Prefix = 3;				//	att^=val
+	public var Suffix = 4;				//	att$=val
+	public var Contains = 5;			//	att*=val
 }
 
 @:enum abstract CombinatorType(Int) from Int to Int {
-	public var None = 1;				// Used in `type.class`, `type:pseudo` and `type[attribute]`
-	public var Child = 2;				//	`>`
-	public var Descendant = 3;			//	` `
-	public var Adjacent = 4;			//	`+`
-	public var General = 5;				//	`~`
+	public var None = 0;				// Used in `type.class`, `type:pseudo` and `type[attribute]`
+	public var Child = 1;				//	`>`
+	public var Descendant = 2;			//	` `
+	public var Adjacent = 3;			//	`+`
+	public var General = 4;				//	`~`
 }
 
 private typedef Queries = Array<CssMedia>;
@@ -274,7 +276,8 @@ class CssLexer extends Lexer {
 			return Pseudo(current.substring(1, index).trim(), expression);
 		} );
 	},
-	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n]+)?\\]' => {
+	// TODO handle multiple attributes [a*=1][b*=2][c*=3] should be a combinator of None.
+	/*'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\]\\[]+)?\\]' => {
 		var c = lexer.current;
 		
 		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
@@ -290,6 +293,18 @@ class CssLexer extends Lexer {
 		}
 		
 		Attribute(name, type == null ? cast t[0] : type, value);
+	},*/
+	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
+		var current = lexer.current;
+		
+		handleSelectors(lexer, function(i) {
+			var tokens = parse(ByteData.ofString(current.substring(1, i == -1 ? current.length - 1 : i-1)), 'attributes', attributes);
+			return Attribute( 
+				(tokens.length > 0) ? tokens[0] : '', 
+				(tokens.length > 1) ? tokens[1] : -1, 
+				(tokens.length > 2) ? tokens[2] : '' 
+			);
+		} );
 	},
 	'([^,]+,[^,]+)+' => {
 		var tokens = [];
@@ -328,18 +343,18 @@ class CssLexer extends Lexer {
 	'\\^=' => Prefix,
 	'$=' => Suffix,
 	'\\*=' => Contains,
-	'[$s]*[^$s=~$\\|\\^\\*]+[$s]*' => {
+	'[$s]*[^$s=~$\\|\\^\\*\\[\\]]+[$s]*' => {
 		var value = lexer.current.trim();
 		if (value.startsWith('"')) value = value.substring(1);
 		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
-		Name(value);
+		value;
 	},
-	'[$s]*[^$s=~$\\|\\^\\*]+' => {
+	/*'[$s]*[^$s=~$\\|\\^\\*]+' => {
 		var value = lexer.current.trim();
 		if (value.startsWith('"')) value = value.substring(1);
 		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
 		Value(value);
-	}
+	}*/
 	]);
 	
 	public static var declarations = Mo.rules([
