@@ -83,6 +83,20 @@ class CssLexer extends Lexer {
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
+		
+		// Any Attribute or Pseudo selector without a preceeding selector is treated
+		// as having a Universal selector preceeding it. 
+		// `[a=1]` becomes `*[a=1]`
+		// `:first-child` becomes `*:first-child`
+		for (i in 0...selector.length) switch(selector[i]) {
+			case Attribute(_, _, _) | Pseudo(_, _) | 
+			Combinator(Attribute(_, _, _), _, _) | Combinator(Pseudo(_, _), _, _):
+				selector[i] = Combinator(Universal, selector[i], None);
+				
+			case _:
+				
+		}
+		
 		return Keyword(RuleSet(selector.length > 1? CssSelectors.Group(selector) : selector[0], tokens));
 	}
 	

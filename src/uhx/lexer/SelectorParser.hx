@@ -26,6 +26,19 @@ class SelectorParser {
 			trace( e );
 		}
 		
+		// Any Attribute or Pseudo selector without a preceeding selector is treated
+		// to have a Universal selector preceeding it. 
+		// `[a=1]` becomes `*[a=1]`
+		// `:first-child` becomes `*:first-child`
+		for (i in 0...tokens.length) switch(tokens[i]) {
+			case Attribute(_, _, _) | Pseudo(_, _) | 
+			Combinator(Attribute(_, _, _), _, _) | Combinator(Pseudo(_, _), _, _):
+				tokens[i] = Combinator(Universal, tokens[i], None);
+				
+			case _:
+				
+		}
+		
 		return tokens.length > 1?Group(tokens):tokens[0];
 	}
 	
