@@ -183,11 +183,11 @@ class CssParser {
 		var result = '';
 		
 		switch (token) {
-			case Name(v):
-				result = v;
+			/*case Name(v):
+				result = v;*/
 				
-			case Value(v):
-				result = v;
+			/*case Value(v):
+				result = v;*/
 				
 			case Exact:
 				result = '=';
