@@ -281,9 +281,6 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Keyword(Instruction(_)):
 				uhx.lexer.HtmlLexer.NodeType.Comment;
 				
-			case Keyword(End(_)):
-				uhx.lexer.HtmlLexer.NodeType.Unknown;
-				
 			case _:
 				uhx.lexer.HtmlLexer.NodeType.Unknown;
 				
