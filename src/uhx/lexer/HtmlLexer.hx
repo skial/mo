@@ -78,30 +78,10 @@ class HtmlRef extends Ref<Tokens> {
 	
 }
 
-typedef R<Child> = {
-	var tokens:Child;
-	var parent:Void->Token<HtmlKeywords>;
-	function clone(deep:Bool):R<Child>;
-}
-
-typedef InstructionR = {> R<Array<String>>,
-	function new(tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
-	function clone(deep:Bool):InstructionR;
-}
-
-typedef HtmlR = {> R<Tokens>,
-	var name:String;
-	var complete:Bool;
-	var categories:Array<Category>;
-	var attributes:StringMap<String>;
-	function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
-	function clone(deep:Bool):HtmlR;
-}
-
 enum HtmlKeywords {
 	End(name:String);
-	Tag(ref:HtmlR);
-	Instruction(ref:InstructionR);
+	Tag(ref:HtmlRef);
+	Instruction(ref:InstructionRef);
 	Text(ref:Ref<String>);
 }
 
