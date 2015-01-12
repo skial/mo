@@ -290,24 +290,6 @@ class CssLexer extends Lexer {
 			return Pseudo(current.substring(1, index).trim(), expression);
 		} );
 	},
-	// TODO handle multiple attributes [a*=1][b*=2][c*=3] should be a combinator of None.
-	/*'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\]\\[]+)?\\]' => {
-		var c = lexer.current;
-		
-		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
-		var name = '';
-		var type:AttributeType = null;
-		var value = '';
-		
-		for (i in 0...t.length) switch(i) {
-			case 0: name = std.Type.enumParameters(t[0])[0];
-			case 1: type = cast t[1];
-			case 2: value = std.Type.enumParameters(t[2])[0];
-			case _:
-		}
-		
-		Attribute(name, type == null ? cast t[0] : type, value);
-	},*/
 	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
 		var current = lexer.current;
 		
