@@ -504,7 +504,7 @@ class HtmlLexer extends Lexer {
 		Scripted = 8;
 		 */
 		return switch (tag) {
-			case Base, Link, Meta, Title: [0];
+			case Base, Link, Meta: [0];
 			case Style: [0, 1];
 			case Dialog, Hr: [1];
 			case NoScript, Command: [0, 1, 4];
