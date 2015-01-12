@@ -105,6 +105,7 @@ enum HtmlKeywords {
 	Text(ref:Ref<String>);
 }
 
+// @see http://www.w3.org/html/wg/drafts/html/master/dom.html#content-models
 @:enum abstract Category(Int) from Int to Int {
 	public var Unknown = -1;
 	public var Metadata = 0;
@@ -307,7 +308,7 @@ class HtmlLexer extends Lexer {
 		var attrs = new StringMap<String>();
 		
 		var isVoid = 
-		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
+		if (model == Model.Empty) {
 			true;
 		} else {
 			false;
