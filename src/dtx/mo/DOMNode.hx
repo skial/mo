@@ -266,14 +266,14 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function get_nodeType():Int {
 		return switch (this) {
 			case Keyword(Tag(ref)):
-				switch (ref.name) {
+				/*switch (ref.name) {
 					case uhx.lexer.HtmlLexer.HtmlTag.Html:
 						uhx.lexer.HtmlLexer.NodeType.Document;
 						
-					case _:
+					case _:*/
 						uhx.lexer.HtmlLexer.NodeType.Element;
 						
-				}
+				//}
 				
 			case Keyword(HtmlKeywords.Text(_)):
 				uhx.lexer.HtmlLexer.NodeType.Text;
