@@ -385,7 +385,7 @@ class HtmlLexer extends Lexer {
 	
 	public static var attributes = Mo.rules( [
 	'[ \r\n\t]' => lexer.token( attributes ),
-	'[a-zA-Z0-9_\\-]+[\r\n\t ]*=[\r\n\t ]*' => {
+	'[a-zA-Z0-9_\\-:]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
 		var value = try {
