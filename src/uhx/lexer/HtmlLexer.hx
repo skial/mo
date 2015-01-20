@@ -52,15 +52,17 @@ class HtmlRef extends Ref<Tokens> {
 	
 	public var name:String;
 	public var complete:Bool = false;
+	public var selfClosing:Bool = false;
 	public var categories:Array<Category> = [];
 	public var attributes:StringMap<String> = new StringMap();
 	
-	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
+	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false, ?selfClosing:Bool = false) {
 		super(tokens, parent);
 		this.name = name;
 		this.complete = complete;
 		this.attributes = attributes;
 		this.categories = categories;
+		this.selfClosing = selfClosing;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
@@ -72,7 +74,8 @@ class HtmlRef extends Ref<Tokens> {
 			categories.copy(), 
 			deep ? [for (t in tokens) (t:dtx.mo.DOMNode).cloneNode( deep )] : [for (t in tokens) t], 
 			null, 
-			complete
+			complete,
+			selfClosing
 		);
 	}
 	
@@ -358,6 +361,8 @@ class HtmlLexer extends Lexer {
 		} else {
 			ref.complete = true;
 		}
+		
+		ref.selfClosing = isVoid;
 		
 		Keyword( Tag(ref) );
 	},
