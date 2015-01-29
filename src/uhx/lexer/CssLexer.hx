@@ -68,7 +68,7 @@ enum CssMedia {
 	Expr(name:String, value:String);
 }
  
-class CssLexer extends Lexer {
+@:access(hxparse.Lexer) class CssLexer extends Lexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -221,6 +221,8 @@ class CssLexer extends Lexer {
 				
 			} catch (e:Dynamic) {
 				trace( e );
+				trace( lexer.input );
+				trace( lexer.input.readString(0, lexer.pos) );
 			}
 			
 			var next = tokens.length > 1 ? CssSelectors.Group(tokens) : tokens[0];
@@ -272,7 +274,7 @@ class CssLexer extends Lexer {
 			return Class( parts );
 		} );
 	},
-	'::?[$ident]+[ ]*(\\([^()]*\\))?($combinator|[ ]*)' => {
+	'::?[$ident]+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
@@ -302,7 +304,7 @@ class CssLexer extends Lexer {
 			);
 		} );
 	},
-	'([^,]+,[^,]+)+' => {
+	'([^,()]+,[^,()]+)+' => {
 		var tokens = [];
 		
 		for (part in lexer.current.split(',')) {
@@ -311,7 +313,7 @@ class CssLexer extends Lexer {
 		
 		CssSelectors.Group(tokens);
 	},
-	'\\(' => {
+	/*'\\(' => {
 		var tokens = [];
 		try while (true) {
 			var token = lexer.token( selectors );
@@ -328,7 +330,7 @@ class CssLexer extends Lexer {
 		
 		return CssSelectors.Expr(tokens);
 	},
-	'\\)' => Type(')'),
+	'\\)' => Type(')'),*/
 	'[,: ]' => lexer.token( selectors ),
 	]);
 	
