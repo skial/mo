@@ -56,6 +56,7 @@ enum CssSelectors {
 	public var Descendant = 2;			//	` `
 	public var Adjacent = 3;			//	`+`
 	public var General = 4;				//	`~`
+	public var Shadow = 5;				//	`>>>`
 }
 
 private typedef Queries = Array<CssMedia>;
@@ -168,55 +169,42 @@ enum CssMedia {
 	]);
 	
 	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
-		var current = lexer.current;
-		var result = null;
-		var len = current.length - 1;
 		var idx = -1;
+		var result = null;
+		var tmp = new StringBuf();
+		var current = lexer.current;
+		var len = current.length - 1;
 		var type:Null<CombinatorType> = null;
 		
-		while (len > 0) {
-			switch (current.charCodeAt(len)) {
-				case ' '.code: 
-					type = Descendant;
-					idx = len;
-					
-				case '.'.code, ':'.code, '['.code:
-					// Used for `type.class`, `type:pseudo` or `type[attribute]` instances.
-					// Not an actual css spec combinator.
-					type = None;
-					idx = len;
-					lexer.pos--;
-					break;
-					
-				case '>'.code: 
-					type = Child;
-					idx = len;
-					len = 0;
-					break;
-					
-				case '+'.code:
-					type = Adjacent;
-					idx = len;
-					len = 0;
-					break;
-					
-				case '~'.code:
-					type = General;
-					idx = len;
-					len = 0;
-					break;
+		// Putting `-(current.lenght+1)...1` causes Neko to crash with a stringbuf error.
+		for (i in -current.length + 1...1) tmp.addChar( current.fastCodeAt( -i ) );
+		var combinatorLexer = new Lexer(ByteData.ofString( tmp.toString() ), 'combinator');
+		
+		try while (true) {
+			type = combinatorLexer.token( combinators );
+			
+			switch (type) {
+				case None, Descendant, Child, Adjacent, General:
+					idx = current.length - combinatorLexer.pos;
+					if (type != Descendant) break;
 					
 				case _:
-					len = 0;
-					break;
+					idx = 0;
+					
 			}
-			len--;
+		} catch (e:Eof) {
+			
+		} catch (e:Dynamic) {
+			
 		}
+		
+		if (type == None) lexer.pos--;
 		
 		if (type != null) {
 			var tokens = [];
 			try while (true) {
 				tokens.push( lexer.token(selectors) );
+				
 			} catch (e:Eof) {
 				
 			} catch (e:Dynamic) {
@@ -233,6 +221,15 @@ enum CssMedia {
 		
 		return result;
 	}
+	
+	public static var combinators = Mo.rules([
+	'[.:\\[]' => None,
+	' ' => Descendant,
+	'>' => Child,
+	'+' => Adjacent,
+	'~' => General,
+	'>>>' => Shadow,
+	]);
 	
 	public static var selectors = Mo.rules([
 	' +' => lexer.token( selectors ),
@@ -313,24 +310,6 @@ enum CssMedia {
 		
 		CssSelectors.Group(tokens);
 	},
-	/*'\\(' => {
-		var tokens = [];
-		try while (true) {
-			var token = lexer.token( selectors );
-			switch (token) {
-				case Type(')'): break;
-				case _:
-			}
-			tokens.push( token );
-		} catch (e:Eof) {
-			
-		} catch (e:Dynamic) {
-			trace( e );
-		}
-		
-		return CssSelectors.Expr(tokens);
-	},
-	'\\)' => Type(')'),*/
 	'[,: ]' => lexer.token( selectors ),
 	]);
 	
@@ -346,13 +325,7 @@ enum CssMedia {
 		if (value.startsWith('"')) value = value.substring(1);
 		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
 		value;
-	},
-	/*'[$s]*[^$s=~$\\|\\^\\*]+' => {
-		var value = lexer.current.trim();
-		if (value.startsWith('"')) value = value.substring(1);
-		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
-		Value(value);
-	}*/
+	}
 	]);
 	
 	public static var declarations = Mo.rules([
