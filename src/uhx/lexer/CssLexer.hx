@@ -35,7 +35,7 @@ enum CssSelectors {
 	ID(name:String);
 	Pseudo(name:String, expr:String);
 	Combinator(selector:CssSelectors, next:CssSelectors, type:CombinatorType);
-	Expr(tokens:Selectors);
+	//Expr(tokens:Selectors);
 }
 
 @:enum abstract AttributeType(EitherType<Int,String>) from EitherType<Int,String> to EitherType<Int,String> {
@@ -310,7 +310,17 @@ enum CssMedia {
 		
 		CssSelectors.Group(tokens);
 	},
-	'[,: ]' => lexer.token( selectors ),
+	//' ' => Descendant,
+	'>' => {
+		Combinator(Pseudo('scope', ''), lexer.token( selectors ), Child);
+	},
+	'+' => {
+		Combinator(Pseudo('scope', ''), lexer.token( selectors ), Adjacent);
+	},
+	'~' => {
+		Combinator(Pseudo('scope', ''), lexer.token( selectors ), General);
+	},
+	//'>>>' => Shadow,
 	]);
 	
 	public static var attributes = Mo.rules([
