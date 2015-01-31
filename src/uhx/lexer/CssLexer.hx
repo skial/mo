@@ -77,7 +77,7 @@ enum CssMedia {
 	
 	public static var s = ' \t\r\n';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
-	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|';
+	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|\\+';
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
 	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
@@ -231,6 +231,8 @@ enum CssMedia {
 	'>>>' => Shadow,
 	]);
 	
+	public static var scoped:Bool = false;
+	
 	public static var selectors = Mo.rules([
 	' +' => lexer.token( selectors ),
 	'/\\*[^*]+\\*/' => lexer.token( selectors ),
@@ -305,22 +307,26 @@ enum CssMedia {
 		var tokens = [];
 		
 		for (part in lexer.current.split(',')) {
-			tokens = tokens.concat(parse(ByteData.ofString(part.trim()), 'group-selector', selectors));
+			tokens = tokens.concat(parse(ByteData.ofString(part.trim()), 'css-group-selector', selectors));
 		}
 		
 		CssSelectors.Group(tokens);
 	},
-	//' ' => Descendant,
 	'>' => {
-		Combinator(Pseudo('scope', ''), lexer.token( selectors ), Child);
+		!scoped
+			? lexer.token( selectors )
+			: Combinator(Pseudo('scope', ''), lexer.token( selectors ), Child);
 	},
-	'+' => {
-		Combinator(Pseudo('scope', ''), lexer.token( selectors ), Adjacent);
+	'\\+' => {
+		!scoped
+			? Pseudo('not', '*')
+			: Combinator(Pseudo('scope', ''), lexer.token( selectors ), Adjacent);
 	},
 	'~' => {
-		Combinator(Pseudo('scope', ''), lexer.token( selectors ), General);
+		!scoped
+			? Pseudo('not', '*')
+			: Combinator(Pseudo('scope', ''), lexer.token( selectors ), General);
 	},
-	//'>>>' => Shadow,
 	]);
 	
 	public static var attributes = Mo.rules([
