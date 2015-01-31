@@ -35,12 +35,9 @@ enum CssSelectors {
 	ID(name:String);
 	Pseudo(name:String, expr:String);
 	Combinator(selector:CssSelectors, next:CssSelectors, type:CombinatorType);
-	//Expr(tokens:Selectors);
 }
 
 @:enum abstract AttributeType(EitherType<Int,String>) from EitherType<Int,String> to EitherType<Int,String> {
-	//Name(value:String);	// 	Just the attribute name
-	//Value(value:String);//	val
 	public var Unknown = -1;
 	public var Exact = 0;				//	att=val
 	public var List = 1;				//	att~=val

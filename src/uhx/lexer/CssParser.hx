@@ -169,9 +169,6 @@ class CssParser {
 				result += ' ' + printCombinatorType( t ) + ' ';
 				result += printSelector( n, compress );
 				
-			/*case Expr(t):
-				result = '(' + [for (i in t) printSelector( i )].join(', ') + ')';*/
-				
 			case _:
 				
 		}
@@ -183,12 +180,6 @@ class CssParser {
 		var result = '';
 		
 		switch (token) {
-			/*case Name(v):
-				result = v;*/
-				
-			/*case Value(v):
-				result = v;*/
-				
 			case Exact:
 				result = '=';
 				
