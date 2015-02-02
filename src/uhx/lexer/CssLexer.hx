@@ -300,7 +300,7 @@ enum CssMedia {
 			);
 		} );
 	},
-	'([^,()]+,[^,()]+)+' => {
+	'([^,(]+,[^,)]+)+' => {
 		var tokens = [];
 		
 		for (part in lexer.current.split(',')) {
