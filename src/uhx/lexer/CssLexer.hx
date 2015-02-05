@@ -214,7 +214,7 @@ enum CssMedia {
 			if (tokens.length > 0) result = Combinator(single(idx), next, type);
 		}
 		
-		if (result == null) result = single(idx);
+		if (result == null) result =  single(idx);
 		
 		return result;
 	}
