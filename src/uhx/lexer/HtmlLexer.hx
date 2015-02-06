@@ -52,15 +52,17 @@ class HtmlRef extends Ref<Tokens> {
 	
 	public var name:String;
 	public var complete:Bool = false;
+	public var selfClosing:Bool = false;
 	public var categories:Array<Category> = [];
 	public var attributes:StringMap<String> = new StringMap();
 	
-	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false) {
+	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false, ?selfClosing:Bool = false) {
 		super(tokens, parent);
 		this.name = name;
 		this.complete = complete;
 		this.attributes = attributes;
 		this.categories = categories;
+		this.selfClosing = selfClosing;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
@@ -72,39 +74,21 @@ class HtmlRef extends Ref<Tokens> {
 			categories.copy(), 
 			deep ? [for (t in tokens) (t:dtx.mo.DOMNode).cloneNode( deep )] : [for (t in tokens) t], 
 			null, 
-			complete
+			complete,
+			selfClosing
 		);
 	}
 	
 }
 
-typedef R<Child> = {
-	var tokens:Child;
-	var parent:Void->Token<HtmlKeywords>;
-	function clone(deep:Bool):R<Child>;
-}
-
-typedef InstructionR = {> R<Array<String>>,
-	function new(tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>):Void;
-	function clone(deep:Bool):InstructionR;
-}
-
-typedef HtmlR = {> R<Tokens>,
-	var name:String;
-	var complete:Bool;
-	var categories:Array<Category>;
-	var attributes:StringMap<String>;
-	function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool):Void;
-	function clone(deep:Bool):HtmlR;
-}
-
 enum HtmlKeywords {
 	End(name:String);
-	Tag(ref:HtmlR);
-	Instruction(ref:InstructionR);
+	Tag(ref:HtmlRef);
+	Instruction(ref:InstructionRef);
 	Text(ref:Ref<String>);
 }
 
+// @see http://www.w3.org/html/wg/drafts/html/master/dom.html#content-models
 @:enum abstract Category(Int) from Int to Int {
 	public var Unknown = -1;
 	public var Metadata = 0;
@@ -307,7 +291,7 @@ class HtmlLexer extends Lexer {
 		var attrs = new StringMap<String>();
 		
 		var isVoid = 
-		if (model == Model.Empty || categories.length == 1 && categories[0] == Category.Metadata) {
+		if (model == Model.Empty) {
 			true;
 		} else {
 			false;
@@ -378,13 +362,15 @@ class HtmlLexer extends Lexer {
 			ref.complete = true;
 		}
 		
+		ref.selfClosing = isVoid;
+		
 		Keyword( Tag(ref) );
 	},
 	] );
 	
 	public static var attributes = Mo.rules( [
 	'[ \r\n\t]' => lexer.token( attributes ),
-	'[a-zA-Z0-9_\\-]+[\r\n\t ]*=[\r\n\t ]*' => {
+	'[a-zA-Z0-9_\\-:]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
 		var value = try {
@@ -504,7 +490,7 @@ class HtmlLexer extends Lexer {
 		Scripted = 8;
 		 */
 		return switch (tag) {
-			case Base, Link, Meta, Title: [0];
+			case Base, Link, Meta: [0];
 			case Style: [0, 1];
 			case Dialog, Hr: [1];
 			case NoScript, Command: [0, 1, 4];

@@ -2,8 +2,7 @@
 
 > Haitian Creole for Words
 
-The primary goal of Mo is to be a syntax highlighter for Haxe. Its getting
-there.
+The primary goal of Mo is to be a syntax highlighter for Haxe.
 
 ## Whats inside...
 
@@ -34,3 +33,8 @@ There is untested support for Http Headers.
 	- [Mo-Detox Tests](https://github.com/skial/uhu-spec/tree/master/src/dtx)
 + [Markdown Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/MarkdownParserSpec.hx)
 + [Haxe Tests](https://github.com/skial/uhu-spec/blob/master/src/uhx/lexer/HaxeParserSpec.hx)
+	
+## Libraries and Classes using Mo
+
++ [HTML Select](https://github.com/skial/uhu/blob/experimental/src/uhx/select/Html.hx) - An experimental CSS selector engine for the HTML parser in Mo.
++ [JSON Select](https://github.com/skial/uhu/blob/experimental/src/uhx/select/Json.hx) - An experimental JSON selector engine, based on http://jsonselect.org.

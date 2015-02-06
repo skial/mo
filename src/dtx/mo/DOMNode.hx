@@ -16,7 +16,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public var nodeValue(get, set):String;
 	public var nodeName(get, never):String;
 	public var attributes(get, never):Iterable<{name:String, value:String}>;
-	public var childNodes(get, never):Iterable<DOMNode>;
+	public var childNodes(get, set):Iterable<DOMNode>;
 	public var parentNode(get, set):DOMNode;
 	public var firstChild(get, never):DOMNode;
 	public var lastChild(get, never):DOMNode;
@@ -90,6 +90,16 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case _:
 				false;
 				
+		}
+	}
+	
+	public function hasAttributes():Bool {
+		return switch (this) {
+			case Keyword(Tag(e)):
+				e.attributes.iterator().hasNext();
+				
+			case _:
+				false;
 		}
 	}
 	
@@ -216,7 +226,10 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		
 		for (child in (this:DOMNode).childNodes) switch (child.token()) {
 			case Keyword(Tag(e)):
-				result += '<${e.name}>' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
+				result += '<${e.name}';
+				if (e.attributes.iterator().hasNext()) result += [for (k in e.attributes.keys()) '$k="${e.attributes.get(k)}"'].join(' ');
+				result += (e.selfClosing ? '/>' : '>' );
+				if (!e.selfClosing) result += ' ' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
 				
 			case Keyword(Instruction(e)):
 				if (e.tokens[0] == '--' && e.tokens[e.tokens.length - 1] == '--') {
@@ -280,9 +293,6 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				
 			case Keyword(Instruction(_)):
 				uhx.lexer.HtmlLexer.NodeType.Comment;
-				
-			case Keyword(End(_)):
-				uhx.lexer.HtmlLexer.NodeType.Unknown;
 				
 			case _:
 				uhx.lexer.HtmlLexer.NodeType.Unknown;
@@ -385,6 +395,17 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				
 			case _: 
 				[];
+		}
+	}
+	
+	public inline function set_childNodes(v:Iterable<DOMNode>):Iterable<DOMNode> {
+		return switch (this) {
+			case Keyword(Tag(e)):
+				e.tokens = cast v;
+				
+			case _:
+				[];
+				
 		}
 	}
 	

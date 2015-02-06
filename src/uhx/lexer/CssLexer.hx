@@ -35,12 +35,9 @@ enum CssSelectors {
 	ID(name:String);
 	Pseudo(name:String, expr:String);
 	Combinator(selector:CssSelectors, next:CssSelectors, type:CombinatorType);
-	Expr(tokens:Selectors);
 }
 
 @:enum abstract AttributeType(EitherType<Int,String>) from EitherType<Int,String> to EitherType<Int,String> {
-	//Name(value:String);	// 	Just the attribute name
-	//Value(value:String);//	val
 	public var Unknown = -1;
 	public var Exact = 0;				//	att=val
 	public var List = 1;				//	att~=val
@@ -56,6 +53,7 @@ enum CssSelectors {
 	public var Descendant = 2;			//	` `
 	public var Adjacent = 3;			//	`+`
 	public var General = 4;				//	`~`
+	public var Shadow = 5;				//	`>>>`
 }
 
 private typedef Queries = Array<CssMedia>;
@@ -68,7 +66,7 @@ enum CssMedia {
 	Expr(name:String, value:String);
 }
  
-class CssLexer extends Lexer {
+@:access(hxparse.Lexer) class CssLexer extends Lexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -76,7 +74,7 @@ class CssLexer extends Lexer {
 	
 	public static var s = ' \t\r\n';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
-	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|';
+	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|\\+';
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
 	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
@@ -168,69 +166,69 @@ class CssLexer extends Lexer {
 	]);
 	
 	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
-		var current = lexer.current;
-		var result = null;
-		var len = current.length - 1;
 		var idx = -1;
+		var result = null;
+		var tmp = new StringBuf();
+		var current = lexer.current;
+		var len = current.length - 1;
 		var type:Null<CombinatorType> = null;
 		
-		while (len > 0) {
-			switch (current.charCodeAt(len)) {
-				case ' '.code: 
-					type = Descendant;
-					idx = len;
-					
-				case '.'.code, ':'.code, '['.code:
-					// Used for `type.class`, `type:pseudo` or `type[attribute]` instances.
-					// Not an actual css spec combinator.
-					type = None;
-					idx = len;
-					lexer.pos--;
-					break;
-					
-				case '>'.code: 
-					type = Child;
-					idx = len;
-					len = 0;
-					break;
-					
-				case '+'.code:
-					type = Adjacent;
-					idx = len;
-					len = 0;
-					break;
-					
-				case '~'.code:
-					type = General;
-					idx = len;
-					len = 0;
-					break;
+		// Putting `-(current.lenght+1)...1` causes Neko to crash with a stringbuf error.
+		for (i in -current.length + 1...1) tmp.addChar( current.fastCodeAt( -i ) );
+		var combinatorLexer = new Lexer(ByteData.ofString( tmp.toString() ), 'combinator');
+		
+		try while (true) {
+			type = combinatorLexer.token( combinators );
+			
+			switch (type) {
+				case None, Descendant, Child, Adjacent, General:
+					idx = current.length - combinatorLexer.pos;
+					if (type != Descendant) break;
 					
 				case _:
-					len = 0;
-					break;
+					idx = 0;
+					
 			}
-			len--;
+		} catch (e:Eof) {
+			
+		} catch (e:Dynamic) {
+			
 		}
+		
+		if (type == None) lexer.pos--;
 		
 		if (type != null) {
 			var tokens = [];
 			try while (true) {
 				tokens.push( lexer.token(selectors) );
+				
 			} catch (e:Eof) {
 				
 			} catch (e:Dynamic) {
 				trace( e );
+				trace( lexer.input );
+				trace( lexer.input.readString(0, lexer.pos) );
 			}
 			
 			var next = tokens.length > 1 ? CssSelectors.Group(tokens) : tokens[0];
 			if (tokens.length > 0) result = Combinator(single(idx), next, type);
 		}
 		
-		if (result == null) result = single(idx);
+		if (result == null) result =  single(idx);
 		
 		return result;
 	}
+	
+	public static var combinators = Mo.rules([
+	'[.:\\[]' => None,
+	' ' => Descendant,
+	'>' => Child,
+	'+' => Adjacent,
+	'~' => General,
+	'>>>' => Shadow,
+	]);
+	
+	public static var scoped:Bool = false;
 	
 	public static var selectors = Mo.rules([
 	' +' => lexer.token( selectors ),
@@ -272,7 +270,7 @@ class CssLexer extends Lexer {
 			return Class( parts );
 		} );
 	},
-	'::?[$ident]+[ ]*(\\([^()]*\\))?($combinator|[ ]*)' => {
+	'::?[$ident]+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
@@ -290,24 +288,6 @@ class CssLexer extends Lexer {
 			return Pseudo(current.substring(1, index).trim(), expression);
 		} );
 	},
-	// TODO handle multiple attributes [a*=1][b*=2][c*=3] should be a combinator of None.
-	/*'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\]\\[]+)?\\]' => {
-		var c = lexer.current;
-		
-		var t = parse(ByteData.ofString(c.substring(1, c.length - 1)), 'attributes', attributes);
-		var name = '';
-		var type:AttributeType = null;
-		var value = '';
-		
-		for (i in 0...t.length) switch(i) {
-			case 0: name = std.Type.enumParameters(t[0])[0];
-			case 1: type = cast t[1];
-			case 2: value = std.Type.enumParameters(t[2])[0];
-			case _:
-		}
-		
-		Attribute(name, type == null ? cast t[0] : type, value);
-	},*/
 	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
 		var current = lexer.current;
 		
@@ -320,34 +300,30 @@ class CssLexer extends Lexer {
 			);
 		} );
 	},
-	'([^,]+,[^,]+)+' => {
+	'([^,(]+,[^,)]+)+' => {
 		var tokens = [];
 		
 		for (part in lexer.current.split(',')) {
-			tokens = tokens.concat(parse(ByteData.ofString(part.trim()), 'group-selector', selectors));
+			tokens = tokens.concat(parse(ByteData.ofString(part.trim()), 'css-group-selector', selectors));
 		}
 		
 		CssSelectors.Group(tokens);
 	},
-	'\\(' => {
-		var tokens = [];
-		try while (true) {
-			var token = lexer.token( selectors );
-			switch (token) {
-				case Type(')'): break;
-				case _:
-			}
-			tokens.push( token );
-		} catch (e:Eof) {
-			
-		} catch (e:Dynamic) {
-			trace( e );
-		}
-		
-		return CssSelectors.Expr(tokens);
+	'>' => {
+		!scoped
+			? lexer.token( selectors )
+			: Combinator(Pseudo('scope', ''), lexer.token( selectors ), Child);
 	},
-	'\\)' => Type(')'),
-	'[,: ]' => lexer.token( selectors ),
+	'\\+' => {
+		!scoped
+			? Pseudo('not', '*')
+			: Combinator(Pseudo('scope', ''), lexer.token( selectors ), Adjacent);
+	},
+	'~' => {
+		!scoped
+			? Pseudo('not', '*')
+			: Combinator(Pseudo('scope', ''), lexer.token( selectors ), General);
+	},
 	]);
 	
 	public static var attributes = Mo.rules([
@@ -362,13 +338,7 @@ class CssLexer extends Lexer {
 		if (value.startsWith('"')) value = value.substring(1);
 		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
 		value;
-	},
-	/*'[$s]*[^$s=~$\\|\\^\\*]+' => {
-		var value = lexer.current.trim();
-		if (value.startsWith('"')) value = value.substring(1);
-		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
-		Value(value);
-	}*/
+	}
 	]);
 	
 	public static var declarations = Mo.rules([
