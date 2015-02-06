@@ -2,6 +2,7 @@ package dtx.mo;
 
 import dtx.DOMNode;
 import uhx.mo.Token;
+import haxe.ds.StringMap;
 import uhx.lexer.HtmlLexer;
 import uhx.lexer.HtmlLexer.HtmlRef;
 
@@ -12,7 +13,7 @@ class Tools {
 
 	static inline function get_document():DocumentOrElement {
 		if (document == null) {
-			document = Keyword(Tag( new HtmlRef('html', new Map(), [], [], null, true) ));
+			document = Keyword(Tag( new HtmlRef('html', new StringMap(), [], [], null, true) ));
 		}
 		return document;
 	}
@@ -22,13 +23,14 @@ class Tools {
 	}
 	
 	public static function find(selector:String):DOMCollection {
-		return dtx.single.Traversing.find(document, selector);
+		//return dtx.single.Traversing.find(document, selector);
+		return new DOMCollection( uhx.select.Html.DocumentSelector.querySelectorAll( document, selector ) );
 	}
 	
 	public static function create(tagName:String):DOMNode {
 		return tagName != null ? 
 			~/^[a-zA-Z_:]([a-zA-Z0-9_:\.])*$/.match(tagName) ?
-				new DOMNode(Keyword(Tag( new HtmlRef(tagName, new Map(), [], [], null, true) ))) 
+				new DOMNode(Keyword(Tag( new HtmlRef(tagName, new StringMap(), [], [], null, true) ))) 
 				: null
 			: null;
 	}
