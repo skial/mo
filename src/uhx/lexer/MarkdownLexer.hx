@@ -16,21 +16,54 @@ using haxe.EnumTools;
 
 private typedef Tokens = Array<Token<MarkdownKeywords>>;
 
+class Block {
+	
+}
+
+class Leaf {
+	
+}
+
+class Container<T1, T2> {
+	
+	public var type:T1;
+	public var tokens:T2;
+	
+	public function new() {
+		
+	}
+	
+}
+
 enum MarkdownKeywords {
-	Paragraph(tokens:Tokens);
-	Header(alt:Bool, length:Int, title:Tokens);
-	Italic(underscore:Bool, tokens:Tokens);
-	Bold(underscore:Bool, tokens:Tokens);
-	Strike(tokens:Tokens);
-	Collection(ordered:Bool, tokens:Tokens);
-	Item(character:String, tokens:Tokens);
-	Link(ref:Bool, text:String, url:String, title:String);
-	Image(ref:Bool, text:String, url:String, title:String);
-	Resource(text:String, url:String, title:String);
-	Code(fenced:Bool, language:String, code:String);
-	Blockquote(tokens:Tokens);
-	Horizontal(character:String);
-	Break;
+	
+}
+
+@:enum abstract BlockType(Int) from Int to Int {
+	var Quote = 0;
+	var List = 1;
+	var ListItem = 2;
+}
+
+@:enum abstract LeafType(Int) from Int to Int {
+	var Rule = 0;
+	var Header = 1;
+	var Code = 2;
+	var Html = 3;
+	var Reference = 4;
+	var Paragraph = 5;
+}
+
+@:enum abstract InlineType(Int) from Int to Int {
+	var BackSlash = 0;
+	var Entity = 1;
+	var Code = 2;
+	var Emphasis = 3;
+	var Link = 4;
+	var Image = 5;
+	var HTML = 6;
+	var LineBreak = 7;
+	var Textual = 8;
 }
 
 /**
