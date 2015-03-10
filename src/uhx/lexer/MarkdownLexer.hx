@@ -30,9 +30,9 @@ class Block extends Container<ABlock, Leafs> {
 @:generic class Container<T1, T2> {
 	
 	public var type:T1;
-	public var tokens:T2;
+	public var tokens:Array<T2>;
 	
-	public function new(type:T1, tokens:T2) {
+	public function new(type:T1, tokens:Array<T2>) {
 		this.type = type;
 		this.tokens = tokens;
 	}
@@ -43,6 +43,7 @@ class Block extends Container<ABlock, Leafs> {
 	var Quote = 0;
 	var List = 1;
 	var ListItem = 2;
+	var Text = 3;
 }
 
 @:enum abstract ALeaf(Int) from Int to Int {
@@ -63,7 +64,7 @@ class Block extends Container<ABlock, Leafs> {
 	var Image = 5;
 	var HTML = 6;
 	var LineBreak = 7;
-	var Textual = 8;
+	var Text = 8;
 }
 
 /**
@@ -182,7 +183,72 @@ class MarkdownLexer extends Lexer {
 	
 	//\/\// Container Blocks - @see http://spec.commonmark.org/0.18/#container-blocks
 	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#block-quotes
+	 */
+	public static var quote = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#list-items
+	 */
+	public static var listItem = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#lists
+	 */
+	public static var list = '';
+	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#backslash-escapes
+	 */
+	public static var backslash = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#entities
+	 */
+	public static var entity = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#code-spans
+	 */
+	public static var codeSpan = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#emphasis-and-strong-emphasis
+	 */
+	public static var emphasis = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#links
+	 */
+	public static var link = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#images
+	 */
+	public static var image = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#autolinks
+	 */
+	public static var autoLink = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#raw-html
+	 */
+	public static var rawHTML = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#hard-line-breaks
+	 */
+	public static var hardLineBreak = '';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#soft-line-breaks
+	 */
+	public static var softLineBreak = '';
 	
 	//public static var root = blocks;
 	
