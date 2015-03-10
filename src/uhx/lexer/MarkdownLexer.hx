@@ -76,29 +76,113 @@ class MarkdownLexer extends Lexer {
 		super( content, name );
 	}
 	
-	public static var character = '';
-	public static var line = '';
-	public static var lineEnding = '[\n\r]';
+	/**
+	 * @see http://spec.commonmark.org/0.18/#character
+	 * A character is a unicode code point. This spec does not specify
+	 * an encoding; it thinks of lines as composed of characters rather 
+	 * than bytes. A conforming parser may be limited to a certain encoding.
+	 */
+	public static var character = '.';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#line-ending
+	 * A line ending is, depending on the platform, a newline (U+000A), 
+	 * carriage return (U+000D), or carriage return + newline.
+	 */
+	public static var lineEnding = '[\n\r]+';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#line
+	 * A line is a sequence of zero or more characters followed by a line 
+	 * ending or by the end of file.
+	 */
+	public static var line = '[$character]+$lineEnding';
+	
+	/**
+	 * For security reasons, a conforming parser must strip or replace the
+	 * Unicode character U+0000.
+	 */
 	public static var strippable = '\u0000';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#blank-line
+	 * A line containing no characters, or a line containing only spaces (U+0020) 
+	 * or tabs (U+0009), is called a blank line.
+	 */
 	public static var blank = '[ \t]*';
 	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#whitespace-character
+	 * A whitespace character is a space (U+0020), tab (U+0009), 
+	 * newline (U+000A), line tabulation (U+000B), form feed (U+000C), 
+	 * or carriage return (U+000D).
+	 */
 	public static var whitespace = ' \t\n\u0009\u000C\r';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#unicode-whitespace-character
+	 * A unicode whitespace character is any code point in the unicode Zs 
+	 * class, or a tab (U+0009), carriage return (U+000D), newline (U+000A), 
+	 * or form feed (U+000C).
+	 */
 	public static var unicodeWhitespace = Seri.getCategory( 'Zs' ).join('') + '\u0009\u000D\u000A\u000C';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#non-space-character
+	 * A non-space character is anything but U+0020.
+	 */
 	public static var nonSpace = '[^ ]*';
 	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#ascii-punctuation-character
+	 */
 	public static var asciiPunctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#punctuation-character
+	 */
 	public static var unicodePunctuation = Seri.getCategory( 'P' ).join('');
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#punctuation-character
+	 * A punctuation character is an ASCII punctuation character or anything
+	 * in the unicode classes Pc, Pd, Pe, Pf, Pi, Po, or Ps.
+	 */
 	public static var punctuation = asciiPunctuation + unicodePunctuation;
 	
 	// Space Indentation
 	public static var si = '( ? ? ?)';
 	
-	public static var text = '';
+	//\/\// Leaf Blocks - @see http://spec.commonmark.org/0.18/#leaf-blocks
 	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#horizontal-rules
+	 */
 	public static var rule = '$si(\* *\* *\* *(\* *)+|- *- *- *(- *)+|_ *_ *_ *(_ *)+) *';
 	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#atx-header
+	 */
 	public static var atxHeader = '$si##?#?#?#?#? ($text)( #* *)?';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#setext-header
+	 */
 	public static var setextHeader = '$si$text$lineEnding$si(=+|-+) *';
+	
+	public static var indentedCode = '(     *(.))+';
+	public static var fencedCode = '(````*|~~~~*)( *$text)? *$si(````*|~~~~*) *';
+	
+	public static var htmlOpen = '<$text>';
+	public static var htmlClose = '</$text>';
+	
+	public static var linkReference = '$si\[$text\]: *$lineEnding? ?$text$lineEnding *$text';
+	
+	public static var paragraph = '';
+	
+	//\/\// Container Blocks - @see http://spec.commonmark.org/0.18/#container-blocks
+	
+	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
 	
 	//public static var root = blocks;
 	
