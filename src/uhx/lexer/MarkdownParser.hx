@@ -24,7 +24,7 @@ class MarkdownParser {
 		
 	}
 	
-	public function filterResources(tokens:Array<Token<MarkdownKeywords>>, map:Map<String, {url:String, title:String}>) {
+	/*public function filterResources(tokens:Array<Token<MarkdownKeywords>>, map:Map<String, {url:String, title:String}>) {
 		for (token in tokens) switch (token) {
 			case Keyword(Resource(text, url, title)):
 				map.set(text.toLowerCase().trim(), { url:url, title:title } );
@@ -123,7 +123,7 @@ class MarkdownParser {
 			/*case Keyword(Horizontal(_)):
 				result += '<hr />';*/
 				
-			case _:
+			/*case _:
 		}
 		
 		return result;
@@ -353,6 +353,6 @@ class MarkdownParser {
 	
 	private function element(html:String, attributes:Array<String>):String {
 		return '<$html' + attributes.join('') + '></$html>';
-	}
+	}*/
 	
 }
