@@ -1,5 +1,6 @@
 package uhx.lexer;
 
+import haxe.DynamicAccess;
 import haxe.io.Eof;
 import hxparse.Unexpected.Unexpected;
 import hxparse.UnexpectedChar;
@@ -31,10 +32,12 @@ class Block extends Container<ABlock, Leafs> {
 	
 	public var type:T1;
 	public var tokens:Array<T2>;
+	public var extra:DynamicAccess<String>;
 	
 	public function new(type:T1, tokens:Array<T2>) {
 		this.type = type;
 		this.tokens = tokens;
+		this.extra = new DynamicAccess();
 	}
 	
 }
@@ -164,31 +167,52 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#atx-header
 	 */
-	public static var atxHeader = '$si##?#?#?#?#? ($text)( #* *)?';
+	public static var atxHeader = '$si##?#?#?#?#? ([$character]+)( #* *)?';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#setext-header
 	 */
-	public static var setextHeader = '$si$text$lineEnding$si(=+|-+) *';
+	public static var setextHeader = '$si$line$si(=+|-+) *';
 	
 	public static var indentedCode = '(     *(.))+';
-	public static var fencedCode = '(````*|~~~~*)( *$text)? *$si(````*|~~~~*) *';
+	public static var fencedCode = '(````*|~~~~*)( *[$character]+)? *$si(````*|~~~~*) *';
 	
-	public static var htmlOpen = '<$text>';
-	public static var htmlClose = '</$text>';
+	public static var htmlOpen = '<[$character]+>';
+	public static var htmlClose = '</[$character]+>';
 	
-	public static var linkReference = '$si\[$text\]: *$lineEnding? ?$text$lineEnding *$text';
+	public static var linkReference = '$si\[[$character]+\]: *$lineEnding? ?$line *[$character]*';
 	
-	public static var paragraph = '';
+	public static var paragraph = '($line)+';
 	
 	//\/\// Container Blocks - @see http://spec.commonmark.org/0.18/#container-blocks
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#block-quotes
 	 */
-	public static var quote = '';
+	public static var quote = '($si> ?$paragraph)+';
 	
 	/**
+	 * @see http://spec.commonmark.org/0.18/#bullet-list-marker
+	 */
+	public static var bulletList = '(-|+|\*)';
+	
+	/**
+	 * @see http://spec.commonmark.org/0.18/#ordered-list-marker
+	 */
+	public static var orderedList = '[0-9]+(\.|\))';
+	
+	/**
+	 * A list marker is a bullet list marker or an ordered list marker.
+	 * @see http://spec.commonmark.org/0.18/#list-marker
+	 */
+	public static var listMarker = '($bulletList|$orderedList)';
+	
+	/**
+	 * It is tempting to think of this in terms of columns: the continuation 
+	 * blocks must be indented at least to the column of the first non-space 
+	 * character after the list marker. However, that is not quite right. The 
+	 * spaces after the list marker determine how much relative indentation is 
+	 * needed
 	 * @see http://spec.commonmark.org/0.18/#list-items
 	 */
 	public static var listItem = '';
@@ -203,7 +227,7 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#backslash-escapes
 	 */
-	public static var backslash = '';
+	public static var backslash = '\\[$asciiPunctuation]+';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#entities
@@ -250,26 +274,38 @@ class MarkdownLexer extends Lexer {
 	 */
 	public static var softLineBreak = '';
 	
-	//public static var root = blocks;
+	public static var containterBlocks = Mo.rules( [
+	quote => { },
+	list => { },
+	listItem => { },
+	] );
 	
-	public static var blocks = Mo.rules( [ 
-	paragraph => { },
-	quotation => { },
+	public static var leafBlocks = Mo.rules( [ 
+	rule => { },
 	atxHeader => { },
 	setextHeader => { },
-	list => { },
-	rule => { },
-	code => { },
-	block => { },
+	indentedCode => { },
+	fencedCode => { },
+	htmlOpen => { },
+	htmlClose => { },
+	linkReference => { },
+	paragraph => { },
 	] );
 	
 	public static var inlines = Mo.rules( [ 
-	text => { },
-	space => { },
-	link => { }
+	backslash => { },
+	entity => { },
+	codeSpan => { },
+	emphasis => { },
+	link => { },
 	image => { },
-	code => { },
+	autoLink => { },
+	rawHTML => { },
+	hardLineBreak => { },
+	softLineBreak => { },
 	] );
+	
+	public static var root = containterBlocks;
 	
 	private static function parse<T>(value:String, name:String, rule:Ruleset<T>):Array<T> {
 		var l = new MarkdownLexer( ByteData.ofString( value ), name );
