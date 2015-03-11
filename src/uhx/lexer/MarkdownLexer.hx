@@ -17,18 +17,31 @@ using Lambda;
 using StringTools;
 using haxe.EnumTools;
 
-private typedef Leafs = Array<Leaf>;
-private typedef Blocks = Array<Block>;
-
-class Leaf extends Container<ALeaf, String> {
+class Inline extends Container<AInline, String> {
+	
+	public function new(type:AInline, ?tokens:Array<String> = []) {
+		super(type, tokens);
+	}
 	
 }
 
-class Block extends Container<ABlock, Leafs> {
+class Leaf extends Container<ALeaf, Inline> {
+	
+	public function new(type:ALeaf, ?tokens:Array<Inline> = []) {
+		super(type, tokens);
+	}
 	
 }
 
-@:generic class Container<T1, T2> {
+class Block extends Container<ABlock, Leaf> {
+	
+	public function new(type:ABlock, ?tokens:Array<Leaf> = []) {
+		super(type, tokens);
+	}
+	
+}
+
+class Container<T1, T2> {
 	
 	public var type:T1;
 	public var tokens:Array<T2>;
@@ -65,7 +78,7 @@ class Block extends Container<ABlock, Leafs> {
 	var Emphasis = 3;
 	var Link = 4;
 	var Image = 5;
-	var HTML = 6;
+	var Html = 6;
 	var LineBreak = 7;
 	var Text = 8;
 }
@@ -205,7 +218,7 @@ class MarkdownLexer extends Lexer {
 	 * A list marker is a bullet list marker or an ordered list marker.
 	 * @see http://spec.commonmark.org/0.18/#list-marker
 	 */
-	public static var listMarker = '($bulletList|$orderedList)';
+	public static var listMarker = '$si($bulletList|$orderedList) *';
 	
 	/**
 	 * It is tempting to think of this in terms of columns: the continuation 
@@ -215,12 +228,14 @@ class MarkdownLexer extends Lexer {
 	 * needed
 	 * @see http://spec.commonmark.org/0.18/#list-items
 	 */
-	public static var listItem = '';
+	public static var listItem = '$listMarker($paragraph)+$lineEnding?';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#lists
 	 */
 	public static var list = '';
+	
+	public static var notContainer = '[^>-+\*0-9].';
 	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
 	
@@ -275,34 +290,84 @@ class MarkdownLexer extends Lexer {
 	public static var softLineBreak = '';
 	
 	public static var containterBlocks = Mo.rules( [
-	quote => { },
-	list => { },
-	listItem => { },
+	quote => { 
+		new Block( ABlock.Quote, [] );
+	},
+	list => { 
+		new Block( ABlock.List, [] );
+	},
+	listItem => { 
+		new Block( ABlock.ListItem, [] );
+	},
+	notContainer => {
+		new Block( ABlock.Text, [] );
+	},
+	blank => {
+		new Container( lexer.current, null );
+	}
 	] );
 	
 	public static var leafBlocks = Mo.rules( [ 
-	rule => { },
-	atxHeader => { },
-	setextHeader => { },
-	indentedCode => { },
-	fencedCode => { },
-	htmlOpen => { },
-	htmlClose => { },
-	linkReference => { },
-	paragraph => { },
+	rule => { 
+		new Leaf( ALeaf.Rule, [] );
+	},
+	atxHeader => { 
+		new Leaf( ALeaf.Header, [] );
+	},
+	setextHeader => { 
+		new Leaf( ALeaf.Header, [] );
+	},
+	indentedCode => { 
+		new Leaf( ALeaf.Code, [] );
+	},
+	fencedCode => { 
+		new Leaf( ALeaf.Code, [] );
+	},
+	htmlOpen => { 
+		new Leaf( ALeaf.Html, [] );
+	},
+	htmlClose => { 
+		new Leaf( ALeaf.Html, [] );
+	},
+	linkReference => { 
+		new Leaf( ALeaf.Reference, [] );
+	},
+	paragraph => { 
+		new Leaf( ALeaf.Paragraph, [] );
+	},
 	] );
 	
 	public static var inlines = Mo.rules( [ 
-	backslash => { },
-	entity => { },
-	codeSpan => { },
-	emphasis => { },
-	link => { },
-	image => { },
-	autoLink => { },
-	rawHTML => { },
-	hardLineBreak => { },
-	softLineBreak => { },
+	backslash => { 
+		new Inline( AInline.BackSlash, [] );
+	},
+	entity => { 
+		new Inline( AInline.Entity, [] );
+	},
+	codeSpan => { 
+		new Inline( AInline.Code, [] );
+	},
+	emphasis => { 
+		new Inline( AInline.Emphasis, [] );
+	},
+	link => { 
+		new Inline( AInline.Link, [] );
+	},
+	image => { 
+		new Inline( AInline.Image, [] );
+	},
+	autoLink => { 
+		new Inline( AInline.Link, [] );
+	},
+	rawHTML => { 
+		new Inline( AInline.Html, [] );
+	},
+	hardLineBreak => { 
+		new Inline( AInline.LineBreak, [] );
+	},
+	softLineBreak => { 
+		new Inline( AInline.LineBreak, [] );
+	},
 	] );
 	
 	public static var root = containterBlocks;
