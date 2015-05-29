@@ -12,6 +12,7 @@ import hxparse.Ruleset;
 import haxe.ds.StringMap;
 import hxparse.RuleBuilder;
 import uhx.sys.Seri;
+import uhx.sys.seri.CodePoint;
 
 using Lambda;
 using StringTools;
@@ -19,7 +20,7 @@ using haxe.EnumTools;
 
 class Inline extends Container<AInline, String> {
 	
-	public function new(type:AInline, ?tokens:Array<String> = []) {
+	public function new(type:AInline, ?tokens:Array<String>) {
 		super(type, tokens);
 	}
 	
@@ -27,7 +28,7 @@ class Inline extends Container<AInline, String> {
 
 class Leaf extends Container<ALeaf, Inline> {
 	
-	public function new(type:ALeaf, ?tokens:Array<Inline> = []) {
+	public function new(type:ALeaf, ?tokens:Array<Inline>) {
 		super(type, tokens);
 	}
 	
@@ -35,7 +36,7 @@ class Leaf extends Container<ALeaf, Inline> {
 
 class Block extends Container<ABlock, Leaf> {
 	
-	public function new(type:ABlock, ?tokens:Array<Leaf> = []) {
+	public function new(type:ABlock, ?tokens:Array<Leaf>) {
 		super(type, tokens);
 	}
 	
@@ -49,7 +50,7 @@ class Container<T1, T2> {
 	
 	public function new(type:T1, tokens:Array<T2>) {
 		this.type = type;
-		this.tokens = tokens;
+		this.tokens = tokens == null ? [] : tokens;
 		this.extra = new DynamicAccess();
 	}
 	
@@ -69,6 +70,7 @@ class Container<T1, T2> {
 	var Html = 3;
 	var Reference = 4;
 	var Paragraph = 5;
+	var Text = 6;
 }
 
 @:enum abstract AInline(Int) from Int to Int {
@@ -142,7 +144,7 @@ class MarkdownLexer extends Lexer {
 	 * class, or a tab (U+0009), carriage return (U+000D), newline (U+000A), 
 	 * or form feed (U+000C).
 	 */
-	public static var unicodeWhitespace = Seri.getCategory( 'Zs' ).join('') + '\u0009\u000D\u000A\u000C';
+	public static var unicodeWhitespace = Seri.getCategory( 'Zs' ).map(escape).join('') + '\u0009\u000D\u000A\u000C';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#non-space-character
@@ -158,7 +160,7 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#punctuation-character
 	 */
-	public static var unicodePunctuation = Seri.getCategory( 'P' ).join('');
+	public static var unicodePunctuation = Seri.getCategory( 'P' ).map(escape).join('');
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#punctuation-character
@@ -175,7 +177,7 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#horizontal-rules
 	 */
-	public static var rule = '$si(\* *\* *\* *(\* *)+|- *- *- *(- *)+|_ *_ *_ *(_ *)+) *';
+	public static var rule = '$si(\\* *\\* *\\* *(\\* *)+|- *- *- *(- *)+|_ *_ *_ *(_ *)+) *';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#atx-header
@@ -193,7 +195,7 @@ class MarkdownLexer extends Lexer {
 	public static var htmlOpen = '<[$character]+>';
 	public static var htmlClose = '</[$character]+>';
 	
-	public static var linkReference = '$si\[[$character]+\]: *$lineEnding? ?$line *[$character]*';
+	public static var linkReference = '$si\\[[$character]+\\]: *$lineEnding? ?$line *[$character]*';
 	
 	public static var paragraph = '($line)+';
 	
@@ -207,12 +209,12 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#bullet-list-marker
 	 */
-	public static var bulletList = '(-|+|\*)';
+	public static var bulletList = '(-|+|\\*)';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#ordered-list-marker
 	 */
-	public static var orderedList = '[0-9]+(\.|\))';
+	public static var orderedList = '[0-9]+(\\.|\\))';
 	
 	/**
 	 * A list marker is a bullet list marker or an ordered list marker.
@@ -233,9 +235,9 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#lists
 	 */
-	public static var list = '';
+	public static var list = ' ';
 	
-	public static var notContainer = '[^>-+\*0-9].';
+	public static var notContainer = '[^>-+\\*0-9]*';
 	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
 	
@@ -247,67 +249,72 @@ class MarkdownLexer extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#entities
 	 */
-	public static var entity = '';
+	public static var entity = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#code-spans
 	 */
-	public static var codeSpan = '';
+	public static var codeSpan = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#emphasis-and-strong-emphasis
 	 */
-	public static var emphasis = '';
+	public static var emphasis = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#links
 	 */
-	public static var link = '';
+	public static var link = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#images
 	 */
-	public static var image = '';
+	public static var image = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#autolinks
 	 */
-	public static var autoLink = '';
+	public static var autoLink = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#raw-html
 	 */
-	public static var rawHTML = '';
+	public static var rawHTML = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#hard-line-breaks
 	 */
-	public static var hardLineBreak = '';
+	public static var hardLineBreak = ' ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#soft-line-breaks
 	 */
-	public static var softLineBreak = '';
+	public static var softLineBreak = ' ';
 	
 	public static var containterBlocks = Mo.rules( [
 	quote => { 
-		new Block( ABlock.Quote, [] );
+		trace( 'quote', lexer.current );
+		new Block( ABlock.Quote, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
 	},
 	list => { 
-		new Block( ABlock.List, [] );
+		trace( 'list', lexer.current );
+		new Block( ABlock.List, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
 	},
 	listItem => { 
-		new Block( ABlock.ListItem, [] );
+		trace( 'list item', lexer.current );
+		new Block( ABlock.ListItem, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
 	},
 	notContainer => {
-		new Block( ABlock.Text, [] );
+		trace( 'not container', lexer.current );
+		new Block( ABlock.Text, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
 	},
 	blank => {
-		new Container( lexer.current, null );
+		trace( 'blank', lexer.current );
+		new Block( ABlock.Text, [new Leaf( ALeaf.Text, [new Inline( AInline.Text, [lexer.current] )] )] );
 	}
 	] );
 	
-	public static var leafBlocks = Mo.rules( [ 
+	/*public static var leafBlocks = Mo.rules( [ 
 	rule => { 
 		new Leaf( ALeaf.Rule, [] );
 	},
@@ -335,9 +342,9 @@ class MarkdownLexer extends Lexer {
 	paragraph => { 
 		new Leaf( ALeaf.Paragraph, [] );
 	},
-	] );
+	] );*/
 	
-	public static var inlines = Mo.rules( [ 
+	/*public static var inlines = Mo.rules( [ 
 	backslash => { 
 		new Inline( AInline.BackSlash, [] );
 	},
@@ -368,7 +375,7 @@ class MarkdownLexer extends Lexer {
 	softLineBreak => { 
 		new Inline( AInline.LineBreak, [] );
 	},
-	] );
+	] );*/
 	
 	public static var root = containterBlocks;
 	
@@ -386,6 +393,18 @@ class MarkdownLexer extends Lexer {
 		}
 		
 		return t;
+	}
+	
+	private static function escape(value:CodePoint):String {
+		return switch (value.toString()) {
+			// * + ? | [ ] ( ) slash
+			case '\u002A', '\u002B', '\u003F', '\u007C', '\u005B', '\u005D', '\u0028', '\u0029', '\u005C':
+				'\\' + value.toString();
+				
+			case _:
+				value.toString();
+				
+		}
 	}
 	
 }

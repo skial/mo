@@ -35,9 +35,9 @@ class MarkdownParser {
 			case _:
 				
 		}
-	}
+	}*/
 	
-	public function toTokens(input:ByteData, name:String):Array<Token<MarkdownKeywords>> {
+	public function toTokens(input:ByteData, name:String):Array<Block> {
 		var results = [];
 		
 		lexer = new MarkdownLexer( input, name );
@@ -61,7 +61,7 @@ class MarkdownParser {
 		return results;
 	}
 	
-	public function printString(token:Token<MarkdownKeywords>):String {
+	/*public function printString(token:Token<MarkdownKeywords>):String {
 		var result = '';
 		
 		switch (token) {
