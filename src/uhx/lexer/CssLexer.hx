@@ -8,7 +8,7 @@ import uhx.mo.Token;
 import hxparse.Lexer;
 import byte.ByteData;
 import hxparse.Ruleset;
-import haxe.EitherType;
+import haxe.extern.EitherType;
 
 using StringTools;
 
