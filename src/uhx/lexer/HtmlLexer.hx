@@ -364,7 +364,7 @@ class HtmlLexer extends Lexer {
 		}
 		
 		// If this node is the first, mark it as the document.
-		if (first) ref.categories.push( 0 );
+		if (first && ref.categories.indexOf( 0 ) == -1) ref.categories.push( 0 );
 		ref.selfClosing = isVoid;
 		
 		Keyword( Tag(ref) );
