@@ -232,7 +232,7 @@ enum CssMedia {
 	
 	public static var selectors = Mo.rules([
 	' +' => lexer.token( selectors ),
-	'/\\*[^*]+\\*/' => lexer.token( selectors ),
+	'/\\*[^\\*]*\\*/' => lexer.token( selectors ),
 	'[\t\r\n]+' => lexer.token( selectors ),
 	'\\*$combinator' => {
 		handleSelectors(lexer, function(_) return Universal);
