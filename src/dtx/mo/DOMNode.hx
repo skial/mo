@@ -280,7 +280,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		return switch (this) {
 			case Keyword(Tag(ref)):
 				switch (ref) {
-					case x if (x.categories.indexOf( 0 ) > -1)/*uhx.lexer.HtmlLexer.HtmlTag.Html*/:
+					case x if (x.categories.indexOf( uhx.lexer.HtmlLexer.Category.Root ) > -1)/*uhx.lexer.HtmlLexer.HtmlTag.Html*/:
 						uhx.lexer.HtmlLexer.NodeType.Document;
 						
 					case _:
