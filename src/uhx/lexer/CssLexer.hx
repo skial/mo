@@ -400,6 +400,8 @@ enum CssMedia {
 		} catch (e:Dynamic) {
 			//untyped trace( lexer.input.readString( lexer.curPos().pmin, lexer.curPos().pmax ) );
 			trace( e );
+			trace( name );
+			trace( tokens );
 			trace( value.readString(0, value.length) );
 		}
 		
