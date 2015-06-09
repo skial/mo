@@ -59,7 +59,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	inline function _setInnerHTML(html:String):String {
 		
 		if (nodeType == DOMType.ELEMENT_NODE) {
-			var lexer = new HtmlLexer( ByteData.ofString( html ), 'innerHTML' );
+			var lexer = new HtmlLexer( ByteData.ofString( html ), 'DOMNode::_setInnerHTML' );
 			var tokens = [];
 			
 			try while (true) {
@@ -73,7 +73,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 						t.parentNode = (this:DOMNode);
 					}*/
 					
-				case _:
+				case null, _:
 					
 			}
 			
@@ -143,7 +143,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				newChild.parentNode = this;
 				e.tokens.push( newChild );
 				
-			case _:
+			case null, _:
 				
 		}
 		
@@ -212,7 +212,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Const(CString(s)):
 				Const(CString('$s'));
 				
-			case _:
+			case null, _:
 				null;
 		}
 	}
@@ -229,7 +229,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 				result += '<${e.name}';
 				if (e.attributes.iterator().hasNext()) result += [for (k in e.attributes.keys()) '$k="${e.attributes.get(k)}"'].join(' ');
 				result += (e.selfClosing ? '/>' : '>' );
-				if (!e.selfClosing) result += ' ' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
+				if (!e.selfClosing) result += '' + [for (i in e.tokens) (i:DOMNode).toString()].join('') + '</${e.name}>';
 				
 			case Keyword(Instruction(e)):
 				if (e.tokens[0] == '--' && e.tokens[e.tokens.length - 1] == '--') {
@@ -244,7 +244,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Const(CString(s)):
 				result += s;
 				
-			case _:
+			case null, _:
 				
 		}
 		
@@ -279,8 +279,8 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 	public function get_nodeType():Int {
 		return switch (this) {
 			case Keyword(Tag(ref)):
-				switch (ref.name) {
-					case uhx.lexer.HtmlLexer.HtmlTag.Html:
+				switch (ref) {
+					case x if (x.categories.indexOf( 0 ) > -1)/*uhx.lexer.HtmlLexer.HtmlTag.Html*/:
 						uhx.lexer.HtmlLexer.NodeType.Document;
 						
 					case _:
@@ -424,7 +424,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Keyword(Instruction(e)):
 				e.parent();
 				
-			case _:
+			case null, _:
 				null;
 		}
 	}

@@ -336,6 +336,7 @@ class HtmlLexer extends Lexer {
 			
 		}
 		
+		var first = openTags.length == 0;
 		var ref = new HtmlRef(
 			tag, 
 			attrs,
@@ -362,6 +363,8 @@ class HtmlLexer extends Lexer {
 			ref.complete = true;
 		}
 		
+		// If this node is the first, mark it as the document.
+		if (first && ref.categories.indexOf( 0 ) == -1) ref.categories.push( 0 );
 		ref.selfClosing = isVoid;
 		
 		Keyword( Tag(ref) );
@@ -475,7 +478,7 @@ class HtmlLexer extends Lexer {
 	
 	public static var root = openClose;
 	
-	// Get the categories the each element fall into.
+	// Get the categories that each element falls into.
 	private static function categories(tag:String):Array<Category> {
 		/**
 		Unknown = -1;

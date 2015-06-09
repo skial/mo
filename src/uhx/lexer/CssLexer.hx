@@ -8,7 +8,7 @@ import uhx.mo.Token;
 import hxparse.Lexer;
 import byte.ByteData;
 import hxparse.Ruleset;
-import haxe.EitherType;
+import haxe.extern.EitherType;
 
 using StringTools;
 
@@ -232,7 +232,7 @@ enum CssMedia {
 	
 	public static var selectors = Mo.rules([
 	' +' => lexer.token( selectors ),
-	'/\\*[^*]+\\*/' => lexer.token( selectors ),
+	'/\\*[^\\*]*\\*/' => lexer.token( selectors ),
 	'[\t\r\n]+' => lexer.token( selectors ),
 	'\\*$combinator' => {
 		handleSelectors(lexer, function(_) return Universal);
