@@ -100,6 +100,7 @@ enum HtmlKeywords {
 	public var Interactive = 6;
 	public var Palpable = 7;
 	public var Scripted = 8;
+	public var Root = 9;
 }
 
 @:enum abstract Model(Int) from Int to Int {
@@ -364,7 +365,7 @@ class HtmlLexer extends Lexer {
 		}
 		
 		// If this node is the first, mark it as the document.
-		if (first && ref.categories.indexOf( 0 ) == -1) ref.categories.push( 0 );
+		if (first && ref.categories.indexOf( Category.Root ) == -1) ref.categories.push( Category.Root );
 		ref.selfClosing = isVoid;
 		
 		Keyword( Tag(ref) );

@@ -5,6 +5,7 @@ import uhx.lexer.HtmlLexer;
 import dtx.single.ElementManipulation;
 import uhx.select.html.Element as EQSA;
 import uhx.select.html.Document as DQSA;
+import uhx.select.html.Collection as CQSA;
 
 /**
  * ...
@@ -21,7 +22,8 @@ class Traversing {
 			} else if (ElementManipulation.isDocument( node )) {
 				newDOMCollection.addCollection( DQSA.querySelectorAll( node, selector ) );
 				
-			} 
+			}
+			//newDOMCollection.addCollection( CQSA.querySelectorAll( collection.collection, selector ) );
 		}
 		
 		return newDOMCollection;
