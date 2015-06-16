@@ -1,6 +1,11 @@
 package uhx.lexer;
 
+import uhx.mo.Token;
+import byte.ByteData;
+import hxparse.Lexer;
 import haxe.ds.StringMap;
+
+using StringTools;
 
 /**
  * ...
@@ -11,7 +16,7 @@ import haxe.ds.StringMap;
  * top-level type name / [ tree. ] subtype name [ +suffix ] [ ; parameters ]
  */
 
-class Mime {
+/*class Mime {
 	
 	public var name:MimeToplevel;
 	public var tree:Null<MimeTree>;
@@ -26,6 +31,14 @@ class Mime {
 		suffix = su;
 		parameters = p;
 	}
+}*/
+
+enum MimeKeywords {
+	Toplevel(name:String);
+	Tree(name:String);
+	Subtype(name:String);
+	Suffix(name:String);
+	Parameter(name:String, value:String);
 }
 
 @:enum abstract MimeToplevel(String) from String to String {
@@ -47,7 +60,7 @@ class Mime {
 	public var Unregistered = 3;
 }
 
-@:enum abstract MimeSuffix(String) from String to String {
+@:enum abstract MimeSuffix(Int) from Int to Int {
 	public var Xml = 0;
 	public var Json = 1;
 	public var Ber = 2;
@@ -62,14 +75,21 @@ class Mime {
 	
 }
 
-class MimeLexer {
+class MimeLexer extends Lexer {
 
-	public function new() {
-		
+	public function new(content:ByteData, name:String) {
+		super( content, name );
 	}
 	
 	public static var root = Mo.rules( [
-	
+	' \r\n\t' => lexer.token( root ),
+	'[a-zA-Z]+\\/' => Keyword( Toplevel( lexer.current.substring(0, lexer.current.length - 1).toLowerCase() ) ),
+	'([a-zA-Z0-9\\-]+\\.?)+' => Keyword( Tree( lexer.current ) ),
+	'\\+[a-zA-Z0-9]+' => Keyword( Suffix( lexer.current.substring(1, lexer.current.length) ) ),
+	'; +[a-zA-Z0-9]+=[a-zA-Z0-9]+' => {
+		var pair = lexer.current.substring(1, lexer.current.length).trim().split( '=' );
+		Keyword( Parameter( pair[0], pair[1] ) );
+	}
 	] );
 	
 }
