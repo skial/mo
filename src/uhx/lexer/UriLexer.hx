@@ -1,13 +1,11 @@
 package uhx.lexer;
 
-import byte.ByteData;
 import haxe.io.Eof;
-import haxe.io.UInt8Array;
-import hxparse.UnexpectedChar;
-import uhx.io.UriSpec;
 import uhx.mo.Token;
+import byte.ByteData;
 import hxparse.Lexer;
 import hxparse.Ruleset;
+import hxparse.UnexpectedChar;
 
 using StringTools;
 using uhx.lexer.UriLexer;
