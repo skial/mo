@@ -9,7 +9,7 @@ import uhx.lexer.UriLexer;
  * ...
  * @author Skial Bainn
  */
-class UriParser {
+class Uri {
 
 	public function new() {
 		

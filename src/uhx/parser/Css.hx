@@ -12,7 +12,7 @@ using StringTools;
  * ...
  * @author Skial Bainn
  */
-class CssParser {
+class Css {
 
 	public function new() {
 		

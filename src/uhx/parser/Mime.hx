@@ -9,7 +9,7 @@ import uhx.lexer.MimeLexer;
  * @author Skial Bainn
  * @see https://en.wikipedia.org/wiki/Internet_media_type
  */
-class MimeParser {
+class Mime {
 
 	public function new() {
 		

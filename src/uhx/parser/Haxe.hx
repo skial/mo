@@ -15,7 +15,7 @@ using StringTools;
  * ...
  * @author Skial Bainn
  */
-class HaxeParser {
+class Haxe {
 
 	private var result:StringBuf;
 	private var lexer:HaxeLexer;

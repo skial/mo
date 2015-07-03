@@ -9,7 +9,7 @@ import uhx.lexer.HtmlLexer;
  * ...
  * @author Skial Bainn
  */
-class HtmlParser {
+class Html {
 
 	public function new() {
 		

@@ -15,7 +15,7 @@ using haxe.io.Path;
  * ...
  * @author Skial Bainn
  */
-class MarkdownParser {
+class Markdown {
 
 	private var result:StringBuf;
 	private var lexer:MarkdownLexer;

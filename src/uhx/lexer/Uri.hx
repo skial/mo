@@ -30,7 +30,7 @@ enum UriKeywords {
 	Fragment(value:String);
 }
  
-class UriLexer extends Lexer {
+class Uri extends Lexer {
 	
 	@:access(hxparse.Lexer) public static var root = Mo.rules( [
 	'[^:\\.]+:\\/*' => Keyword(Scheme( lexer.current.substring(0, lexer.current.lastIndexOf( ':' )) )),

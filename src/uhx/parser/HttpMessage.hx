@@ -12,7 +12,7 @@ using StringTools;
  * ...
  * @author Skial Bainn
  */
-class HttpMessageParser {
+class HttpMessage {
 	
 	private var lexer:HttpMessageLexer;
 

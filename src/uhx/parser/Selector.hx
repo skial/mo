@@ -8,7 +8,7 @@ import uhx.lexer.CssLexer;
  * ...
  * @author Skial Bainn
  */
-class SelectorParser {
+class Selector {
 
 	public function new() {
 		
