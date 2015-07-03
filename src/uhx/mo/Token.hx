@@ -48,4 +48,6 @@ enum Token<Kwd> {
 	GraveAccent;			//	`
 	GreaterThan;			//	>
 	LessThan;				//	<
+	BackSlash;				/*	\	*/	
+	Slash;					//	/
 }
