@@ -1,7 +1,7 @@
 package dtx.mo.collection;
 
 import uhx.mo.Token;
-import uhx.lexer.HtmlLexer;
+import uhx.lexer.Html;
 import dtx.single.ElementManipulation;
 import uhx.select.html.Element as EQSA;
 import uhx.select.html.Document as DQSA;

@@ -1,15 +1,16 @@
-package uhx.lexer;
+package uhx.parser;
 
 import haxe.io.Eof;
 import byte.ByteData;
-import uhx.lexer.MimeLexer;
+import uhx.lexer.Mime.MimeKeywords;
+import uhx.lexer.Mime as MimeLexer;
 
 /**
  * ...
  * @author Skial Bainn
  * @see https://en.wikipedia.org/wiki/Internet_media_type
  */
-class MimeParser {
+class Mime {
 
 	public function new() {
 		

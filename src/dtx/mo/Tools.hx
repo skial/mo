@@ -2,9 +2,9 @@ package dtx.mo;
 
 import dtx.DOMNode;
 import uhx.mo.Token;
+import uhx.lexer.Html;
 import haxe.ds.StringMap;
-import uhx.lexer.HtmlLexer;
-import uhx.lexer.HtmlLexer.HtmlRef;
+import uhx.lexer.Html.HtmlRef;
 
 @:access(dtx.std)
 class Tools {

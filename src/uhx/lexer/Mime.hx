@@ -24,7 +24,7 @@ enum MimeKeywords {
 	Parameter(name:String, value:String);
 }
 
-class MimeLexer extends Lexer {
+class Mime extends Lexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );

@@ -1,15 +1,16 @@
-package uhx.lexer;
+package uhx.parser;
 
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
-import uhx.lexer.UriLexer;
+import uhx.lexer.Uri.UriKeywords;
+import uhx.lexer.Uri as UriLexer;
 
 /**
  * ...
  * @author Skial Bainn
  */
-class UriParser {
+class Uri {
 
 	public function new() {
 		
