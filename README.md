@@ -36,5 +36,6 @@ The primary goal of Mo is to be a syntax highlighter for Haxe.
 	
 ## Libraries and Classes using Mo
 
++ [MediaType](https://github.com/skial/media-types) - An abstract type, using the Mime Lexer to parse mime/media/internet types. E.g `text/plain; charset=UTF-8`.
 + [HTML Select](https://github.com/skial/uhu/blob/experimental/src/uhx/select/Html.hx) - An experimental CSS selector engine for the HTML parser in Mo.
 + [JSON Select](https://github.com/skial/uhu/blob/experimental/src/uhx/select/Json.hx) - An experimental JSON selector engine, based on http://jsonselect.org.
