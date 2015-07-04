@@ -4,10 +4,14 @@
 
 The primary goal of Mo is to be a syntax highlighter for Haxe.
 
-## Whats inside...
+## What lexer's are inside...
 
-Currently the library supports CSS, HTML, Markdown and Haxe syntax parsing. 
-There is untested support for Http Headers.
++ Css
++ Uri
++ Html
++ Mime
++ Markdown
++ HttpMessage _partial_
 	
 ## Notes
 
@@ -16,12 +20,8 @@ There is untested support for Http Headers.
 
 ## Installation
 
-1. [hxparse] - `https://github.com/Simn/hxparse development src`
-2. mo:
-	+ git - `haxelib git mo https://github.com/skial/mo master src`
-	+ zip:
-		* download - `https://github.com/skial/mo/archive/master.zip`
-		* install - `haxelib local master.zip`
+1. hxparse - `https://github.com/Simn/hxparse development src`
+2. mo - `haxelib git mo https://github.com/skial/mo master src`
 
 [hxparse]: http://github.com/simn/hxparse "Haxe Lexer and Parser Library"
 [detox]: https://github.com/jasononeil/detox "A cross-platform library, written in Haxe, that makes working with Xml and the DOM light weight and easy"
@@ -36,5 +36,6 @@ There is untested support for Http Headers.
 	
 ## Libraries and Classes using Mo
 
++ [MediaType](https://github.com/skial/media-types) - An abstract type, using the Mime Lexer to parse mime/media/internet types. E.g `text/plain; charset=UTF-8`.
 + [HTML Select](https://github.com/skial/uhu/blob/experimental/src/uhx/select/Html.hx) - An experimental CSS selector engine for the HTML parser in Mo.
 + [JSON Select](https://github.com/skial/uhu/blob/experimental/src/uhx/select/Json.hx) - An experimental JSON selector engine, based on http://jsonselect.org.
