@@ -21,7 +21,7 @@ The primary goal of Mo is to be a syntax highlighter for Haxe.
 ## Installation
 
 1. hxparse - `https://github.com/Simn/hxparse development src`
-2. mo git - `haxelib git mo https://github.com/skial/mo master src`
+2. mo - `haxelib git mo https://github.com/skial/mo master src`
 
 [hxparse]: http://github.com/simn/hxparse "Haxe Lexer and Parser Library"
 [detox]: https://github.com/jasononeil/detox "A cross-platform library, written in Haxe, that makes working with Xml and the DOM light weight and easy"
