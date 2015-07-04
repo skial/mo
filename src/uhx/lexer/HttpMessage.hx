@@ -8,7 +8,7 @@ import haxe.ds.StringMap;
 
 using Std;
 using StringTools;
-using uhx.lexer.HttpMessageLexer;
+using uhx.lexer.HttpMessage;
 
 /**
  * ...

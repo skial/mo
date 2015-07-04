@@ -1,4 +1,4 @@
-package uhx.lexer;
+package uhx.parser;
 
 /**
  * ...

@@ -1,8 +1,9 @@
-package uhx.lexer;
+package uhx.parser;
 
 import haxe.io.Eof;
 import byte.ByteData;
-import uhx.lexer.CssLexer;
+import uhx.lexer.Css.CssSelectors;
+import uhx.lexer.Css as CssLexer;
 
 /**
  * ...

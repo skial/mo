@@ -1,12 +1,13 @@
-package uhx.lexer;
+package uhx.parser;
 
-import byte.ByteData;
 import haxe.io.Eof;
+import uhx.mo.Token;
+import byte.ByteData;
 import haxe.rtti.Meta;
 import hxparse.Parser;
 import hxparse.ParserBuilder;
-import uhx.mo.Token;
-import uhx.lexer.HaxeLexer.HaxeKeywords;
+import uhx.lexer.Haxe.HaxeKeywords;
+import uhx.lexer.Haxe as HaxeLexer;
 
 using Mo;
 using StringTools;

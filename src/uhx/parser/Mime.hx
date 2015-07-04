@@ -1,8 +1,9 @@
-package uhx.lexer;
+package uhx.parser;
 
 import haxe.io.Eof;
 import byte.ByteData;
-import uhx.lexer.MimeLexer;
+import uhx.lexer.Mime.MimeKeywords;
+import uhx.lexer.Mime as MimeLexer;
 
 /**
  * ...

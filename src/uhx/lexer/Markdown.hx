@@ -546,7 +546,7 @@ class Markdown extends Lexer {
 	public static var root = blocks;
 	
 	private static function parse<T>(value:String, name:String, rule:Ruleset<T>):Array<T> {
-		var l = new MarkdownLexer( ByteData.ofString( value ), name );
+		var l = new Markdown( ByteData.ofString( value ), name );
 		var t = [];
 		try {
 			while (true) {

@@ -1,9 +1,10 @@
-package uhx.lexer;
+package uhx.parser;
 
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
-import uhx.lexer.CssLexer;
+import uhx.lexer.Css;
+import uhx.lexer.Css as CssLexer;
 
 using Mo;
 using StringTools;

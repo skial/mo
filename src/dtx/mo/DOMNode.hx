@@ -1,10 +1,11 @@
 package dtx.mo;
 
 import haxe.io.Eof;
-import hxparse.Lexer;
 import uhx.mo.Token;
-import uhx.lexer.HtmlLexer;
+import hxparse.Lexer;
 import byte.ByteData;
+import uhx.lexer.Html;
+import uhx.lexer.Html as HtmlLexer;
 
 /**
  * ...
@@ -260,7 +261,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		var tokens = [];
 		
 		try while (true) {
-			tokens.push( lexer.token( HtmlLexer.root ) );
+			tokens.push( lexer.token( Html.root ) );
 		} catch (e:Dynamic) { }
 		
 		switch (this) {
@@ -280,22 +281,22 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 		return switch (this) {
 			case Keyword(Tag(ref)):
 				switch (ref) {
-					case x if (x.categories.indexOf( uhx.lexer.HtmlLexer.Category.Root ) > -1)/*uhx.lexer.HtmlLexer.HtmlTag.Html*/:
-						uhx.lexer.HtmlLexer.NodeType.Document;
+					case x if (x.categories.indexOf( uhx.lexer.Html.Category.Root ) > -1)/*uhx.lexer.Html.HtmlTag.Html*/:
+						uhx.lexer.Html.NodeType.Document;
 						
 					case _:
-						uhx.lexer.HtmlLexer.NodeType.Element;
+						uhx.lexer.Html.NodeType.Element;
 						
 				}
 				
 			case Keyword(HtmlKeywords.Text(_)):
-				uhx.lexer.HtmlLexer.NodeType.Text;
+				uhx.lexer.Html.NodeType.Text;
 				
 			case Keyword(Instruction(_)):
-				uhx.lexer.HtmlLexer.NodeType.Comment;
+				uhx.lexer.Html.NodeType.Comment;
 				
 			case _:
-				uhx.lexer.HtmlLexer.NodeType.Unknown;
+				uhx.lexer.Html.NodeType.Unknown;
 				
 		}
 	}

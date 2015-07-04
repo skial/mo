@@ -1,9 +1,10 @@
-package uhx.lexer;
+package uhx.parser;
 
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
-import uhx.lexer.HtmlLexer;
+import uhx.lexer.Html.HtmlKeywords;
+import uhx.lexer.Html as HtmlLexer;
 
 /**
  * ...

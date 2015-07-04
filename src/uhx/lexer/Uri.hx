@@ -8,7 +8,6 @@ import hxparse.Ruleset;
 import hxparse.UnexpectedChar;
 
 using StringTools;
-using uhx.lexer.UriLexer;
 
 /**
  * ...
@@ -47,7 +46,7 @@ class Uri extends Lexer {
 	},
 	'#[^#]+' => Keyword(Fragment( lexer.current.substring( 1 ) )),
 	'[a-zA-Z0-9\\-\\/\\.]+' => {
-		var l = new UriLexer( ByteData.ofString( lexer.current ), 'urilexer-path' );
+		var l = new Uri( ByteData.ofString( lexer.current ), 'urilexer-path' );
 		var r = [];
 		try while (true) r.push(l.token( path )) catch (e:Eof) { } catch (e:UnexpectedChar) { trace(e.char,e.pos); } catch (e:Dynamic) { trace(e); };
 		Keyword(Path( r ));
@@ -61,7 +60,7 @@ class Uri extends Lexer {
 	'\\.\\.\\/' => Keyword(Directory( lexer.current )),
 	'[a-zA-Z0-9\\-\\/]+\\.?' => {
 		if (lexer.current.endsWith('.')) lexer.pos--;
-		var l = new UriLexer( ByteData.ofString( lexer.current ), 'urilexer-directory' );
+		var l = new Uri( ByteData.ofString( lexer.current ), 'urilexer-directory' );
 		var r = [];
 		try while (true) r.push(l.token( directory )) catch (e:Eof) { } catch (e:UnexpectedChar) { trace(e.char, e.pos); } catch (e:Dynamic) { trace(e); };
 		Keyword(Path( r ));

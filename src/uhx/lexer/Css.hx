@@ -1,10 +1,8 @@
 package uhx.lexer;
 
 import haxe.io.Eof;
-import uhx.lexer.CssLexer.AttributeType;
-import uhx.lexer.CssLexer.CssKeywords;
-import uhx.lexer.CssLexer.CssSelectors;
 import uhx.mo.Token;
+import uhx.lexer.Css;
 import hxparse.Lexer;
 import byte.ByteData;
 import hxparse.Ruleset;
@@ -390,7 +388,7 @@ enum CssMedia {
 	]);
 	
 	private static function parse<T>(value:ByteData, name:String, rule:Ruleset<T>):Array<T> {
-		var lexer = new CssLexer(value, name);
+		var lexer = new Css(value, name);
 		var tokens = [];
 		
 		try while (true) {

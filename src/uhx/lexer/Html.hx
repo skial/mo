@@ -11,7 +11,7 @@ import haxe.ds.StringMap;
 import hxparse.UnexpectedChar;
 
 using StringTools;
-using uhx.lexer.HtmlLexer;
+using uhx.lexer.Html;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 

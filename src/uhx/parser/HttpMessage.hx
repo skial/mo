@@ -1,9 +1,10 @@
-package uhx.lexer;
+package uhx.parser;
 
 import uhx.mo.Token;
 import byte.ByteData;
 import haxe.ds.StringMap;
-import uhx.lexer.HttpMessageLexer;
+import uhx.lexer.HttpMessage.HttpMessageKeywords;
+import uhx.lexer.HttpMessage as HttpMessageLexer;
 
 using Mo;
 using StringTools;
