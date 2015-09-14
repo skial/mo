@@ -45,7 +45,7 @@ class Uri extends Lexer {
 		Keyword(Query( parts[0], parts[1] ));
 	},
 	'#[^#]+' => Keyword(Fragment( lexer.current.substring( 1 ) )),
-	'[a-zA-Z0-9\\-\\/\\.]+' => {
+	'[a-zA-Z0-9\\-\\/\\.\\!]+' => {
 		var l = new Uri( ByteData.ofString( lexer.current ), 'urilexer-path' );
 		var r = [];
 		try while (true) r.push(l.token( path )) catch (e:Eof) { } catch (e:UnexpectedChar) { trace(e.char,e.pos); } catch (e:Dynamic) { trace(e); };
@@ -58,7 +58,7 @@ class Uri extends Lexer {
 	'\\.[^\\.\\?\\/#&]+' => Keyword(Extension( lexer.current.substring( 1 ) )),
 	'\\.\\/' => lexer.token( directory ),
 	'\\.\\.\\/' => Keyword(Directory( lexer.current )),
-	'[a-zA-Z0-9\\-\\/]+\\.?' => {
+	'[a-zA-Z0-9\\-\\/\\!]+\\.?' => {
 		if (lexer.current.endsWith('.')) lexer.pos--;
 		var l = new Uri( ByteData.ofString( lexer.current ), 'urilexer-directory' );
 		var r = [];
@@ -69,11 +69,11 @@ class Uri extends Lexer {
 	
 	@:access(hxparse.Lexer) public static var directory = Mo.rules( [
 	'\\/' => lexer.token( directory ),
-	'[a-zA-Z0-9\\-]+\\.' => {
+	'[a-zA-Z0-9\\-\\!]+\\.' => {
 		lexer.pos--;
 		Keyword(File( lexer.current.substring( 0, lexer.current.length - 1 ) ));
 	},
-	'[a-zA-Z0-9\\-]+' => Keyword(Directory( lexer.current )),
+	'[a-zA-Z0-9\\-\\!]+' => Keyword(Directory( lexer.current )),
 	] );
 	
 }
