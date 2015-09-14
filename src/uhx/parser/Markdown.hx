@@ -1,10 +1,11 @@
-package uhx.lexer;
+package uhx.parser;
 
 import hxparse.Lexer;
 import haxe.io.Eof;
 import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
+import uhx.lexer.Markdown.Block;
 import uhx.lexer.Markdown as MarkdownLexer;
 
 using Mo;

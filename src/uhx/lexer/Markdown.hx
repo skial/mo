@@ -1,10 +1,10 @@
 package uhx.lexer;
 
-import haxe.DynamicAccess;
 import haxe.io.Eof;
+import haxe.DynamicAccess;
 import hxparse.Unexpected.Unexpected;
 import hxparse.UnexpectedChar;
-import uhx.lexer.MarkdownLexer.Container;
+import uhx.lexer.Markdown.Container;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
@@ -20,7 +20,7 @@ using haxe.EnumTools;
 
 class Inline extends Container<AInline, String> {
 	
-	public function new(type:AInline, ?tokens:Array<String>) {
+	public inline function new(type:AInline, ?tokens:Array<String>) {
 		super(type, tokens);
 	}
 	
@@ -28,7 +28,7 @@ class Inline extends Container<AInline, String> {
 
 class Leaf extends Container<ALeaf, Inline> {
 	
-	public function new(type:ALeaf, ?tokens:Array<Inline>) {
+	public inline function new(type:ALeaf, ?tokens:Array<Inline>) {
 		super(type, tokens);
 	}
 	
@@ -36,7 +36,7 @@ class Leaf extends Container<ALeaf, Inline> {
 
 class Block extends Container<ABlock, Leaf> {
 	
-	public function new(type:ABlock, ?tokens:Array<Leaf>) {
+	public inline function new(type:ABlock, ?tokens:Array<Leaf>) {
 		super(type, tokens);
 	}
 	
@@ -48,7 +48,7 @@ class Container<T1, T2> {
 	public var tokens:Array<T2>;
 	public var extra:DynamicAccess<String>;
 	
-	public function new(type:T1, tokens:Array<T2>) {
+	public inline function new(type:T1, tokens:Array<T2>) {
 		this.type = type;
 		this.tokens = tokens == null ? [] : tokens;
 		this.extra = new DynamicAccess();
@@ -83,13 +83,27 @@ class Container<T1, T2> {
 	var Html = 6;
 	var LineBreak = 7;
 	var Text = 8;
+	
+	@:to public function toString():String {
+		return switch (this) {
+			case 0: 'Back Slash';
+			case 1: 'Entity';
+			case 2: 'Code';
+			case 3: 'Emphasis';
+			case 4: 'Link';
+			case 5: 'Image';
+			case 6: 'Html';
+			case 7: 'Line Break';
+			case _: 'Text';
+		}
+	}
 }
 
 /**
  * ...
  * @author Skial Bainn
  */
-class MarkdownLexer extends Lexer {
+class Markdown extends Lexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -144,7 +158,7 @@ class MarkdownLexer extends Lexer {
 	 * class, or a tab (U+0009), carriage return (U+000D), newline (U+000A), 
 	 * or form feed (U+000C).
 	 */
-	public static var unicodeWhitespace = Seri.getCategory( 'Zs' ).map(escape).join('') + '\u0009\u000D\u000A\u000C';
+	public static var unicodeWhitespace = Seri.getCategory( 'Zs' ).map(escape)/*.join('') + '\u0009\u000D\u000A\u000C'*/;
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#non-space-character
@@ -380,7 +394,7 @@ class MarkdownLexer extends Lexer {
 	public static var root = containterBlocks;
 	
 	private static function parse<T>(value:String, name:String, rule:Ruleset<T>):Array<T> {
-		var l = new MarkdownLexer( ByteData.ofString( value ), name );
+		var l = new Markdown( ByteData.ofString( value ), name );
 		var t = [];
 		
 		try {
