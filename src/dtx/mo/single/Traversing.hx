@@ -2,14 +2,10 @@ package dtx.mo.single;
 
 import dtx.DOMNode;
 import uhx.mo.Token;
-import uhx.lexer.HtmlLexer;
+import uhx.lexer.Html;
 import dtx.single.ElementManipulation;
-
-#if macro
-import haxe.macro.Expr;
-#end
-
-using uhx.select.Html;
+import uhx.select.html.Element as EQSA;
+import uhx.select.html.Document as DQSA;
 
 /**
  * ...
@@ -17,19 +13,14 @@ using uhx.select.Html;
  */
 
 class Traversing {
-
-	public static macro function find(node:ExprOf<DOMNode>, selector:ExprOf<String>):ExprOf<DOMCollection> {
-		return macro dtx.mo.single.Traversing._find($node, $selector);
-	}
 	
-	static public inline function _find(node:DOMNode, selector:String):DOMCollection {
+	static public inline function find(node:DOMNode, selector:String):DOMCollection {
 		var newDOMCollection = new DOMCollection();
-		
 		if (node != null && selector != null && selector != '') if (ElementManipulation.isElement( node )) {
-			newDOMCollection.addCollection( node.querySelectorAll( selector ) );
+			newDOMCollection.addCollection( EQSA.querySelectorAll( node, selector ) );
 			
 		} else if (ElementManipulation.isDocument( node )) {
-			newDOMCollection.addCollection( (node:DocumentOrElement).querySelectorAll( selector ) );
+			newDOMCollection.addCollection( DQSA.querySelectorAll( node, selector ) );
 			
 		}
 		

@@ -1,36 +1,29 @@
 package dtx.mo.collection;
 
 import uhx.mo.Token;
-import uhx.lexer.HtmlLexer;
+import uhx.lexer.Html;
 import dtx.single.ElementManipulation;
-
-#if macro
-import haxe.macro.Expr;
-#end
-
-using uhx.select.Html;
+import uhx.select.html.Element as EQSA;
+import uhx.select.html.Document as DQSA;
+import uhx.select.html.Collection as CQSA;
 
 /**
  * ...
  * @author Skial Bainn
  */
 class Traversing {
-
-	public static macro function find(node:ExprOf<DOMNode>, selector:ExprOf<String>):ExprOf<DOMCollection> {
-		return macro dtx.mo.collection.Traversing._find($node, $selector);
-	}
 	
-	static public inline function _find(collection:DOMCollection, selector:String):DOMCollection {
+	static public inline function find(collection:DOMCollection, selector:String):DOMCollection {
 		var newDOMCollection = new DOMCollection();
-		
 		if (collection != null && selector != null && selector != '') {
 			for (node in collection) if (ElementManipulation.isElement( node )) {
-				newDOMCollection.addCollection( node.querySelectorAll( selector ) );
+				newDOMCollection.addCollection( EQSA.querySelectorAll( node, selector ) );
 				
 			} else if (ElementManipulation.isDocument( node )) {
-				newDOMCollection.addCollection( (node:DocumentOrElement).querySelectorAll( selector ) );
+				newDOMCollection.addCollection( DQSA.querySelectorAll( node, selector ) );
 				
 			}
+			//newDOMCollection.addCollection( CQSA.querySelectorAll( collection.collection, selector ) );
 		}
 		
 		return newDOMCollection;

@@ -65,14 +65,14 @@ typedef DocumentOrElement =
 #end;
 
 typedef SingleTraverse = 
-#if (js && !macro)
+#if js
 	dtx.js.single.Traversing
 #else
 	dtx.mo.single.Traversing
 #end;
 
 typedef CollectionTraverse = 
-#if (js && !macro)
+#if js
 	dtx.js.collection.Traversing
 #else
 	dtx.mo.collection.Traversing

@@ -5,7 +5,7 @@ import haxe.io.Eof;
 import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
-import uhx.lexer.MarkdownLexer;
+import uhx.lexer.Markdown as MarkdownLexer;
 
 using Mo;
 using StringTools;
@@ -15,7 +15,7 @@ using haxe.io.Path;
  * ...
  * @author Skial Bainn
  */
-class MarkdownParser {
+class Markdown {
 
 	private var result:StringBuf;
 	private var lexer:MarkdownLexer;

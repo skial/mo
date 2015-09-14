@@ -1,7 +1,7 @@
 package dtx.mo;
 
 import uhx.mo.Token;
-import uhx.lexer.HtmlLexer;
+import uhx.lexer.Html;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 private typedef DOMNodes = Array<DOMNode>;
