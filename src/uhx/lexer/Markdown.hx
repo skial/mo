@@ -83,19 +83,28 @@ class Container<T1, T2> {
 	var Html = 6;
 	var LineBreak = 7;
 	var Text = 8;
+}
+
+/**
+ * @see: http://blog.stroep.nl/2015/08/biwise-operations-made-easy-with-haxe/
+ */
+@:enum abstract ListFeature(Int) from Int to Int {
+	var None = 0;
+	var Ordered = value( 1 );
+	var Tight = value( 2 );
 	
-	@:to public function toString():String {
-		return switch (this) {
-			case 0: 'Back Slash';
-			case 1: 'Entity';
-			case 2: 'Code';
-			case 3: 'Emphasis';
-			case 4: 'Link';
-			case 5: 'Image';
-			case 6: 'Html';
-			case 7: 'Line Break';
-			case _: 'Text';
-		}
+	private static inline function value(index:Int) return 1 << index;
+	
+	public inline static function remove(bits:Int, mask:Int):Int {
+		return bits & ~mask;
+	}
+    
+	public inline static function add(bits:Int, mask:Int):Int {
+		return bits | mask;
+	}
+    
+	public inline static function contains(bits:Int, mask:Int):Bool {
+		return bits & mask != 0;
 	}
 }
 
@@ -157,8 +166,10 @@ class Markdown extends Lexer {
 	 * A unicode whitespace character is any code point in the unicode Zs 
 	 * class, or a tab (U+0009), carriage return (U+000D), newline (U+000A), 
 	 * or form feed (U+000C).
+	 * 
+	 * '\u0009\u000D\u000A\u000C' are actaully defined in the `Other` category...
 	 */
-	public static var unicodeWhitespace = Seri.getCategory( 'Zs' ).map(escape)/*.join('') + '\u0009\u000D\u000A\u000C'*/;
+	public static var unicodeWhitespace = [for (codepoint in Seri.getCategory( 'Zs' )) codepoint].map(escape).join('') + '\u0009\u000D\u000A\u000C';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#non-space-character
@@ -174,7 +185,7 @@ class Markdown extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#punctuation-character
 	 */
-	public static var unicodePunctuation = Seri.getCategory( 'P' ).map(escape).join('');
+	public static var unicodePunctuation = [for (codepoint in Seri.getCategory( 'P' )) codepoint].map(escape).join('');
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#punctuation-character
