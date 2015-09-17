@@ -382,6 +382,7 @@ class Markdown extends Lexer {
 	},*/
 	namedEntities => { 
 		var sub = lexer.current.substring( 1, lexer.current.length - 1 );
+		
 		if (sub != amp && sub != lt && sub != gt && sub != quot && HtmlEntities.entityMap.exists( sub )) {
 			new Inline( AInline.Entity, [InternalEncoding.fromCodePoints( HtmlEntities.entityMap.get( sub ) )] );
 			
@@ -392,6 +393,7 @@ class Markdown extends Lexer {
 	decimalEntities => { 
 		var result = new Inline( AInline.Text, [lexer.current] );
 		var sub = lexer.current.substring( 2, lexer.current.length - 1 );
+		
 		if (sub.length > 0 && sub.length < 9) {
 			var codepoint = Std.parseInt( sub );
 			if (codepoint == 0) codepoint = 65533;
@@ -415,8 +417,9 @@ class Markdown extends Lexer {
 	hexadecimalEntities => { 
 		var result = new Inline( AInline.Text, [lexer.current] );
 		var sub = lexer.current.substring( 3, lexer.current.length - 1 );
+		
 		if (sub.length > 0 && sub.length < 9) {
-			var codepoint =  Std.parseInt(decodeHex( sub ));
+			var codepoint =  Std.parseInt( '0x$sub' );
 			
 			if (!check( codepoint )) {
 				result = new Inline( AInline.Entity, [
@@ -500,6 +503,7 @@ class Markdown extends Lexer {
         var base = haxe.io.Bytes.ofString("0123456789abcdef");
         // not using `decode` or `decodeString` because the result may contain \0
         // and that is not accepted in strings on all targets
+		trace( str );
         return new haxe.crypto.BaseCode(base).decodeString(str.toLowerCase());
     }
 	
