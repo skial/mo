@@ -394,8 +394,18 @@ class Markdown extends Lexer {
 		var sub = lexer.current.substring( 2, lexer.current.length - 1 );
 		if (sub.length > 0 && sub.length < 9) {
 			var codepoint = Std.parseInt( sub );
-			if (check( codepoint )) {
-				result = new Inline( AInline.Entity, [InternalEncoding.fromCodePoint( codepoint )] );
+			if (codepoint == 0) codepoint = 65533;
+			
+			if (!check( codepoint )) {
+				result = new Inline( AInline.Entity, [
+					try {
+						InternalEncoding.fromCodePoint( codepoint );
+						
+					} catch (e:Dynamic) {
+						InternalEncoding.fromCodePoint( 65533 );
+						
+					}
+				] );
 				
 			}
 			
@@ -407,8 +417,17 @@ class Markdown extends Lexer {
 		var sub = lexer.current.substring( 3, lexer.current.length - 1 );
 		if (sub.length > 0 && sub.length < 9) {
 			var codepoint =  Std.parseInt(decodeHex( sub ));
-			if (check( codepoint )) {
-				result = new Inline( AInline.Entity, [InternalEncoding.fromCodePoint( codepoint )] );
+			
+			if (!check( codepoint )) {
+				result = new Inline( AInline.Entity, [
+					try {
+						InternalEncoding.fromCodePoint( codepoint );
+						
+					} catch (e:Dynamic) {
+						InternalEncoding.fromCodePoint( 65533 );
+						
+					}
+				] );
 				
 			}
 			
