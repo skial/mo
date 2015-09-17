@@ -11,8 +11,13 @@ import hxparse.Lexer;
 import hxparse.Ruleset;
 import haxe.ds.StringMap;
 import hxparse.RuleBuilder;
+import uhx.sys.HtmlEntities;
 import uhx.sys.Seri;
 import uhx.sys.seri.CodePoint;
+import unifill.CodePointIter;
+import unifill.InternalEncoding;
+import uhx.sys.HtmlEntity;
+import uhx.sys.HtmlEntities;
 
 using Lambda;
 using StringTools;
@@ -260,7 +265,7 @@ class Markdown extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#lists
 	 */
-	public static var list = ' ';
+	public static var list = 'a ';
 	
 	public static var notContainer = '[^>-+\\*0-9]*';
 	
@@ -274,47 +279,49 @@ class Markdown extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#entities
 	 */
-	public static var entity = ' ';
+	public static var namedEntities = '&(' + HtmlEntities.names.join('|') + ');';
+	public static var decimalEntities = '&#[0-9]+;';
+	public static var hexadecimalEntities = '&#(X|x)[a-zA-Z0-9]+;';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#code-spans
 	 */
-	public static var codeSpan = ' ';
+	public static var codeSpan = 'a';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#emphasis-and-strong-emphasis
 	 */
-	public static var emphasis = ' ';
+	public static var emphasis = 'a ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#links
 	 */
-	public static var link = ' ';
+	public static var link = 'a';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#images
 	 */
-	public static var image = ' ';
+	public static var image = 'a';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#autolinks
 	 */
-	public static var autoLink = ' ';
+	public static var autoLink = 'a';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#raw-html
 	 */
-	public static var rawHTML = ' ';
+	public static var rawHTML = ' a';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#hard-line-breaks
 	 */
-	public static var hardLineBreak = ' ';
+	public static var hardLineBreak = 'a ';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#soft-line-breaks
 	 */
-	public static var softLineBreak = ' ';
+	public static var softLineBreak = 'a ';
 	
 	public static var containterBlocks = Mo.rules( [
 	quote => { 
@@ -369,38 +376,73 @@ class Markdown extends Lexer {
 	},
 	] );*/
 	
-	/*public static var inlines = Mo.rules( [ 
-	backslash => { 
-		new Inline( AInline.BackSlash, [] );
+	public static var inlineBlocks = Mo.rules( [ 
+	/*backslash => { 
+		new Inline( AInline.BackSlash, [lexer.current] );
+	},*/
+	namedEntities => { 
+		var sub = lexer.current.substring( 1, lexer.current.length - 1 );
+		if (sub != amp && sub != lt && sub != gt && sub != quot && HtmlEntities.entityMap.exists( sub )) {
+			new Inline( AInline.Entity, [InternalEncoding.fromCodePoints( HtmlEntities.entityMap.get( sub ) )] );
+			
+		} else {
+			new Inline( AInline.Text, [lexer.current] );
+		}
 	},
-	entity => { 
-		new Inline( AInline.Entity, [] );
+	decimalEntities => { 
+		var result = new Inline( AInline.Text, [lexer.current] );
+		var sub = lexer.current.substring( 2, lexer.current.length - 1 );
+		if (sub.length > 0 && sub.length < 9) {
+			var codepoint = Std.parseInt( sub );
+			if (check( codepoint )) {
+				result = new Inline( AInline.Entity, [InternalEncoding.fromCodePoint( codepoint )] );
+				
+			}
+			
+		}
+		result;
 	},
-	codeSpan => { 
-		new Inline( AInline.Code, [] );
+	hexadecimalEntities => { 
+		var result = new Inline( AInline.Text, [lexer.current] );
+		var sub = lexer.current.substring( 3, lexer.current.length - 1 );
+		if (sub.length > 0 && sub.length < 9) {
+			var codepoint =  Std.parseInt(decodeHex( sub ));
+			if (check( codepoint )) {
+				result = new Inline( AInline.Entity, [InternalEncoding.fromCodePoint( codepoint )] );
+				
+			}
+			
+		} 
+		result;
+	},
+	'[ \n\r\t]+' => {
+		new Inline( AInline.Text, [lexer.current] );
+	}
+	/*codeSpan => { 
+		new Inline( AInline.Code, [lexer.current] );
 	},
 	emphasis => { 
-		new Inline( AInline.Emphasis, [] );
+		new Inline( AInline.Emphasis, [lexer.current] );
 	},
 	link => { 
-		new Inline( AInline.Link, [] );
+		new Inline( AInline.Link, [lexer.current] );
 	},
 	image => { 
-		new Inline( AInline.Image, [] );
+		new Inline( AInline.Image, [lexer.current] );
 	},
 	autoLink => { 
-		new Inline( AInline.Link, [] );
+		new Inline( AInline.Link, [lexer.current] );
 	},
 	rawHTML => { 
-		new Inline( AInline.Html, [] );
+		new Inline( AInline.Html, [lexer.current] );
 	},
 	hardLineBreak => { 
-		new Inline( AInline.LineBreak, [] );
+		new Inline( AInline.LineBreak, [lexer.current] );
 	},
 	softLineBreak => { 
-		new Inline( AInline.LineBreak, [] );
-	},
-	] );*/
+		new Inline( AInline.LineBreak, [lexer.current] );
+	},*/
+	] );
 	
 	public static var root = containterBlocks;
 	
@@ -430,6 +472,20 @@ class Markdown extends Lexer {
 				value.toString();
 				
 		}
+	}
+	
+	/**
+	 * @see http://stackoverflow.com/a/25724726
+	 */
+	private static function decodeHex(str:String) {
+        var base = haxe.io.Bytes.ofString("0123456789abcdef");
+        // not using `decode` or `decodeString` because the result may contain \0
+        // and that is not accepted in strings on all targets
+        return new haxe.crypto.BaseCode(base).decodeString(str.toLowerCase());
+    }
+	
+	private static inline function check(codepoint:Int):Bool {
+		return codepoint == '"'.code || codepoint == '&'.code || codepoint == '<'.code || codepoint == '>'.code;
 	}
 	
 }
