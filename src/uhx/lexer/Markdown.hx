@@ -496,17 +496,6 @@ class Markdown extends Lexer {
 		}
 	}
 	
-	/**
-	 * @see http://stackoverflow.com/a/25724726
-	 */
-	private static function decodeHex(str:String) {
-        var base = haxe.io.Bytes.ofString("0123456789abcdef");
-        // not using `decode` or `decodeString` because the result may contain \0
-        // and that is not accepted in strings on all targets
-		trace( str );
-        return new haxe.crypto.BaseCode(base).decodeString(str.toLowerCase());
-    }
-	
 	private static inline function check(codepoint:Int):Bool {
 		return codepoint == '"'.code || codepoint == '&'.code || codepoint == '<'.code || codepoint == '>'.code;
 	}
