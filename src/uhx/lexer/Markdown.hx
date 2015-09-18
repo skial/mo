@@ -18,6 +18,7 @@ import unifill.CodePointIter;
 import unifill.InternalEncoding;
 import uhx.sys.HtmlEntity;
 import uhx.sys.HtmlEntities;
+import unifill.Unicode;
 
 using Lambda;
 using StringTools;
@@ -164,7 +165,7 @@ class Markdown extends Lexer {
 	 * newline (U+000A), line tabulation (U+000B), form feed (U+000C), 
 	 * or carriage return (U+000D).
 	 */
-	public static var whitespace = ' \t\n\u0009\u000C\r';
+	public static var whitespace = ' \t\n\u000B\u000C\r';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#unicode-whitespace-character
@@ -185,7 +186,7 @@ class Markdown extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#ascii-punctuation-character
 	 */
-	public static var asciiPunctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+	public static var asciiPunctuation = '!"#$%&\'\\(\\)\\*\\+,\\-\\./:;<=>\\?@\\[\\]\\^_`{\\|}~\\\\';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#punctuation-character
@@ -274,7 +275,7 @@ class Markdown extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#backslash-escapes
 	 */
-	public static var backslash = '\\[$asciiPunctuation]+';
+	public static var backslash = '\\\\[$asciiPunctuation]';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#entities
@@ -377,9 +378,19 @@ class Markdown extends Lexer {
 	] );*/
 	
 	public static var inlineBlocks = Mo.rules( [ 
-	/*backslash => { 
-		new Inline( AInline.BackSlash, [lexer.current] );
-	},*/
+	backslash => { 
+		var current = lexer.current.substring( 1 );
+		var codepoint = current.fastCodeAt( 0 );
+		
+		if (current.length == 1 && check(codepoint)) {
+			// For characters ", &, < and >, the second index, `[1]`, is the lowercase value.
+			new Inline( AInline.BackSlash, [HtmlEntities.codepointMap.get( '[$codepoint]' )[1].encode( true )] );
+			
+		} else {
+			new Inline( AInline.BackSlash, [current] );
+			
+		}
+	},
 	namedEntities => { 
 		var sub = lexer.current.substring( 1, lexer.current.length - 1 );
 		
@@ -437,7 +448,13 @@ class Markdown extends Lexer {
 		} 
 		result;
 	},
-	'[ \n\r\t]+' => {
+	'&' => {
+		new Inline( AInline.Text, [ amp.encode(true) ] );
+	},
+	'[^&\\\\$unicodeWhitespace]+' => {
+		new Inline( AInline.Text, [lexer.current] );
+	}, 
+	'[$unicodeWhitespace]+' => {
 		new Inline( AInline.Text, [lexer.current] );
 	}
 	/*codeSpan => { 
