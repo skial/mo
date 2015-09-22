@@ -19,6 +19,7 @@ import unifill.InternalEncoding;
 import uhx.sys.HtmlEntity;
 import uhx.sys.HtmlEntities;
 import unifill.Unicode;
+import unifill.Unifill;
 
 using Lambda;
 using StringTools;
@@ -118,7 +119,7 @@ class Container<T1, T2> {
  * ...
  * @author Skial Bainn
  */
-class Markdown extends Lexer {
+@:access(hxparse.Lexer) class Markdown extends Lexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -275,7 +276,7 @@ class Markdown extends Lexer {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#backslash-escapes
 	 */
-	public static var backslash = '\\\\[$asciiPunctuation]';
+	public static var backslash = '\\\\';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#entities
@@ -379,15 +380,25 @@ class Markdown extends Lexer {
 	
 	public static var inlineBlocks = Mo.rules( [ 
 	backslash => { 
-		var current = lexer.current.substring( 1 );
-		var codepoint = current.fastCodeAt( 0 );
+		var current = lexer.current + lexer.input.readString( lexer.pos, 1 );
+		var sub = current.substring( 1 );
+		var codepoint = Unifill.uCharCodeAt( sub, 0 );
 		
-		if (current.length == 1 && check(codepoint)) {
-			// For characters ", &, < and >, the second index, `[1]`, is the lowercase value.
-			new Inline( AInline.BackSlash, [HtmlEntities.codepointMap.get( '[$codepoint]' )[1].encode( true )] );
+		// This will likely throw if eof.
+		lexer.pos++;
+		
+		if (sub.length == 1 && asciiPunctuation.indexOf( sub ) > -1) {
+			if (check(codepoint)) {
+				// For characters ", &, < and >, the second index, `[1]`, is the lowercase value.
+				new Inline( AInline.BackSlash, [HtmlEntities.codepointMap.get( '[$codepoint]' )[1].encode( true )] );
+				
+			} else {
+				new Inline( AInline.BackSlash, [sub] );
+				
+			}
 			
 		} else {
-			new Inline( AInline.BackSlash, [current] );
+			new Inline( AInline.Text, [current] );
 			
 		}
 	},
