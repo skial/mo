@@ -397,6 +397,11 @@ class Container<T1, T2> {
 				
 			}
 			
+		} else if (sub.length == 1 && (codepoint == '\r'.code || codepoint == '\n'.code)) {
+			var byte = lexer.input.readByte( lexer.pos );
+			if (byte == '\n'.code || byte == '\r'.code) lexer.pos++;
+			new Inline( AInline.Text, ['<br />'] );
+			
 		} else {
 			new Inline( AInline.Text, [current] );
 			
