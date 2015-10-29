@@ -374,7 +374,7 @@ class Html extends Lexer {
 	
 	public static var attributes = Mo.rules( [
 	'[ \r\n\t]' => lexer.token( attributes ),
-	'[a-zA-Z0-9_\\-:]+[\r\n\t ]*=[\r\n\t ]*' => {
+	'[^\r\n\t /=>]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
 		var value = try {
@@ -385,7 +385,7 @@ class Html extends Lexer {
 		
 		[key, value];
 	},
-	'[a-zA-Z0-9_\\-]+' => [lexer.current, '']
+	'[^\r\n\t /=>]+' => [lexer.current, '']
 	] );
 	
 	public static var attributesValue = Mo.rules( [
