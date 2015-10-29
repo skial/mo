@@ -71,9 +71,10 @@ enum CssMedia {
 	}
 	
 	public static var s = ' \t\r\n';
+	public static var escaped = '(\u005c\u005c.?)';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
 	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|\\+';
-	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
+	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
 	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
 	
@@ -140,7 +141,7 @@ enum CssMedia {
 		
 		return Comment( tokens.join('').trim() );
 	},
-	'[^\r\n/@}{][$selector,"\'/ \\[\\]\\(\\)$s]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
+	'[^\r\n/@}{]([$selector,"\'/ \\[\\]\\(\\)$s]+$escaped*)+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
 	'@[$selector \\(\\),]+{' => {
 		handleRuleSet(lexer, makeAtRule, BraceClose);
 	},
@@ -190,7 +191,7 @@ enum CssMedia {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			
+			//trace( e );
 		}
 		
 		if (type == None) lexer.pos--;
@@ -218,6 +219,7 @@ enum CssMedia {
 	}
 	
 	public static var combinators = Mo.rules([
+	'(.?\u005c\u005c)?' => lexer.token( combinators ),	// reversed escape sequence
 	'[.:\\[]' => None,
 	' ' => Descendant,
 	'>' => Child,
@@ -235,7 +237,7 @@ enum CssMedia {
 	'\\*$combinator' => {
 		handleSelectors(lexer, function(_) return Universal);
 	},
-	'[$ident]+$combinator' => {
+	'([$ident]+$escaped*)+$combinator' => {
 		var current = lexer.current.trim();
 		var name = ['.'.code, ':'.code].indexOf(current.charCodeAt(current.length - 1)) > -1 
 			? current.substring(0, current.length - 1).trim() 
