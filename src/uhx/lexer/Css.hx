@@ -246,13 +246,13 @@ enum CssMedia {
 			return Type( i > -1 ? name.substring(0, i).rtrim() : name );
 		} );
 	},
-	'#[$ident]+$combinator' => {
+	'#([$ident]+$escaped*)+$combinator' => {
 		var name = lexer.current;
 		handleSelectors(lexer, function(i) {
 			return ID( i > -1 ? name.substring(1, i).rtrim() : name.substring(1, name.length) );
 		} );
 	},
-	'([\t\r\n]*\\.[$ident]+)+$combinator' => {
+	'([\t\r\n]*\\.([$ident]+$escaped*)+)+$combinator' => {
 		var parts = [];
 		
 		if (lexer.current.lastIndexOf('.') != 0) {
@@ -270,7 +270,7 @@ enum CssMedia {
 			return Class( parts );
 		} );
 	},
-	'::?[$ident]+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
+	'::?([$ident]+$escaped*)+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
@@ -288,7 +288,7 @@ enum CssMedia {
 			return Pseudo(current.substring(1, index).trim(), expression);
 		} );
 	},
-	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
+	'\\[[$s]*([$ident]+$escaped*)+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
 		var current = lexer.current;
 		
 		handleSelectors(lexer, function(i) {
