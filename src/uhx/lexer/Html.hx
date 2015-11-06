@@ -36,14 +36,17 @@ class Ref<Child> {
 
 class InstructionRef extends Ref<Array<String>> {
 	
-	public function new(tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
+	public var isComment(default, null):Bool;
+	
+	public function new(tokens:Array<String>, ?isComment:Bool = true, ?parent:Void->Token<HtmlKeywords>) {
 		super(tokens, parent);
+		this.isComment = isComment;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	override public function clone(deep:Bool) {
-		return new InstructionRef(deep ? tokens.copy() : tokens, null);
+		return new InstructionRef(deep ? tokens.copy() : tokens, isComment, null);
 	}
 	
 }
@@ -249,10 +252,11 @@ class Html extends Lexer {
 	'\n' => Newline,
 	'\t' => Tab(1),
 	'/>' => lexer.token( openClose ),
-	'!' => {
+	'[!?]' => {
 		var tag = '';
 		var attrs = [];
 		var tokens = [];
+		var aComment = lexer.current == '!';
 		
 		try while (true) {
 			var token:String = lexer.token( instructions );
@@ -278,6 +282,8 @@ class Html extends Lexer {
 		} catch (e:Dynamic) {
 			trace( e );
 		}
+		
+		if (!aComment && attrs[attrs.length -1] == '?') attrs = attrs.slice(0, attrs.length - 1);
 		
 		Keyword( Instruction( new InstructionRef( attrs, parent ) ) );
 	},
