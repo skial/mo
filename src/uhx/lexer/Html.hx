@@ -285,7 +285,7 @@ class Html extends Lexer {
 		
 		if (!aComment && attrs[attrs.length -1] == '?') attrs = attrs.slice(0, attrs.length - 1);
 		
-		Keyword( Instruction( new InstructionRef( attrs, parent ) ) );
+		Keyword( Instruction( new InstructionRef( attrs, aComment, parent ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
