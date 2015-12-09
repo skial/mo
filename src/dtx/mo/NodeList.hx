@@ -11,6 +11,9 @@ private typedef DOMNodes = Array<DOMNode>;
  * @author Skial Bainn
  */
 @:forward abstract NodeList(DOMNodes) from Tokens from DOMNodes to DOMNodes {
+	
+	public var length(get, never):Int;
+	
 	@:noCompletion public inline function new(v:DOMNodes) this = v;
 	
 	@:arrayAccess @:noCompletion public inline function get(i:Int):DOMNode return this[i];
@@ -42,5 +45,7 @@ private typedef DOMNodes = Array<DOMNode>;
 		
 		return result;
 	}
+	
+	private function get_length():Int return this.length;
 	
 }
