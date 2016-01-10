@@ -1,5 +1,6 @@
 package uhx.lexer;
 
+import haxe.CallStack;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
@@ -238,7 +239,7 @@ class Html extends Lexer {
 	}
 	
 	public static var parent:Void->Token<HtmlKeywords> = null;
-	public static var openTags:Array<HtmlRef> = [];
+	public var openTags:Array<HtmlRef> = [];
 	
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
@@ -343,7 +344,7 @@ class Html extends Lexer {
 			
 		}
 		
-		var first = openTags.length == 0;
+		var first = lexer.openTags.length == 0;
 		var ref = new HtmlRef(
 			tag, 
 			attrs,
@@ -542,8 +543,8 @@ class Html extends Lexer {
 	}
 	
 	// Build descendant html elements
-	private static function buildChildren(ref:HtmlRef, lexer:Lexer):Int {
-		var position = openTags.push( ref ) - 1;
+	private static function buildChildren(ref:HtmlRef, lexer:Html):Int {
+		var position = lexer.openTags.push( ref ) - 1;
 		
 		var previousParent = parent;
 		parent = function() return Keyword(Tag(ref));
@@ -562,9 +563,9 @@ class Html extends Lexer {
 					index = -1;
 					tag = null;
 					
-					var i = openTags.length - 1;
+					var i = lexer.openTags.length - 1;
 					while (i >= 0) {
-						tag = openTags[i];
+						tag = lexer.openTags[i];
 						if (tag != null && !tag.complete && t == tag.name) {
 							index = i;
 							tag.complete = true;
@@ -591,7 +592,7 @@ class Html extends Lexer {
 		} catch (e:UnexpectedChar) {
 			trace( e );
 		} catch (e:Dynamic) {
-			trace( e );
+			trace( e, CallStack.exceptionStack() );
 		}
 		
 		parent = previousParent;
@@ -615,8 +616,8 @@ class Html extends Lexer {
 	] );
 	
 	// Build Html Category of type Metadata
-	private static function buildMetadata(ref:HtmlRef, lexer:Lexer):Int {
-		var position = openTags.push( ref ) - 1;
+	private static function buildMetadata(ref:HtmlRef, lexer:Html):Int {
+		var position = lexer.openTags.push( ref ) - 1;
 		var rule = scriptedRule( ref.name );
 		
 		try while (true) {
