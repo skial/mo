@@ -238,13 +238,13 @@ class Html extends Lexer {
 		super( content, name );
 	}
 	
-	public static var parent:Void->Token<HtmlKeywords> = null;
+	public var parent:Void->Token<HtmlKeywords> = null;
 	public var openTags:Array<HtmlRef> = [];
 	
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
 	'>' => GreaterThan,
-	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, parent )) ),
+	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, lexer.parent )) ),
 	] );
 	
 	public static var tags = Mo.rules( [ 
@@ -286,7 +286,7 @@ class Html extends Lexer {
 		
 		if (!aComment && attrs[attrs.length -1] == '?') attrs = attrs.slice(0, attrs.length - 1);
 		
-		Keyword( Instruction( new InstructionRef( attrs, aComment, parent ) ) );
+		Keyword( Instruction( new InstructionRef( attrs, aComment, lexer.parent ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
@@ -350,7 +350,7 @@ class Html extends Lexer {
 			attrs,
 			categories, 
 			tokens,
-			parent
+			lexer.parent
 		);
 		
 		var position = -1;
@@ -546,8 +546,8 @@ class Html extends Lexer {
 	private static function buildChildren(ref:HtmlRef, lexer:Html):Int {
 		var position = lexer.openTags.push( ref ) - 1;
 		
-		var previousParent = parent;
-		parent = function() return Keyword(Tag(ref));
+		var previousParent = lexer.parent;
+		lexer.parent = function() return Keyword(Tag(ref));
 		
 		var tag = null;
 		var index = -1;
@@ -595,7 +595,7 @@ class Html extends Lexer {
 			trace( e, CallStack.exceptionStack() );
 		}
 		
-		parent = previousParent;
+		lexer.parent = previousParent;
 		
 		return position;
 	}
