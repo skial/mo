@@ -9,8 +9,8 @@ package dtx;
 	This will work with both `js.html.Node` and `Xml`.
 **/
 class DOMType {
-	static public var DOCUMENT_NODE = #if js js.html.Node.DOCUMENT_NODE #else uhx.lexer.Html.NodeType.Document #end;
-	static public var ELEMENT_NODE = #if js js.html.Node.ELEMENT_NODE #else uhx.lexer.Html.NodeType.Element #end;
-	static public var TEXT_NODE = #if js js.html.Node.TEXT_NODE #else uhx.lexer.Html.NodeType.Text #end;
-	static public var COMMENT_NODE = #if js js.html.Node.COMMENT_NODE #else uhx.lexer.Html.NodeType.Comment #end;
+	public static inline var DOCUMENT_NODE = #if js js.html.Node.DOCUMENT_NODE #else uhx.lexer.Html.NodeType.Document #end;
+	public static inline var ELEMENT_NODE = #if js js.html.Node.ELEMENT_NODE #else uhx.lexer.Html.NodeType.Element #end;
+	public static inline var TEXT_NODE = #if js js.html.Node.TEXT_NODE #else uhx.lexer.Html.NodeType.Text #end;
+	public static inline var COMMENT_NODE = #if js js.html.Node.COMMENT_NODE #else uhx.lexer.Html.NodeType.Comment #end;
 }
