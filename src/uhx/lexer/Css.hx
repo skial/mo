@@ -139,7 +139,7 @@ enum CssMedia {
 			trace( e );
 		}
 		
-		return Comment( tokens.join('').trim() );
+		Comment( tokens.join('').trim() );
 	},
 	'[^\r\n/@}{]([$selector,"\'/ \\[\\]\\(\\)$s]+$escaped*)+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
 	'@[$selector \\(\\),]+{' => {
@@ -383,7 +383,7 @@ enum CssMedia {
 			trace( e );
 		}
 		
-		return tokens[0];
+		tokens[0];
 	},
 	'\\)' => Feature(')'),
 	'[ :,]' => lexer.token( mediaQueries ),
