@@ -8,6 +8,7 @@ import hxparse.Ruleset;
 import haxe.ds.StringMap;
 
 #if macro
+import haxe.macro.Type as MType;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 
@@ -143,7 +144,10 @@ class Mo {
 								case _:
 									
 							}
-							results.push( macro {rule:$rule, func:function(lexer:hxparse.Lexer) $res} );
+							
+							var ctype = Context.toComplexType(Context.getLocalType());
+							if (!Context.unify( ctype.toType(), (macro:Lexer).toType() )) ctype = macro:Lexer;
+							results.push( macro cast {rule:$rule, func:function(lexer:$ctype) $res} );
 							
 						case _:
 							
