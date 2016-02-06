@@ -88,7 +88,11 @@ class Hxml extends Lexer {
 	
 	@:access(uhx.lexer.Hxml) public static var root = Mo.rules([
 	'[\t\r\n]+' => lexer.token( root ),
-	'-(-)?[^\t\r\n]+' => {
+	'#[^\r\n]+' => {
+		lexer.latest.unknowns.push( Comment( lexer.current.substring( 1 ) ) );
+		lexer.token( root );
+	},
+	'-(-)?[^\r\n]+' => {
 		var parts = lexer.current.substr( lexer.current.lastIndexOf('-') +1 ).trackAndSplit(' '.code, ['"'.code => '"'.code]);
 		switch (parts[0]) {
 			case 'js': lexer.set( Js, parts[1] );
@@ -145,7 +149,7 @@ class Hxml extends Lexer {
 				
 		}
 		
-		lexer.sections;
+		lexer.token( root );
 	}
 	]);
 	
@@ -223,7 +227,7 @@ class Hxml extends Lexer {
 	}
 	
 	private var global:Null<Section> = null;
-	private var sections:Array<Section> = [];
+	public var sections:Array<Section> = [];
 	private var latest:Section = new Section();
 	
 	private function set(key:RecognisedHxml, value:String):Void {
