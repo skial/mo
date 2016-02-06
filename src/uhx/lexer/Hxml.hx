@@ -1,9 +1,10 @@
 package uhx.lexer;
 
-import haxe.ds.IntMap;
+import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
+import haxe.ds.IntMap;
 
 using StringTools;
 using uhx.lexer.Hxml;
@@ -18,7 +19,6 @@ enum HxmlKeywords {
 	Known(cmd:RecognisedHxml);
 	Unknown(cmd:String, value:Null<String>);
 	Each(tokens:Tokens);
-	Next(tokens:Tokens);
 }
 
 /**
@@ -65,11 +65,11 @@ enum HxmlKeywords {
 		return new RecognisedHxml(this & ~mask);
 	}
     
-	inline public function add(mask:RecognisedHxml):RecognisedHxml {
+	inline public function set(mask:RecognisedHxml):RecognisedHxml {
 		return new RecognisedHxml(this | mask);
 	}
     
-	inline public function contains(mask:RecognisedHxml):Bool {
+	inline public function exists(mask:RecognisedHxml):Bool {
 		return this & mask != 0;
 	}
     
@@ -81,49 +81,55 @@ enum HxmlKeywords {
 
 class Hxml extends Lexer {
 	
-	public static var root = Mo.rules([
+	@:access(uhx.lexer.Hxml) public static var root = Mo.rules([
 	'[\t\r\n]+' => lexer.token( root ),
 	'-(-)?[^\t\r\n]+' => {
 		var parts = lexer.current.substr( lexer.current.lastIndexOf('-') +1 ).trackAndSplit(' '.code, ['"'.code => '"'.code]);
 		switch (parts[0]) {
 			case 'js', 'swf', 'as3', 'neko', 'php', 'cpp', 'cs', 'java', 'python', 'xml':
-				lexer.keys = lexer.keys.add( Target );
+				lexer.latest.keys = lexer.latest.keys.set( Target );
 				lexer.set( Target, parts[1] );
-				Const(CString(parts[0]));
+				lexer.latest.unknowns.push( Const(CString(parts[0])) );
 				
 			case 'cp':
-				lexer.keys = lexer.keys.add( SourcePath );
+				lexer.latest.keys = lexer.latest.keys.set( SourcePath );
 				lexer.set( SourcePath, parts[1] );
 				lexer.token( root );
 				
 			case 'main':
-				lexer.keys = lexer.keys.add( Main );
+				lexer.latest.keys = lexer.latest.keys.set( Main );
 				lexer.set( Main, parts[1] );
 				lexer.token( root );
 				
 			case 'lib':
-				lexer.keys = lexer.keys.add( Library );
+				lexer.latest.keys = lexer.latest.keys.set( Library );
 				lexer.set( Library, parts[1] );
 				lexer.token( root );
 				
 			case 'D':
-				lexer.keys = lexer.keys.add( Define );
+				lexer.latest.keys = lexer.latest.keys.set( Define );
 				lexer.set( Define, parts[1] );
 				lexer.token( root );
 				
 			case 'dce':
-				lexer.keys = lexer.keys.add( DeadCode );
+				lexer.latest.keys = lexer.latest.keys.set( DeadCode );
 				lexer.set( DeadCode, parts[1] );
 				lexer.token( root );
 				
 			case 'v':
-				lexer.keys = lexer.keys.add( Verbose );
+				lexer.latest.keys = lexer.latest.keys.set( Verbose );
+				lexer.token( root );
+				
+			case 'next':
+				lexer.makeSection();
 				lexer.token( root );
 				
 			case _:
-				Keyword(Unknown(parts[0], parts[1]));
+				lexer.latest.unknowns.push( Keyword(Unknown(parts[0], parts[1])) );
 				
 		}
+		
+		lexer.sections;
 	}
 	]);
 	
@@ -200,23 +206,52 @@ class Hxml extends Lexer {
 		return results;
 	}
 	
+	private var sections:Array<Section> = [];
+	private var latest:Section = new Section();
 	
-	public var keys:RecognisedHxml = 0;
-	public var values:IntMap<Array<String>> = new IntMap();
-	
-	public function set(key:Int, value:String):Void {
-		if (values.exists( key )) {
-			values.get( key ).push( value );
+	private function set(key:RecognisedHxml, value:String):Void {
+		//if (!latest.keys.contains( key )) latest.keys = latest.keys.add( key );
+		
+		if (latest.knowns.exists( key )) {
+			latest.knowns.get( key ).push( value );
 			
 		} else {
-			values.set( key, [value] );
+			latest.knowns.set( key, [value] );
 			
 		}
 		
 	}
 	
+	private function makeSection():Void {
+		latest = new Section();
+		sections.push( latest );
+	}
+	
 	public function new(input:ByteData, name:String) {
+		sections.push( latest );
 		super( input, name );
+	}
+	
+}
+
+class Section {
+	
+	public var keys:RecognisedHxml;
+	public var knowns:IntMap<Array<String>>;
+	public var unknowns:Array<Token<HxmlKeywords>>;
+	
+	public function new() {
+		keys = 0;
+		knowns = new IntMap();
+		unknowns = [];
+	}
+	
+}
+
+class Global {
+	
+	public function new() {
+		
 	}
 	
 }
