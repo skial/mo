@@ -14,38 +14,43 @@ using uhx.lexer.Hxml;
  * @author Skial Bainn
  */
 typedef Tokens = Array<Token<HxmlKeywords>>;
- 
-enum HxmlKeywords {
-	Known(cmd:RecognisedHxml);
-	Unknown(cmd:String, value:Null<String>);
-	Each(tokens:Tokens);
-}
 
+enum HxmlKeywords {
+	Unknown(cmd:String, value:Null<String>);
+}
+ 
 /**
  * @see http://blog.stroep.nl/2015/08/biwise-operations-made-easy-with-haxe/
  */
 @:enum abstract RecognisedHxml(Int) from Int to Int {
 	
 	var SourcePath = value(1);
-	var Target = value(2);
-	var Main = value(3);
-	var Library = value(4);
-	var Define = value(5);
-	var DeadCode = value(6);
-	var Verbose = value(7);
-	var Debug = value(8);
-	var Cmd = value(9);
-	//var Each = value(10);
-	//var Next = value(11);
+	var Main = value(2);
+	var Library = value(3);
+	var Define = value(4);
+	var DeadCode = value(5);
+	var Verbose = value(6);
+	var Debug = value(7);
+	var Cmd = value(8);
+	
+	var Js = value(9);
+	var Swf = value(10);
+	var As3 = value(11);
+	var Neko = value(12);
+	var Php = value(13);
+	var Cpp = value(14);
+	var Cs = value(15);
+	var Java = value(16);
+	var Python = value(17);
+	var Xml = value(18);
 	
 	public static inline function all():Array<RecognisedHxml> {
-		return [SourcePath, Target, Main, Library, Define, DeadCode, Verbose, Debug, Cmd];
+		return [SourcePath, Main, Library, Define, DeadCode, Verbose, Debug, Cmd, Js, Swf, As3, Neko, Php, Cpp, Cs, Java, Python, Xml];
 	}
 	
 	public inline function asString():String {
 		return switch (this) {
 			case SourcePath: 'cp';
-			case Target: 'target';
 			case Main: 'main';
 			case Library: 'lib';
 			case Define: '-D';
@@ -86,10 +91,16 @@ class Hxml extends Lexer {
 	'-(-)?[^\t\r\n]+' => {
 		var parts = lexer.current.substr( lexer.current.lastIndexOf('-') +1 ).trackAndSplit(' '.code, ['"'.code => '"'.code]);
 		switch (parts[0]) {
-			case 'js', 'swf', 'as3', 'neko', 'php', 'cpp', 'cs', 'java', 'python', 'xml':
-				lexer.set( Target, parts[1] );
-				lexer.latest.unknowns.push( Const(CString(parts[0])) );
-				
+			case 'js': lexer.set( Js, parts[1] );
+			case 'swf': lexer.set( Swf, parts[1] );
+			case 'as3': lexer.set( As3, parts[1] );
+			case 'neko': lexer.set( Neko, parts[1] );
+			case 'php': lexer.set( Php, parts[1] );
+			case 'cpp': lexer.set( Cpp, parts[1] );
+			case 'cs': lexer.set( Cs, parts[1] );
+			case 'java': lexer.set( Java, parts[1] );
+			case 'python': lexer.set( Python, parts[1] );
+			case 'xml': lexer.set( Xml, parts[1] );
 			case 'cp':
 				lexer.set( SourcePath, parts[1] );
 				lexer.token( root );
