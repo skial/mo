@@ -87,32 +87,26 @@ class Hxml extends Lexer {
 		var parts = lexer.current.substr( lexer.current.lastIndexOf('-') +1 ).trackAndSplit(' '.code, ['"'.code => '"'.code]);
 		switch (parts[0]) {
 			case 'js', 'swf', 'as3', 'neko', 'php', 'cpp', 'cs', 'java', 'python', 'xml':
-				lexer.latest.keys = lexer.latest.keys.set( Target );
 				lexer.set( Target, parts[1] );
 				lexer.latest.unknowns.push( Const(CString(parts[0])) );
 				
 			case 'cp':
-				lexer.latest.keys = lexer.latest.keys.set( SourcePath );
 				lexer.set( SourcePath, parts[1] );
 				lexer.token( root );
 				
 			case 'main':
-				lexer.latest.keys = lexer.latest.keys.set( Main );
 				lexer.set( Main, parts[1] );
 				lexer.token( root );
 				
 			case 'lib':
-				lexer.latest.keys = lexer.latest.keys.set( Library );
 				lexer.set( Library, parts[1] );
 				lexer.token( root );
 				
 			case 'D':
-				lexer.latest.keys = lexer.latest.keys.set( Define );
 				lexer.set( Define, parts[1] );
 				lexer.token( root );
 				
 			case 'dce':
-				lexer.latest.keys = lexer.latest.keys.set( DeadCode );
 				lexer.set( DeadCode, parts[1] );
 				lexer.token( root );
 				
@@ -123,6 +117,17 @@ class Hxml extends Lexer {
 			case 'next':
 				lexer.makeSection();
 				lexer.token( root );
+				
+			case 'each':
+				if (lexer.global == null) {
+					lexer.global = lexer.latest;
+					lexer.makeSection();
+					lexer.token( root );
+					
+				} else {
+					throw 'You can only have one `--each` in your hxml file';
+					
+				}
 				
 			case _:
 				lexer.latest.unknowns.push( Keyword(Unknown(parts[0], parts[1])) );
@@ -206,11 +211,12 @@ class Hxml extends Lexer {
 		return results;
 	}
 	
+	private var global:Null<Section> = null;
 	private var sections:Array<Section> = [];
 	private var latest:Section = new Section();
 	
 	private function set(key:RecognisedHxml, value:String):Void {
-		//if (!latest.keys.contains( key )) latest.keys = latest.keys.add( key );
+		latest.keys = latest.keys.set( key );
 		
 		if (latest.knowns.exists( key )) {
 			latest.knowns.get( key ).push( value );
@@ -222,13 +228,14 @@ class Hxml extends Lexer {
 		
 	}
 	
-	private function makeSection():Void {
+	private inline function makeSection():Void {
 		latest = new Section();
-		sections.push( latest );
+		if (global != null) latest.inherit = global.index;
+		latest.index = sections.push( latest );
 	}
 	
 	public function new(input:ByteData, name:String) {
-		sections.push( latest );
+		latest.index = sections.push( latest );
 		super( input, name );
 	}
 	
@@ -236,22 +243,18 @@ class Hxml extends Lexer {
 
 class Section {
 	
+	public var index:Int;
+	public var inherit:Int;
 	public var keys:RecognisedHxml;
 	public var knowns:IntMap<Array<String>>;
 	public var unknowns:Array<Token<HxmlKeywords>>;
 	
 	public function new() {
 		keys = 0;
+		index = -1;
+		inherit = -1;
 		knowns = new IntMap();
 		unknowns = [];
-	}
-	
-}
-
-class Global {
-	
-	public function new() {
-		
 	}
 	
 }
