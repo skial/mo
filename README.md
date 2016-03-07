@@ -9,6 +9,7 @@ The primary goal of Mo is to be a syntax highlighter for Haxe.
 + Css
 + Uri
 + Html
++ Hxml
 + Mime
 + Markdown
 + HttpMessage
