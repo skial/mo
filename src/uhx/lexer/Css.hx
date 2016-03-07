@@ -71,9 +71,10 @@ enum CssMedia {
 	}
 	
 	public static var s = ' \t\r\n';
+	public static var escaped = '(\u005c\u005c.?)';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
 	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|\\+';
-	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*\\\\';
+	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
 	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
 	
@@ -138,9 +139,9 @@ enum CssMedia {
 			trace( e );
 		}
 		
-		return Comment( tokens.join('').trim() );
+		Comment( tokens.join('').trim() );
 	},
-	'[^\r\n/@}{][$selector,"\'/ \\[\\]\\(\\)$s]+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
+	'[^\r\n/@}{]([$selector,"\'/ \\[\\]\\(\\)$s]+$escaped*)+{' => handleRuleSet(lexer, makeRuleSet, BraceClose),
 	'@[$selector \\(\\),]+{' => {
 		handleRuleSet(lexer, makeAtRule, BraceClose);
 	},
@@ -190,7 +191,7 @@ enum CssMedia {
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			
+			//trace( e );
 		}
 		
 		if (type == None) lexer.pos--;
@@ -218,6 +219,7 @@ enum CssMedia {
 	}
 	
 	public static var combinators = Mo.rules([
+	'(.?\u005c\u005c)?' => lexer.token( combinators ),	// reversed escape sequence
 	'[.:\\[]' => None,
 	' ' => Descendant,
 	'>' => Child,
@@ -235,7 +237,7 @@ enum CssMedia {
 	'\\*$combinator' => {
 		handleSelectors(lexer, function(_) return Universal);
 	},
-	'[$ident]+$combinator' => {
+	'([$ident]+$escaped*)+$combinator' => {
 		var current = lexer.current.trim();
 		var name = ['.'.code, ':'.code].indexOf(current.charCodeAt(current.length - 1)) > -1 
 			? current.substring(0, current.length - 1).trim() 
@@ -244,13 +246,13 @@ enum CssMedia {
 			return Type( i > -1 ? name.substring(0, i).rtrim() : name );
 		} );
 	},
-	'#[$ident]+$combinator' => {
+	'#([$ident]+$escaped*)+$combinator' => {
 		var name = lexer.current;
 		handleSelectors(lexer, function(i) {
 			return ID( i > -1 ? name.substring(1, i).rtrim() : name.substring(1, name.length) );
 		} );
 	},
-	'([\t\r\n]*\\.[$ident]+)+$combinator' => {
+	'([\t\r\n]*\\.([$ident]+$escaped*)+)+$combinator' => {
 		var parts = [];
 		
 		if (lexer.current.lastIndexOf('.') != 0) {
@@ -268,7 +270,7 @@ enum CssMedia {
 			return Class( parts );
 		} );
 	},
-	'::?[$ident]+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
+	'::?([$ident]+$escaped*)+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
@@ -286,7 +288,7 @@ enum CssMedia {
 			return Pseudo(current.substring(1, index).trim(), expression);
 		} );
 	},
-	'\\[[$s]*[$ident]+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
+	'\\[[$s]*([$ident]+$escaped*)+[$s]*([=~$\\*\\^\\|]+[$s]*[^\r\n\\[\\]]+)?\\]$combinator' => {
 		var current = lexer.current;
 		
 		handleSelectors(lexer, function(i) {
@@ -381,7 +383,7 @@ enum CssMedia {
 			trace( e );
 		}
 		
-		return tokens[0];
+		tokens[0];
 	},
 	'\\)' => Feature(')'),
 	'[ :,]' => lexer.token( mediaQueries ),

@@ -1,5 +1,6 @@
 package uhx.lexer;
 
+import haxe.CallStack;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
@@ -36,14 +37,17 @@ class Ref<Child> {
 
 class InstructionRef extends Ref<Array<String>> {
 	
-	public function new(tokens:Array<String>, ?parent:Void->Token<HtmlKeywords>) {
+	public var isComment(default, null):Bool;
+	
+	public function new(tokens:Array<String>, ?isComment:Bool = true, ?parent:Void->Token<HtmlKeywords>) {
 		super(tokens, parent);
+		this.isComment = isComment;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	override public function clone(deep:Bool) {
-		return new InstructionRef(deep ? tokens.copy() : tokens, null);
+		return new InstructionRef(deep ? tokens.copy() : tokens, isComment, null);
 	}
 	
 }
@@ -234,13 +238,13 @@ class Html extends Lexer {
 		super( content, name );
 	}
 	
-	public static var parent:Void->Token<HtmlKeywords> = null;
-	public static var openTags:Array<HtmlRef> = [];
+	public var parent:Void->Token<HtmlKeywords> = null;
+	public var openTags:Array<HtmlRef> = [];
 	
 	public static var openClose = Mo.rules( [
 	'<' => lexer.token( tags ),
 	'>' => GreaterThan,
-	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, parent )) ),
+	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, lexer.parent )) ),
 	] );
 	
 	public static var tags = Mo.rules( [ 
@@ -249,10 +253,11 @@ class Html extends Lexer {
 	'\n' => Newline,
 	'\t' => Tab(1),
 	'/>' => lexer.token( openClose ),
-	'!' => {
+	'[!?]' => {
 		var tag = '';
 		var attrs = [];
 		var tokens = [];
+		var aComment = lexer.current == '!';
 		
 		try while (true) {
 			var token:String = lexer.token( instructions );
@@ -279,7 +284,9 @@ class Html extends Lexer {
 			trace( e );
 		}
 		
-		Keyword( Instruction( new InstructionRef( attrs, parent ) ) );
+		if (!aComment && attrs[attrs.length -1] == '?') attrs = attrs.slice(0, attrs.length - 1);
+		
+		Keyword( Instruction( new InstructionRef( attrs, aComment, lexer.parent ) ) );
 	},
 	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
@@ -337,13 +344,13 @@ class Html extends Lexer {
 			
 		}
 		
-		var first = openTags.length == 0;
+		var first = lexer.openTags.length == 0;
 		var ref = new HtmlRef(
 			tag, 
 			attrs,
 			categories, 
 			tokens,
-			parent
+			lexer.parent
 		);
 		
 		var position = -1;
@@ -374,7 +381,7 @@ class Html extends Lexer {
 	
 	public static var attributes = Mo.rules( [
 	'[ \r\n\t]' => lexer.token( attributes ),
-	'[a-zA-Z0-9_\\-:]+[\r\n\t ]*=[\r\n\t ]*' => {
+	'[^\r\n\t /=>]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
 		var value = try {
@@ -385,7 +392,7 @@ class Html extends Lexer {
 		
 		[key, value];
 	},
-	'[a-zA-Z0-9_\\-]+' => [lexer.current, '']
+	'[^\r\n\t /=>]+' => [lexer.current, '']
 	] );
 	
 	public static var attributesValue = Mo.rules( [
@@ -536,11 +543,11 @@ class Html extends Lexer {
 	}
 	
 	// Build descendant html elements
-	private static function buildChildren(ref:HtmlRef, lexer:Lexer):Int {
-		var position = openTags.push( ref ) - 1;
+	private static function buildChildren(ref:HtmlRef, lexer:Html):Int {
+		var position = lexer.openTags.push( ref ) - 1;
 		
-		var previousParent = parent;
-		parent = function() return Keyword(Tag(ref));
+		var previousParent = lexer.parent;
+		lexer.parent = function() return Keyword(Tag(ref));
 		
 		var tag = null;
 		var index = -1;
@@ -556,9 +563,9 @@ class Html extends Lexer {
 					index = -1;
 					tag = null;
 					
-					var i = openTags.length - 1;
+					var i = lexer.openTags.length - 1;
 					while (i >= 0) {
-						tag = openTags[i];
+						tag = lexer.openTags[i];
 						if (tag != null && !tag.complete && t == tag.name) {
 							index = i;
 							tag.complete = true;
@@ -585,10 +592,10 @@ class Html extends Lexer {
 		} catch (e:UnexpectedChar) {
 			trace( e );
 		} catch (e:Dynamic) {
-			trace( e );
+			trace( e, CallStack.exceptionStack() );
 		}
 		
-		parent = previousParent;
+		lexer.parent = previousParent;
 		
 		return position;
 	}
@@ -609,8 +616,8 @@ class Html extends Lexer {
 	] );
 	
 	// Build Html Category of type Metadata
-	private static function buildMetadata(ref:HtmlRef, lexer:Lexer):Int {
-		var position = openTags.push( ref ) - 1;
+	private static function buildMetadata(ref:HtmlRef, lexer:Html):Int {
+		var position = lexer.openTags.push( ref ) - 1;
 		var rule = scriptedRule( ref.name );
 		
 		try while (true) {
