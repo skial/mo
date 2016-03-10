@@ -31,6 +31,10 @@ class Inline extends Container<AInline, String> {
 		super(type, tokens);
 	}
 	
+	override public function toString():String {
+		return type.toString() + '::[\n\t\t\t' + [for (t in tokens) Std.string(t)].join( '\n\t\t\t' ) + '\n\t\t\t]';
+	}
+	
 }
 
 class Leaf extends Container<ALeaf, Inline> {
@@ -39,12 +43,20 @@ class Leaf extends Container<ALeaf, Inline> {
 		super(type, tokens);
 	}
 	
+	override public function toString():String {
+		return type.toString() + '::[\n\t\t' + [for (t in tokens) Std.string(t)].join( '\n\t\t' ) + '\n\t\t]';
+	}
+	
 }
 
 class Block extends Container<ABlock, Leaf> {
 	
 	public inline function new(type:ABlock, ?tokens:Array<Leaf>) {
 		super(type, tokens);
+	}
+	
+	override public function toString():String {
+		return type.toString() + '::[\n\t' + [for (t in tokens) Std.string(t)].join( '\n\t' ) + '\n\t]';
 	}
 	
 }
@@ -61,6 +73,10 @@ class Container<T1, T2> {
 		this.extra = new DynamicAccess();
 	}
 	
+	public function toString():String {
+		return Std.string(type) + '::\n[' + [for (t in tokens) Std.string(t)].join( '\n\t' ) + ']';
+	}
+	
 }
 
 @:enum abstract ABlock(Int) from Int to Int {
@@ -68,6 +84,16 @@ class Container<T1, T2> {
 	var List = 1;
 	var ListItem = 2;
 	var Text = 3;
+	
+	@:to public function toString():String {
+		return switch (this) {
+			case Quote:'Quote';
+			case List:'List';
+			case ListItem:'ListItem';
+			case Text:'Text';
+			case _: 'Unknown';
+		}
+	}
 }
 
 @:enum abstract ALeaf(Int) from Int to Int {
@@ -78,6 +104,19 @@ class Container<T1, T2> {
 	var Reference = 4;
 	var Paragraph = 5;
 	var Text = 6;
+	
+	@:to public function toString():String {
+		return switch (this) {
+			case Rule:'Rule';
+			case Header:'Header';
+			case Code:'Code';
+			case Html:'Html';
+			case Reference:'Reference';
+			case Paragraph:'Paragraph';
+			case Text:'Text';
+			case _: 'Unknown';
+		}
+	}
 }
 
 @:enum abstract AInline(Int) from Int to Int {
@@ -90,6 +129,22 @@ class Container<T1, T2> {
 	var Html = 6;
 	var LineBreak = 7;
 	var Text = 8;
+	
+	@:to public function toString():String {
+		return switch (this) {
+			case BackSlash:'BackSlash';
+			case Entity:'Entity';
+			case Code:'Code';
+			case Emphasis:'Emphasis';
+			case Link:'Link';
+			case Image:'Image';
+			case Html:'Html';
+			case LineBreak:'LineBreak';
+			case Text:'Text';
+			case _: 'Unknown';
+		}
+	}
+	
 }
 
 /**
@@ -131,21 +186,23 @@ class Container<T1, T2> {
 	 * an encoding; it thinks of lines as composed of characters rather 
 	 * than bytes. A conforming parser may be limited to a certain encoding.
 	 */
-	public static var character = '.';
+	public static var character = '[^\n\r]';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#line-ending
 	 * A line ending is, depending on the platform, a newline (U+000A), 
 	 * carriage return (U+000D), or carriage return + newline.
 	 */
-	public static var lineEnding = '[\n\r]+';
+	//public static var lineEnding = '[\n\r]+';
+	public static var lineEnding = '(\n|\r|\n\r|\r\n)';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#line
 	 * A line is a sequence of zero or more characters followed by a line 
 	 * ending or by the end of file.
 	 */
-	public static var line = '[$character]+$lineEnding';
+	//public static var line = '[$character]+$lineEnding';
+	public static var line = '$character+$lineEnding?';
 	
 	/**
 	 * For security reasons, a conforming parser must strip or replace the
@@ -214,7 +271,7 @@ class Container<T1, T2> {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#atx-header
 	 */
-	public static var atxHeader = '$si##?#?#?#?#? ([$character]+)( #* *)?';
+	public static var atxHeader = '$si#(#?#?#?#?#?) ($character+)( #* *)?';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#setext-header
@@ -236,7 +293,8 @@ class Container<T1, T2> {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#block-quotes
 	 */
-	public static var quote = '($si> ?$paragraph)+';
+	public static var quoteStart = '$si> ?';
+	public static var quote = '($quoteStart$paragraph)+';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#bullet-list-marker
@@ -270,6 +328,7 @@ class Container<T1, T2> {
 	public static var list = 'a ';
 	
 	public static var notContainer = '[^>-+\\*0-9]*';
+	//public static var notContainer = '([^>-+\\*0-9]*)+$lineEnding';
 	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
 	
@@ -325,10 +384,28 @@ class Container<T1, T2> {
 	 */
 	public static var softLineBreak = 'a ';
 	
+	public static var quoteFilterHead = Mo.rules( [
+	lineEnding => lexer.current + lexer.token( quoteFilterHead ),
+	quoteStart => lexer.token( quoteFilterTail ),
+	] );
+	
+	public static var quoteFilterTail = Mo.rules( [
+	'$character+' => lexer.current,
+	'' => lexer.token( quoteFilterHead )
+	] );
+	
+	public static var splitParagraph = Mo.rules( [
+	lineEnding => lexer.token( splitParagraph ),
+	paragraph => lexer.current,
+	] );
+	
 	public static var containterBlocks = Mo.rules( [
 	quote => { 
 		trace( 'quote', lexer.current );
-		new Block( ABlock.Quote, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
+		//new Block( ABlock.Quote, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
+		var filtered = parse( lexer.current, 'containerblock::quote::filter', quoteFilterHead ).join('');
+		trace( filtered );
+		new Block( ABlock.Quote, parse_blocks( filtered, 'block::quote', leafBlocks ) );
 	},
 	list => { 
 		trace( 'list', lexer.current );
@@ -340,20 +417,25 @@ class Container<T1, T2> {
 	},
 	notContainer => {
 		trace( 'not container', lexer.current );
-		new Block( ABlock.Text, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
+		var split = parse( lexer.current, 'split paragraph', splitParagraph );
+		var paragraphs = [];
+		for (s in split) for (token in parse_blocks( s, 'block::notContainer', leafBlocks )) paragraphs.push( token );
+		new Block( ABlock.Text, paragraphs );
 	},
-	blank => {
+	/*blank => {
 		trace( 'blank', lexer.current );
 		new Block( ABlock.Text, [new Leaf( ALeaf.Text, [new Inline( AInline.Text, [lexer.current] )] )] );
-	}
+	}*/
 	] );
 	
-	/*public static var leafBlocks = Mo.rules( [ 
+	public static var leafBlocks = Mo.rules( [
+	lineEnding => lexer.token( leafBlocks ),
 	rule => { 
 		new Leaf( ALeaf.Rule, [] );
 	},
 	atxHeader => { 
-		new Leaf( ALeaf.Header, [] );
+		trace( 'atx header', lexer.current );
+		new Leaf( ALeaf.Header, parse_blocks( lexer.current.replace('#', '').ltrim(), 'leaf::atxHeader', inlineBlocks ) );
 	},
 	setextHeader => { 
 		new Leaf( ALeaf.Header, [] );
@@ -373,10 +455,12 @@ class Container<T1, T2> {
 	linkReference => { 
 		new Leaf( ALeaf.Reference, [] );
 	},
-	paragraph => { 
-		new Leaf( ALeaf.Paragraph, [] );
+	'$character+' => { 
+		trace( 'leaf blocks:: paragraph', lexer.current );
+		//new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] );
+		new Leaf( ALeaf.Paragraph, parse_blocks( lexer.current, 'leaf::paragraph', inlineBlocks ) );
 	},
-	] );*/
+	] );
 	
 	public static var inlineBlocks = Mo.rules( [ 
 	backslash => { 
@@ -472,7 +556,7 @@ class Container<T1, T2> {
 	}, 
 	'[$unicodeWhitespace]+' => {
 		new Inline( AInline.Text, [lexer.current] );
-	}
+	},
 	/*codeSpan => { 
 		new Inline( AInline.Code, [lexer.current] );
 	},
@@ -497,24 +581,51 @@ class Container<T1, T2> {
 	softLineBreak => { 
 		new Inline( AInline.LineBreak, [lexer.current] );
 	},*/
+	'.+' => new Inline( AInline.Text, [lexer.current] ),
 	] );
 	
 	public static var root = containterBlocks;
 	
 	private static function parse<T>(value:String, name:String, rule:Ruleset<T>):Array<T> {
-		var l = new Markdown( ByteData.ofString( value ), name );
-		var t = [];
+		var tokens = [];
+		var lexer = new Markdown( ByteData.ofString( value ), name );
 		
 		try {
 			while (true) {
-				t.push(l.token( rule ));
+				tokens.push(lexer.token( rule ));
 			}
 		} catch (e:Eof) { } catch (e:Dynamic) {
 			trace(e);
-			trace(value.substring(l.pos));
+			trace('$e'.replace('\n', '\\n').replace('\r', '\\r'));
+			trace(value.substring(lexer.pos));
+			trace(value.substring(lexer.pos).replace('\n', '\\n').replace('\r', '\\r'));
 		}
 		
-		return t;
+		return tokens;
+	}
+	
+	private static function parse_blocks<A, B, C:{ type:A, tokens:Array<B> }>(value:String, name:String, rule:Ruleset<C>):Array<C> {
+		var last:C = null;
+		var current:C = null;
+		var tokens = [];
+		var lexer = new Markdown( ByteData.ofString( value ), name );
+		
+		try {
+			while (true) {
+				current = lexer.token( rule );
+				//if (last != null) trace( value, last.type, current.type );
+				if (last != null && last.type == current.type) {
+					for (token in current.tokens) last.tokens.push( token );
+				} else {
+					tokens.push(last = current);
+				}
+			}
+		} catch (e:Eof) { } catch (e:Dynamic) {
+			trace(e);
+			trace(value.substring(lexer.pos));
+		}
+		
+		return tokens;
 	}
 	
 	private static function escape(value:CodePoint):String {
@@ -529,7 +640,7 @@ class Container<T1, T2> {
 		}
 	}
 	
-	private static inline function check(codepoint:Int):Bool {
+	private static function check(codepoint:Int):Bool {
 		return codepoint == '"'.code || codepoint == '&'.code || codepoint == '<'.code || codepoint == '>'.code;
 	}
 	
