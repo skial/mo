@@ -97,7 +97,7 @@ class Container<T1, T2> {
 }
 
 @:enum abstract ALeaf(Int) from Int to Int {
-	var Rule = 0;
+	var ThematicBreak = 0;
 	var Header = 1;
 	var Code = 2;
 	var Html = 3;
@@ -107,7 +107,7 @@ class Container<T1, T2> {
 	
 	@:to public function toString():String {
 		return switch (this) {
-			case Rule:'Rule';
+			case ThematicBreak:'ThematicBreak';
 			case Header:'Header';
 			case Code:'Code';
 			case Html:'Html';
@@ -264,9 +264,10 @@ class Container<T1, T2> {
 	//\/\// Leaf Blocks - @see http://spec.commonmark.org/0.18/#leaf-blocks
 	
 	/**
-	 * @see http://spec.commonmark.org/0.18/#horizontal-rules
+	 * @see http://spec.commonmark.org/0.24/#thematic-breaks
 	 */
-	public static var rule = '$si(\\* *\\* *\\* *(\\* *)+|- *- *- *(- *)+|_ *_ *_ *(_ *)+) *';
+	//public static var thematicBreak = '$si(\\* *\\* *\\* *(\\* *)+|- *- *- *(- *)+|_ *_ *_ *(_ *)+) *';
+	public static var thematicBreak = '$si(\\* *\\* *(\\* *)+|- *- *(- *)+|_ *_ *(_ *)+) *';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#atx-header
@@ -276,15 +277,21 @@ class Container<T1, T2> {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#setext-header
 	 */
-	public static var setextHeader = '$si$line$si(=+|-+) *';
+	//public static var setextHeader = '$si$line$si(=+|-+) *';
+	public static var setextHeader = '$si$paragraph$si(=+|-+) *';
 	
-	public static var indentedCode = '(     *(.))+';
-	public static var fencedCode = '(````*|~~~~*)( *[$character]+)? *$si(````*|~~~~*) *';
+	//public static var indentedCode = '(     *(.))+';
+	public static var indentedCode = '(     *($character+))+';
+	//public static var fencedCode = '(````*|~~~~*)( *[$character]+)? *$si(````*|~~~~*) *';
+	public static var fencedCode = '(````*|~~~~*)( *$character+)? *$si(````*|~~~~*) *';
 	
-	public static var htmlOpen = '<[$character]+>';
-	public static var htmlClose = '</[$character]+>';
+	//public static var htmlOpen = '<[$character]+>';
+	public static var htmlOpen = '<$character+>';
+	//public static var htmlClose = '</[$character]+>';
+	public static var htmlClose = '</$character+>';
 	
-	public static var linkReference = '$si\\[[$character]+\\]: *$lineEnding? ?$line *[$character]*';
+	//public static var linkReference = '$si\\[[$character]+\\]: *$lineEnding? ?$line *[$character]*';
+	public static var linkReference = '$si\\[$character+\\]: *$lineEnding? ?$line *$character*';
 	
 	public static var paragraph = '($line)+';
 	
@@ -387,6 +394,7 @@ class Container<T1, T2> {
 	public static var quoteFilterHead = Mo.rules( [
 	lineEnding => lexer.current + lexer.token( quoteFilterHead ),
 	quoteStart => lexer.token( quoteFilterTail ),
+	'[^>\n\r]+' => lexer.current,
 	] );
 	
 	public static var quoteFilterTail = Mo.rules( [
@@ -394,8 +402,8 @@ class Container<T1, T2> {
 	'' => lexer.token( quoteFilterHead )
 	] );
 	
-	public static var splitParagraph = Mo.rules( [
-	lineEnding => lexer.token( splitParagraph ),
+	public static var splitText = Mo.rules( [
+	lineEnding => lexer.token( splitText ),
 	paragraph => lexer.current,
 	] );
 	
@@ -417,31 +425,34 @@ class Container<T1, T2> {
 	},
 	notContainer => {
 		trace( 'not container', lexer.current );
-		var split = parse( lexer.current, 'split paragraph', splitParagraph );
-		var paragraphs = [];
-		for (s in split) for (token in parse_blocks( s, 'block::notContainer', leafBlocks )) paragraphs.push( token );
-		new Block( ABlock.Text, paragraphs );
+		var split = parse( lexer.current, 'split paragraph', splitText );
+		var leaves = [];
+		for (s in split) for (token in parse_blocks( s, 'block::notContainer', leafBlocks )) leaves.push( token );
+		new Block( ABlock.Text, leaves );
 	},
-	/*blank => {
+	blank => {
 		trace( 'blank', lexer.current );
 		new Block( ABlock.Text, [new Leaf( ALeaf.Text, [new Inline( AInline.Text, [lexer.current] )] )] );
-	}*/
+	}
 	] );
 	
 	public static var leafBlocks = Mo.rules( [
 	lineEnding => lexer.token( leafBlocks ),
-	rule => { 
-		new Leaf( ALeaf.Rule, [] );
+	thematicBreak => { 
+		new Leaf( ALeaf.ThematicBreak, [] );
 	},
 	atxHeader => { 
 		trace( 'atx header', lexer.current );
 		new Leaf( ALeaf.Header, parse_blocks( lexer.current.replace('#', '').ltrim(), 'leaf::atxHeader', inlineBlocks ) );
 	},
 	setextHeader => { 
+		trace( 'setext header', lexer.current );
 		new Leaf( ALeaf.Header, [] );
 	},
 	indentedCode => { 
-		new Leaf( ALeaf.Code, [] );
+		trace( 'indented code', lexer.current );
+		//new Leaf( ALeaf.Code, [] );
+		new Leaf( ALeaf.Code, [new Inline( AInline.Text, [lexer.current.substr(4)] )] );
 	},
 	fencedCode => { 
 		new Leaf( ALeaf.Code, [] );
