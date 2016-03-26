@@ -4,7 +4,6 @@ import haxe.io.Eof;
 import haxe.DynamicAccess;
 import hxparse.Unexpected.Unexpected;
 import hxparse.UnexpectedChar;
-import uhx.lexer.Markdown.Container;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
@@ -24,59 +23,34 @@ import unifill.Unifill;
 using Lambda;
 using StringTools;
 using haxe.EnumTools;
+using uhx.lexer.Markdown;
+using uhx.lexer.Markdown.BitSets;
 
-class Inline extends Container<AInline, String> {
+class Container<T> {
 	
-	public inline function new(type:AInline, ?tokens:Array<String>) {
-		super(type, tokens);
-	}
+	private static var counter:Int = 0;
 	
-	override public function toString():String {
-		return type.toString() + '::[\n\t\t\t' + [for (t in tokens) Std.string(t)].join( '\n\t\t\t' ) + '\n\t\t\t]';
-	}
+	public var id:Int = counter++;
+	public var tokens:T;
+	public var type:Int = -1;
+	public var complete:Bool = false;
 	
-}
-
-class Leaf extends Container<ALeaf, Inline> {
-	
-	public inline function new(type:ALeaf, ?tokens:Array<Inline>) {
-		super(type, tokens);
-	}
-	
-	override public function toString():String {
-		return type.toString() + '::[\n\t\t' + [for (t in tokens) Std.string(t)].join( '\n\t\t' ) + '\n\t\t]';
-	}
-	
-}
-
-class Block extends Container<ABlock, Leaf> {
-	
-	public inline function new(type:ABlock, ?tokens:Array<Leaf>) {
-		super(type, tokens);
-	}
-	
-	override public function toString():String {
-		return type.toString() + '::[\n\t' + [for (t in tokens) Std.string(t)].join( '\n\t' ) + '\n\t]';
-	}
-	
-}
-
-class Container<T1, T2> {
-	
-	public var type:T1;
-	public var tokens:Array<T2>;
-	public var extra:DynamicAccess<String>;
-	
-	public inline function new(type:T1, tokens:Array<T2>) {
+	public inline function new(type:Int, tokens:T) {
 		this.type = type;
-		this.tokens = tokens == null ? [] : tokens;
-		this.extra = new DynamicAccess();
+		this.tokens = tokens;
 	}
-	
-	public function toString():String {
-		return Std.string(type) + '::\n[' + [for (t in tokens) Std.string(t)].join( '\n\t' ) + ']';
-	}
-	
+}
+
+typedef Inline = Container<Array<String>>;
+typedef Leaf = Container<Array<Inline>>;
+typedef Block = Container<Array<Leaf>>;
+typedef Generic = Container<Array<Dynamic>>;
+
+@:enum abstract LexerAction(Int) from Int to Int {
+	public var Nothing = -1;
+	public var Break = 0;
+	public var Continue = 1;
+	public var End = 2;
 }
 
 @:enum abstract ABlock(Int) from Int to Int {
@@ -84,6 +58,8 @@ class Container<T1, T2> {
 	var List = 1;
 	var ListItem = 2;
 	var Text = 3;
+	
+	public inline function new(v) this = v;
 	
 	@:to public function toString():String {
 		return switch (this) {
@@ -94,16 +70,36 @@ class Container<T1, T2> {
 			case _: 'Unknown';
 		}
 	}
+	
+	@:op(A + B) public inline function add(n:Int) {
+		return new ABlock(this.add(n));
+    }
+    
+    @:op(A-B) public inline function remove(n:Int) {
+		return new ABlock(this.remove(n));
+    }   
+    
+    @:op(A==B) public inline function contains(n:Int) {
+		return this.contains(n);
+    } 
+	
+	public static inline var MIN:Int = Quote;
+	public static inline var MAX:Int = Text;
+	
+	static inline function value(index:Int) return 1 << index;
+	public static inline function match(v:Int):Bool return v >= MIN && v <= MAX;
 }
 
 @:enum abstract ALeaf(Int) from Int to Int {
-	var ThematicBreak = 0;
-	var Header = 1;
-	var Code = 2;
-	var Html = 3;
-	var Reference = 4;
-	var Paragraph = 5;
-	var Text = 6;
+	var ThematicBreak = 4;
+	var Header = 5;
+	var Code = 6;
+	var Html = 7;
+	var Reference = 8;
+	var Paragraph = 9;
+	var Text = 10;
+	
+	public inline function new(v) this = v;
 	
 	@:to public function toString():String {
 		return switch (this) {
@@ -117,18 +113,38 @@ class Container<T1, T2> {
 			case _: 'Unknown';
 		}
 	}
+	
+	@:op(A + B) public inline function add(n:Int) {
+		return new ALeaf(this.add(n));
+    }
+    
+    @:op(A-B) public inline function remove(n:Int) {
+		return new ALeaf(this.remove(n));
+    }   
+    
+    @:op(A==B) public inline function contains(n:Int) {
+		return this.contains(n);
+    } 
+	
+	public static inline var MIN:Int = ThematicBreak;
+	public static inline var MAX:Int = Text;
+	
+	static inline function value(index:Int) return 1 << index;
+	public static inline function match(v:Int):Bool return v >= MIN && v <= MAX;
 }
 
 @:enum abstract AInline(Int) from Int to Int {
-	var BackSlash = 0;
-	var Entity = 1;
-	var Code = 2;
-	var Emphasis = 3;
-	var Link = 4;
-	var Image = 5;
-	var Html = 6;
-	var LineBreak = 7;
-	var Text = 8;
+	var BackSlash = 11;
+	var Entity = 12;
+	var Code = 13;
+	var Emphasis = 14;
+	var Link = 15;
+	var Image = 16;
+	var Html = 17;
+	var LineBreak = 18;
+	var Text = 19;
+	
+	public inline function new(v) this = v;
 	
 	@:to public function toString():String {
 		return switch (this) {
@@ -145,10 +161,29 @@ class Container<T1, T2> {
 		}
 	}
 	
+	@:op(A + B) public inline function add(n:Int) {
+		return new AInline(this.add(n));
+    }
+    
+    @:op(A-B) public inline function remove(n:Int) {
+		return new AInline(this.remove(n));
+    }   
+    
+    @:op(A==B) public inline function contains(n:Int) {
+		return this.contains(n);
+    }  
+	
+	public static inline var MIN:Int = BackSlash;
+	public static inline var MAX:Int = Text;
+	
+	static inline function value(index:Int) return 1 << index;
+	public static inline function match(v:Int):Bool return v >= MIN && v <= MAX;
+	
 }
 
 /**
  * @see: http://blog.stroep.nl/2015/08/biwise-operations-made-easy-with-haxe/
+ * @also: http://try.haxe.org/#27b22
  */
 @:enum abstract ListFeature(Int) from Int to Int {
 	var None = 0;
@@ -157,17 +192,36 @@ class Container<T1, T2> {
 	
 	private static inline function value(index:Int) return 1 << index;
 	
-	public inline static function remove(bits:Int, mask:Int):Int {
+	public inline function new(v) this = v;
+	
+	@:op(A + B) public inline function add(n:Int) {
+		return new ListFeature(this.add(n));
+    }
+    
+    @:op(A-B) public inline function remove(n:Int) {
+		return new ListFeature(this.remove(n));
+    }   
+    
+    @:op(A==B) public inline function contains(n:Int) {
+		return this.contains(n);
+    }   
+	
+}
+
+class BitSets {
+	
+	inline public static function remove(bits:Int, mask:Int):Int {
 		return bits & ~mask;
 	}
     
-	public inline static function add(bits:Int, mask:Int):Int {
+	inline public static function add(bits:Int, mask:Int):Int {
 		return bits | mask;
 	}
     
-	public inline static function contains(bits:Int, mask:Int):Bool {
+	inline public static function contains(bits:Int, mask:Int):Bool	{
 		return bits & mask != 0;
 	}
+	
 }
 
 /**
@@ -175,7 +229,11 @@ class Container<T1, T2> {
  * @author Skial Bainn
  */
 @:access(hxparse.Lexer) class Markdown extends Lexer {
-
+	
+	public var newlines:Int = 0;
+	public var backlog:Array<Generic> = [];
+	public var containers:Array<Generic> = [];
+	
 	public function new(content:ByteData, name:String) {
 		super( content, name );
 	}
@@ -272,7 +330,9 @@ class Container<T1, T2> {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#atx-header
 	 */
-	public static var atxHeader = '$si#(#?#?#?#?#?) ($character+)( #* *)?';
+	//public static var atxHeader = '$si#(#?#?#?#?#?) ($character+)( #* *)?';
+	public static var atxHeaderStart = '$si(#?#?#?#?#?) ';
+	public static var atxHeader = '$atxHeaderStart($character+)( #* *)?';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#setext-header
@@ -281,9 +341,13 @@ class Container<T1, T2> {
 	public static var setextHeader = '$si$paragraph$si(=+|-+) *';
 	
 	//public static var indentedCode = '(     *(.))+';
-	public static var indentedCode = '(     *($character+))+';
+	//public static var indentedCode = '(     *($character+))+';
+	public static var indentedCodeStart = '   [ ]+';
+	public static var indentedCode = '($indentedCodeStart($character+))+';
 	//public static var fencedCode = '(````*|~~~~*)( *[$character]+)? *$si(````*|~~~~*) *';
-	public static var fencedCode = '(````*|~~~~*)( *$character+)? *$si(````*|~~~~*) *';
+	public static var fencedCodeStart = '(````*|~~~~*)';
+	//public static var fencedCode = '(````*|~~~~*)( *$character+)? *$si(````*|~~~~*) *';
+	public static var fencedCode = '$fencedCodeStart( *$character+)? *$si$fencedCodeStart *';
 	
 	//public static var htmlOpen = '<[$character]+>';
 	public static var htmlOpen = '<$character+>';
@@ -306,7 +370,8 @@ class Container<T1, T2> {
 	/**
 	 * @see http://spec.commonmark.org/0.18/#bullet-list-marker
 	 */
-	public static var bulletList = '(-|+|\\*)';
+	//public static var bulletList = '(-|+|\\*)';
+	public static var bulletList = '(\\-|\\+|\\*)';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#ordered-list-marker
@@ -327,14 +392,15 @@ class Container<T1, T2> {
 	 * needed
 	 * @see http://spec.commonmark.org/0.18/#list-items
 	 */
-	public static var listItem = '$listMarker($paragraph)+$lineEnding?';
+	//public static var listItem = '$listMarker($paragraph)+$lineEnding?';
+	public static var listItem = '$listMarker$paragraph';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#lists
 	 */
-	public static var list = 'a ';
+	public static var list = '$si[\\-\\+\\*0-9\\.\\)]$paragraph';
 	
-	public static var notContainer = '[^>-+\\*0-9]*';
+	public static var notContainer = '[^>-\\+\\*0-9]*';
 	//public static var notContainer = '([^>-+\\*0-9]*)+$lineEnding';
 	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
@@ -391,252 +457,188 @@ class Container<T1, T2> {
 	 */
 	public static var softLineBreak = 'a ';
 	
-	public static var quoteFilterHead = Mo.rules( [
-	lineEnding => lexer.current + lexer.token( quoteFilterHead ),
-	quoteStart => lexer.token( quoteFilterTail ),
-	'[^>\n\r]+' => lexer.current,
-	] );
-	
-	public static var quoteFilterTail = Mo.rules( [
-	'$character+' => lexer.current,
-	'' => lexer.token( quoteFilterHead )
-	] );
-	
-	public static var splitText = Mo.rules( [
-	lineEnding => lexer.token( splitText ),
-	paragraph => lexer.current,
-	] );
-	
-	public static var containterBlocks = Mo.rules( [
-	quote => { 
-		trace( 'quote', lexer.current );
-		//new Block( ABlock.Quote, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
-		var filtered = parse( lexer.current, 'containerblock::quote::filter', quoteFilterHead ).join('');
-		trace( filtered );
-		new Block( ABlock.Quote, parse_blocks( filtered, 'block::quote', leafBlocks ) );
-	},
-	list => { 
-		trace( 'list', lexer.current );
-		new Block( ABlock.List, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
-	},
-	listItem => { 
-		trace( 'list item', lexer.current );
-		new Block( ABlock.ListItem, [new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] )] );
+	public static var blockRuleSet = Mo.rules( [ 
+	quote => {
+		lexer.createContainer( ABlock.Quote, function(s) return s.substring(1).ltrim(), leafRuleSet, blockRuleSet );
 	},
 	notContainer => {
-		trace( 'not container', lexer.current );
-		var split = parse( lexer.current, 'split paragraph', splitText );
-		var leaves = [];
-		for (s in split) for (token in parse_blocks( s, 'block::notContainer', leafBlocks )) leaves.push( token );
-		new Block( ABlock.Text, leaves );
-	},
-	blank => {
-		trace( 'blank', lexer.current );
-		new Block( ABlock.Text, [new Leaf( ALeaf.Text, [new Inline( AInline.Text, [lexer.current] )] )] );
+		lexer.createContainer( ABlock.Text, function(s) return s, leafRuleSet, blockRuleSet );
 	}
 	] );
 	
-	public static var leafBlocks = Mo.rules( [
-	lineEnding => lexer.token( leafBlocks ),
-	thematicBreak => { 
-		new Leaf( ALeaf.ThematicBreak, [] );
+	public static var leafRuleSet = Mo.rules( [ 
+	lineEnding => {
+		lexer.processNewline();
+		lexer.token( leafRuleSet );
 	},
-	atxHeader => { 
-		trace( 'atx header', lexer.current );
-		new Leaf( ALeaf.Header, parse_blocks( lexer.current.replace('#', '').ltrim(), 'leaf::atxHeader', inlineBlocks ) );
+	atxHeader => {
+		//new Leaf( ALeaf.Header, lexer.parse( lexer.current.replace('#', '').ltrim(), ALeaf.Header, inlineRuleSet, leafRuleSet ) );
+		lexer.createContainer( ALeaf.Header, function(s) return s.replace('#', '').ltrim(), inlineRuleSet, leafRuleSet );
 	},
-	setextHeader => { 
-		trace( 'setext header', lexer.current );
-		new Leaf( ALeaf.Header, [] );
+	indentedCode => {
+		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
+		lexer.createContainer( ALeaf.Code, function(s) return s, inlineRuleSet, leafRuleSet );
 	},
-	indentedCode => { 
-		trace( 'indented code', lexer.current );
-		//new Leaf( ALeaf.Code, [] );
-		new Leaf( ALeaf.Code, [new Inline( AInline.Text, [lexer.current.substr(4)] )] );
+	fencedCode => {
+		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
+		lexer.createContainer( ALeaf.Code, function(s) return s, inlineRuleSet, leafRuleSet );
 	},
-	fencedCode => { 
-		new Leaf( ALeaf.Code, [] );
+	'([^#>\n\r]+$character+$lineEnding?)+' => {
+		//new Leaf( ALeaf.Paragraph, lexer.parse( lexer.current, ALeaf.Paragraph, inlineRuleSet, leafRuleSet ) );
+		var leaf = lexer.createContainer( ALeaf.Paragraph, function(s) return s, inlineRuleSet, leafRuleSet );
+		//leaf.complete = true;
+		leaf;
 	},
-	htmlOpen => { 
-		new Leaf( ALeaf.Html, [] );
-	},
-	htmlClose => { 
-		new Leaf( ALeaf.Html, [] );
-	},
-	linkReference => { 
-		new Leaf( ALeaf.Reference, [] );
-	},
-	'$character+' => { 
-		trace( 'leaf blocks:: paragraph', lexer.current );
-		//new Leaf( ALeaf.Paragraph, [new Inline( AInline.Text, [lexer.current] )] );
-		new Leaf( ALeaf.Paragraph, parse_blocks( lexer.current, 'leaf::paragraph', inlineBlocks ) );
-	},
+	'' => lexer.token( blockRuleSet ),
 	] );
 	
-	public static var inlineBlocks = Mo.rules( [ 
-	backslash => { 
-		var current = lexer.current + lexer.input.readString( lexer.pos, 1 );
-		var sub = current.substring( 1 );
-		var codepoint = Unifill.uCharCodeAt( sub, 0 );
-		
-		// This will likely throw if eof.
-		lexer.pos++;
-		
-		if (sub.length == 1 && asciiPunctuation.indexOf( sub ) > -1) {
-			if (check(codepoint)) {
-				// For characters ", &, < and >, the second index, `[1]`, is the lowercase value.
-				new Inline( AInline.BackSlash, [HtmlEntities.codepointMap.get( '[$codepoint]' )[1].encode( true )] );
-				
-			} else {
-				new Inline( AInline.BackSlash, [sub] );
-				
-			}
-			
-		} else if (sub.length == 1 && (codepoint == '\r'.code || codepoint == '\n'.code)) {
-			var byte = lexer.input.readByte( lexer.pos );
-			if (byte == '\n'.code || byte == '\r'.code) lexer.pos++;
-			new Inline( AInline.Text, ['<br />'] );
-			
-		} else {
-			new Inline( AInline.Text, [current] );
-			
-		}
+	public static var inlineRuleSet = Mo.rules( [ 
+	lineEnding => {
+		lexer.processNewline();
+		lexer.token( inlineRuleSet );
 	},
-	namedEntities => { 
-		var sub = lexer.current.substring( 1, lexer.current.length - 1 );
-		
-		if (sub != amp && sub != lt && sub != gt && sub != quot && HtmlEntities.entityMap.exists( sub )) {
-			new Inline( AInline.Entity, [InternalEncoding.fromCodePoints( HtmlEntities.entityMap.get( sub ) )] );
-			
-		} else {
-			new Inline( AInline.Text, [lexer.current] );
-		}
-	},
-	decimalEntities => { 
-		var result = new Inline( AInline.Text, [lexer.current] );
-		var sub = lexer.current.substring( 2, lexer.current.length - 1 );
-		
-		if (sub.length > 0 && sub.length < 9) {
-			var codepoint = Std.parseInt( sub );
-			if (codepoint == 0) codepoint = 65533;
-			
-			if (!check( codepoint )) {
-				result = new Inline( AInline.Entity, [
-					try {
-						InternalEncoding.fromCodePoint( codepoint );
-						
-					} catch (e:Dynamic) {
-						InternalEncoding.fromCodePoint( 65533 );
-						
-					}
-				] );
-				
-			}
-			
-		}
-		result;
-	},
-	hexadecimalEntities => { 
-		var result = new Inline( AInline.Text, [lexer.current] );
-		var sub = lexer.current.substring( 3, lexer.current.length - 1 );
-		
-		if (sub.length > 0 && sub.length < 9) {
-			var codepoint =  Std.parseInt( '0x$sub' );
-			
-			if (!check( codepoint )) {
-				result = new Inline( AInline.Entity, [
-					try {
-						InternalEncoding.fromCodePoint( codepoint );
-						
-					} catch (e:Dynamic) {
-						InternalEncoding.fromCodePoint( 65533 );
-						
-					}
-				] );
-				
-			}
-			
-		} 
-		result;
-	},
-	'&' => {
-		new Inline( AInline.Text, [ amp.encode(true) ] );
-	},
-	'[^&\\\\$unicodeWhitespace]+' => {
-		new Inline( AInline.Text, [lexer.current] );
-	}, 
-	'[$unicodeWhitespace]+' => {
+	'$character+' => {
 		new Inline( AInline.Text, [lexer.current] );
 	},
-	/*codeSpan => { 
-		new Inline( AInline.Code, [lexer.current] );
-	},
-	emphasis => { 
-		new Inline( AInline.Emphasis, [lexer.current] );
-	},
-	link => { 
-		new Inline( AInline.Link, [lexer.current] );
-	},
-	image => { 
-		new Inline( AInline.Image, [lexer.current] );
-	},
-	autoLink => { 
-		new Inline( AInline.Link, [lexer.current] );
-	},
-	rawHTML => { 
-		new Inline( AInline.Html, [lexer.current] );
-	},
-	hardLineBreak => { 
-		new Inline( AInline.LineBreak, [lexer.current] );
-	},
-	softLineBreak => { 
-		new Inline( AInline.LineBreak, [lexer.current] );
-	},*/
-	'.+' => new Inline( AInline.Text, [lexer.current] ),
+	'' => lexer.token( leafRuleSet ),
 	] );
 	
-	public static var root = containterBlocks;
+	public static var root = blockRuleSet;
 	
-	private static function parse<T>(value:String, name:String, rule:Ruleset<T>):Array<T> {
-		var tokens = [];
-		var lexer = new Markdown( ByteData.ofString( value ), name );
+	@:access(uhx.lexer.Markdown)
+	private static function parse<T>(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<T>, unexpectedRuleSet:Ruleset<T>):Array<T> {
+		var results = [];
+		//trace( printType( type ) );
+		trace( value );
+		//var mdl = new Markdown( ByteData.ofString( value ), name );
+		var mdl = lexer;
+		var originalBytes = lexer.input;
+		var originalPosition = lexer.pos;
 		
-		try {
-			while (true) {
-				tokens.push(lexer.token( rule ));
-			}
-		} catch (e:Eof) { } catch (e:Dynamic) {
-			trace(e);
-			trace('$e'.replace('\n', '\\n').replace('\r', '\\r'));
-			trace(value.substring(lexer.pos));
-			trace(value.substring(lexer.pos).replace('\n', '\\n').replace('\r', '\\r'));
-		}
+		lexer.pos = 0;
+		lexer.input = ByteData.ofString( value );
 		
-		return tokens;
-	}
-	
-	private static function parse_blocks<A, B, C:{ type:A, tokens:Array<B> }>(value:String, name:String, rule:Ruleset<C>):Array<C> {
-		var last:C = null;
-		var current:C = null;
-		var tokens = [];
-		var lexer = new Markdown( ByteData.ofString( value ), name );
-		
-		try {
-			while (true) {
-				current = lexer.token( rule );
-				//if (last != null) trace( value, last.type, current.type );
-				if (last != null && last.type == current.type) {
-					for (token in current.tokens) last.tokens.push( token );
+		try while (true) {
+			results.push( mdl.token( subRuleSet ) );
+			
+		} catch (e:Eof) {
+			
+		} catch (e:UnexpectedChar) {
+			trace( 'unexpected character ' + e );
+			//var popped:Null<Generic> = lexer.containers[lexer.containers.length - 2];
+			/*if (popped != null) {
+				trace( printType( popped ) );
+				var mergable = [];
+				var rejected = [];
+				for (result in results) if ((cast result).id != popped.id) {
+					mergable.push( result );
+					
 				} else {
-					tokens.push(last = current);
+					lexer.backlog.push( cast result );
+					
 				}
-			}
-		} catch (e:Eof) { } catch (e:Dynamic) {
-			trace(e);
-			trace(value.substring(lexer.pos));
+				
+				trace( popped );
+				trace( mergable );
+				//trace( rejected );
+				
+				if (mergable.length > 0) popped.tokens = popped.tokens.concat( mergable );
+				//popped.tokens = popped.tokens.concat( results );
+				//results = rejected;
+				results = [];
+				
+				trace( 'running unexpected ruleset' );*/
+				lexer.token( unexpectedRuleSet );
+				/*var limbo = cast lexer.token( unexpectedRuleSet );
+				if (results.lastIndexOf( cast limbo ) == -1 && lexer.backlog.lastIndexOf( limbo ) == -1) lexer.backlog.push( limbo );
+				trace( lexer.backlog.map( function(t) return printType(t) ) );*/
+				
+				/*trace( printType( popped ) );
+				//popped.complete = true;
+				
+			}*/
+			
+			
 		}
 		
-		return tokens;
+		lexer.pos = originalPosition;
+		lexer.input = originalBytes;
+		
+		return results;
+	}
+	
+	private static function contained<T>(token:T, array:Array<T>):Bool {
+		return array.lastIndexOf( token ) == -1;
+	}
+	
+	private static function createContainer(lexer:Markdown, type:Int, sanitize:String->String, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Generic {
+		var block = lexer.matchContainer( type );
+		
+		if (block != null && !block.complete) {
+			trace( 'using previous ' + printType( block ) );
+			var tokens = lexer.parse( sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			trace( block.tokens, tokens );
+			block.tokens = block.tokens.concat( tokens.filter( contained.bind(_, block.tokens) ) );
+			
+		} else {
+			lexer.containers.push( block = new Container( type, [] ) );
+			trace( 'create new ' + printType( block ) );
+			var tokens =  lexer.parse( sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			trace( block.tokens, tokens );
+			//block.tokens = block.tokens.concat( tokens );
+			block.tokens = tokens.concat( cast block.tokens );
+			
+		}
+		
+		return block;
+	}
+	
+	private static function matchContainer(lexer:Markdown, type:Int):Null<Generic> {
+		var result = null;
+		var index = lexer.containers.length - 1;
+		
+		while (index > -1) {
+			if (!lexer.containers[index].complete && lexer.containers[index].type == type) {
+				result = lexer.containers[index];
+				break;
+				
+			}
+			
+			index--;
+		}
+		
+		return result;
+	}
+	
+	private static function matchCategory(lexer:Markdown, type:Int):Null<Generic> {
+		var result = null;
+		var index = lexer.containers.length - 1;
+		
+		while (index > -1) {
+			var it = lexer.containers[index].type;
+			if (!lexer.containers[index].complete && (AInline.match(it) && AInline.match(type)) || (ALeaf.match(it) && ALeaf.match(type)) || (ABlock.match(it) && ABlock.match(type))) {
+				result = lexer.containers[index];
+				break;
+				
+			}
+			
+			index--;
+		}
+		
+		return result;
+	}
+	
+	public static function printType(t:Generic):String {
+		var result = switch (t.type) {
+			case x if (ABlock.match(x)): 'Block.' + (x:ABlock);
+			case x if (ALeaf.match(x)): 'Leaf.' + (x:ALeaf);
+			case x if (AInline.match(x)): 'Inline.' + (x:AInline);
+			case _: 
+				trace( t.type );
+				'<unknown>';
+		}
+		
+		return result + '(${t.id})' + (t.complete?'':'!') + ':${t.tokens.length}';
 	}
 	
 	private static function escape(value:CodePoint):String {
@@ -653,6 +655,17 @@ class Container<T1, T2> {
 	
 	private static function check(codepoint:Int):Bool {
 		return codepoint == '"'.code || codepoint == '&'.code || codepoint == '<'.code || codepoint == '>'.code;
+	}
+	
+	private static inline function processNewline(lexer:Markdown):Void {
+		lexer.newlines++;
+		
+		if (lexer.newlines > 2) {
+			var token = lexer.matchContainer( ALeaf.Paragraph );
+			if (token != null) token.complete = true;
+			lexer.newlines = -1;
+			
+		}
 	}
 	
 }
