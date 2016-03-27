@@ -34,11 +34,14 @@ class Container<T> {
 	public var tokens:T;
 	public var type:Int = -1;
 	public var complete:Bool = false;
+	public var info:StringMap<String>;
 	
 	public inline function new(type:Int, tokens:T) {
 		this.type = type;
 		this.tokens = tokens;
+		this.info = new StringMap();
 	}
+
 }
 
 typedef Inline = Container<Array<String>>;
@@ -331,19 +334,20 @@ class BitSets {
 	 * @see http://spec.commonmark.org/0.18/#atx-header
 	 */
 	//public static var atxHeader = '$si#(#?#?#?#?#?) ($character+)( #* *)?';
-	public static var atxHeaderStart = '$si(#?#?#?#?#?) ';
+	public static var atxHeaderStart = '$si(##?#?#?#?) ';
 	public static var atxHeader = '$atxHeaderStart($character+)( #* *)?';
 	
 	/**
 	 * @see http://spec.commonmark.org/0.18/#setext-header
 	 */
 	//public static var setextHeader = '$si$line$si(=+|-+) *';
-	public static var setextHeader = '$si$paragraph$si(=+|-+) *';
+	public static var setextHeader = '$si$paragraph$si(\\=+|\\-+) *';
 	
 	//public static var indentedCode = '(     *(.))+';
 	//public static var indentedCode = '(     *($character+))+';
 	public static var indentedCodeStart = '   [ ]+';
-	public static var indentedCode = '($indentedCodeStart($character+))+';
+	//public static var indentedCode = '($indentedCodeStart($character+))+';
+	public static var indentedCode = '($indentedCodeStart$character+)+';
 	//public static var fencedCode = '(````*|~~~~*)( *[$character]+)? *$si(````*|~~~~*) *';
 	public static var fencedCodeStart = '(````*|~~~~*)';
 	//public static var fencedCode = '(````*|~~~~*)( *$character+)? *$si(````*|~~~~*) *';
@@ -400,7 +404,7 @@ class BitSets {
 	 */
 	public static var list = '$si[\\-\\+\\*0-9\\.\\)]$paragraph';
 	
-	public static var notContainer = '[^>-\\+\\*0-9]*';
+	public static var notContainer = '[^>\\-\\+\\*\n\r0123456789]+.+';
 	//public static var notContainer = '([^>-+\\*0-9]*)+$lineEnding';
 	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
@@ -458,12 +462,76 @@ class BitSets {
 	public static var softLineBreak = 'a ';
 	
 	public static var blockRuleSet = Mo.rules( [ 
+	lineEnding => {
+		lexer.processNewline();
+		lexer.token( blockRuleSet );
+	},
 	quote => {
-		lexer.createContainer( ABlock.Quote, function(s) return s.substring(1).ltrim(), leafRuleSet, blockRuleSet );
+		lexer.createContainer( ABlock.Quote, leafRuleSet, blockRuleSet, function(s) return s.substring(1).ltrim() );
+	},
+	listMarker => {
+		//lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );
+		var list = lexer.matchContainer( ABlock.List );
+		if (list != null) {
+			trace( list.tokens[0].info.get('marker'), lexer.current.substring(0, 1) );
+		}
+		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != lexer.current.substring(0, 1)) {
+			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			
+		}
+		
+		lexer.pos -= lexer.current.length;
+		var result = lexer.token( listRuleSet );
+		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		
+		list;
 	},
 	notContainer => {
-		lexer.createContainer( ABlock.Text, function(s) return s, leafRuleSet, blockRuleSet );
+		lexer.createContainer( ABlock.Text, leafRuleSet, blockRuleSet );
 	}
+	] );
+	
+	public static var listRuleSet = Mo.rules( [ 
+	lineEnding => {
+		lexer.processNewline();
+		lexer.token( listRuleSet );
+	},
+	orderedList => {
+		var list = lexer.matchContainer( ABlock.ListItem );
+		var map = new StringMap<String>();
+		map.set('type', 'ordered');
+		map.set('start', lexer.current.substring(0, 1));
+		map.set('marker', lexer.current.substring(1, 2));
+		
+		if (list != null && list.info.get('type') != map.get('type') || list == null) {
+			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
+			list.info = map;
+		}
+		
+		var result = lexer.token( leafRuleSet );
+		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		list.complete = true;
+		for (token in list.tokens) token.complete = true;
+		list;
+	},
+	bulletList => {
+		var list = lexer.matchContainer( ABlock.ListItem );
+		var map = new StringMap<String>();
+		map.set('type', 'bullet');
+		map.set('marker', lexer.current.substring(0, 1));
+		
+		if (list != null && list.info.get('type') != map.get('type') || list == null) {
+			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
+			list.info = map;
+		}
+		
+		var result = lexer.token( leafRuleSet );
+		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		list.complete = true;
+		for (token in list.tokens) token.complete = true;
+		list;
+	},
+	//'' => lexer.token( blockRuleSet ),
 	] );
 	
 	public static var leafRuleSet = Mo.rules( [ 
@@ -471,25 +539,49 @@ class BitSets {
 		lexer.processNewline();
 		lexer.token( leafRuleSet );
 	},
+	thematicBreak => {
+		(new Leaf( ALeaf.ThematicBreak, [] ):Generic);
+	},
 	atxHeader => {
 		//new Leaf( ALeaf.Header, lexer.parse( lexer.current.replace('#', '').ltrim(), ALeaf.Header, inlineRuleSet, leafRuleSet ) );
-		lexer.createContainer( ALeaf.Header, function(s) return s.replace('#', '').ltrim(), inlineRuleSet, leafRuleSet );
+		lexer.createContainer( ALeaf.Header, inlineRuleSet, leafRuleSet, function(s) return s.replace('#', '').ltrim() );
 	},
-	indentedCode => {
+	'($indentedCode$lineEnding?)+' => {
 		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
-		lexer.createContainer( ALeaf.Code, function(s) return s, inlineRuleSet, leafRuleSet );
+		// TODO need to detect spaces, potentially 4, then remove.
+		lexer.createContainer( ALeaf.Code, inlineRuleSet, leafRuleSet, function(s) return [for (x in s.split('\n')) x.ltrim()].join('\n') );
 	},
 	fencedCode => {
 		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
-		lexer.createContainer( ALeaf.Code, function(s) return s, inlineRuleSet, leafRuleSet );
+		lexer.createContainer( ALeaf.Code, inlineRuleSet, leafRuleSet );
 	},
-	'([^#>\n\r]+$character+$lineEnding?)+' => {
+	'([^_#>\n\r\\*\\-]+$character+$lineEnding?)+' => {
 		//new Leaf( ALeaf.Paragraph, lexer.parse( lexer.current, ALeaf.Paragraph, inlineRuleSet, leafRuleSet ) );
-		var leaf = lexer.createContainer( ALeaf.Paragraph, function(s) return s, inlineRuleSet, leafRuleSet );
+		var leaf = lexer.createContainer( ALeaf.Paragraph, inlineRuleSet, leafRuleSet );
 		//leaf.complete = true;
 		leaf;
 	},
-	'' => lexer.token( blockRuleSet ),
+	list => {
+		// Lists can be **both** `container` and `leaf` blocks.
+		// Inception, here I come!
+		/*trace( lexer.current );
+		lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );*/
+		var list = lexer.matchContainer( ABlock.List );
+		
+		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != lexer.current.substring(0, 1)) {
+			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			
+		}
+		
+		lexer.pos -= lexer.current.length;
+		var result = lexer.token( listRuleSet );
+		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		
+		list;
+	},
+	'' /*EOF*/ => {
+		lexer.token( blockRuleSet );
+	},
 	] );
 	
 	public static var inlineRuleSet = Mo.rules( [ 
@@ -500,13 +592,15 @@ class BitSets {
 	'$character+' => {
 		new Inline( AInline.Text, [lexer.current] );
 	},
-	'' => lexer.token( leafRuleSet ),
+	'' /*EOF*/ => {
+		lexer.token( leafRuleSet );
+	},
 	] );
 	
 	public static var root = blockRuleSet;
 	
 	@:access(uhx.lexer.Markdown)
-	private static function parse<T>(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<T>, unexpectedRuleSet:Ruleset<T>):Array<T> {
+	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Array<Generic> {
 		var results = [];
 		//trace( printType( type ) );
 		trace( value );
@@ -525,39 +619,9 @@ class BitSets {
 			
 		} catch (e:UnexpectedChar) {
 			trace( 'unexpected character ' + e );
-			//var popped:Null<Generic> = lexer.containers[lexer.containers.length - 2];
-			/*if (popped != null) {
-				trace( printType( popped ) );
-				var mergable = [];
-				var rejected = [];
-				for (result in results) if ((cast result).id != popped.id) {
-					mergable.push( result );
-					
-				} else {
-					lexer.backlog.push( cast result );
-					
-				}
-				
-				trace( popped );
-				trace( mergable );
-				//trace( rejected );
-				
-				if (mergable.length > 0) popped.tokens = popped.tokens.concat( mergable );
-				//popped.tokens = popped.tokens.concat( results );
-				//results = rejected;
-				results = [];
-				
-				trace( 'running unexpected ruleset' );*/
-				lexer.token( unexpectedRuleSet );
-				/*var limbo = cast lexer.token( unexpectedRuleSet );
-				if (results.lastIndexOf( cast limbo ) == -1 && lexer.backlog.lastIndexOf( limbo ) == -1) lexer.backlog.push( limbo );
-				trace( lexer.backlog.map( function(t) return printType(t) ) );*/
-				
-				/*trace( printType( popped ) );
-				//popped.complete = true;
-				
-			}*/
-			
+			// Continue parsing, with the result finding its way
+			// into an existing container.
+			var unexpected = lexer.token( unexpectedRuleSet );
 			
 		}
 		
@@ -571,22 +635,27 @@ class BitSets {
 		return array.lastIndexOf( token ) == -1;
 	}
 	
-	private static function createContainer(lexer:Markdown, type:Int, sanitize:String->String, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Generic {
+	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void):Generic {
+		lexer.newlines = -1;
 		var block = lexer.matchContainer( type );
 		
 		if (block != null && !block.complete) {
 			trace( 'using previous ' + printType( block ) );
-			var tokens = lexer.parse( sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			if (inspect != null) inspect( block, lexer.current );
+			var tokens = lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
 			trace( block.tokens, tokens );
 			block.tokens = block.tokens.concat( tokens.filter( contained.bind(_, block.tokens) ) );
 			
 		} else {
 			lexer.containers.push( block = new Container( type, [] ) );
+			if (inspect != null) inspect( block, lexer.current );
 			trace( 'create new ' + printType( block ) );
-			var tokens =  lexer.parse( sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			var tokens =  lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
 			trace( block.tokens, tokens );
-			//block.tokens = block.tokens.concat( tokens );
-			block.tokens = tokens.concat( cast block.tokens );
+			// As a new container, `tokens` are the first tokens found
+			// before any potential `unexpectedRuleSet` tokens, which
+			// _self add_ themselves.
+			block.tokens = tokens.concat( cast block.tokens.filter( contained.bind(_, tokens) ) );
 			
 		}
 		
@@ -657,14 +726,34 @@ class BitSets {
 		return codepoint == '"'.code || codepoint == '&'.code || codepoint == '<'.code || codepoint == '>'.code;
 	}
 	
-	private static inline function processNewline(lexer:Markdown):Void {
+	private static function processNewline(lexer:Markdown):Void {
 		lexer.newlines++;
-		
-		if (lexer.newlines > 2) {
+		trace( lexer.containers.map( printType ) );
+		// TODO only continue if two newlines follow in succession, not when a total of
+		// newlines have been encounters.
+		if (lexer.newlines > 1) {
 			var token = lexer.matchContainer( ALeaf.Paragraph );
 			if (token != null) token.complete = true;
 			lexer.newlines = -1;
 			
+		}
+	}
+	
+	private static function collectListInfo(token:Generic, string:String):Void {
+		var str:String = string.ltrim();
+		switch (str.charCodeAt(0)) {
+			case '-'.code, '+'.code:
+				token.info.set('type', 'bullet');
+				token.info.set('marker', str.substring(0, 1));
+				
+			// TODO make uft compatible.
+			case x if (x >= 'a'.code && x <= 'z'.code && x >= 'A'.code && x <= 'Z'.code && x >= '0'.code && x <= '9'.code):
+				token.info.set('type', 'ordered');
+				token.info.set('start', str.substring(0, 1));
+				token.info.set('marker', str.substring(1, 2));
+				
+			case _:
+				
 		}
 	}
 	
