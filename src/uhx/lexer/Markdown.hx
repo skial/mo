@@ -472,10 +472,10 @@ class BitSets {
 	listMarker => {
 		//lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );
 		var list = lexer.matchContainer( ABlock.List );
-		if (list != null) {
-			trace( list.tokens[0].info.get('marker'), lexer.current.substring(0, 1) );
-		}
-		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != lexer.current.substring(0, 1)) {
+		var marker = lexer.current.rtrim().substring(1, 2);
+		
+		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
+		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
 			
 		}
@@ -502,7 +502,7 @@ class BitSets {
 		map.set('type', 'ordered');
 		map.set('start', lexer.current.substring(0, 1));
 		map.set('marker', lexer.current.substring(1, 2));
-		
+		trace( 'ordered', lexer.current.substring(0, 1), lexer.current.substring(1, 2) );
 		if (list != null && list.info.get('type') != map.get('type') || list == null) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
 			list.info = map;
@@ -555,20 +555,22 @@ class BitSets {
 		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
 		lexer.createContainer( ALeaf.Code, inlineRuleSet, leafRuleSet );
 	},
-	'([^_#>\n\r\\*\\-]+$character+$lineEnding?)+' => {
+	'([^_#>\n\r\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+' => {
 		//new Leaf( ALeaf.Paragraph, lexer.parse( lexer.current, ALeaf.Paragraph, inlineRuleSet, leafRuleSet ) );
 		var leaf = lexer.createContainer( ALeaf.Paragraph, inlineRuleSet, leafRuleSet );
 		//leaf.complete = true;
 		leaf;
 	},
-	list => {
+	listMarker => {
 		// Lists can be **both** `container` and `leaf` blocks.
 		// Inception, here I come!
 		/*trace( lexer.current );
 		lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );*/
 		var list = lexer.matchContainer( ABlock.List );
+		var marker = lexer.current.rtrim().substring(1, 2);
 		
-		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != lexer.current.substring(0, 1)) {
+		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
+		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
 			
 		}
