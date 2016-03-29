@@ -537,10 +537,12 @@ class BitSets {
 	orderedList => {
 		var result = -1;
 		var list = lexer.matchContainer( ABlock.ListItem );
-		var map = new StringMap<String>();
+		/*var map = new StringMap<String>();
 		map.set('type', 'ordered');
 		map.set('start', lexer.current.substring(0, 1));
-		map.set('marker', lexer.current.substring(1, 2));
+		map.set('marker', lexer.current.substring(1, 2));*/
+		
+		var map = collectListInfo( lexer.current );
 		trace( 'ordered', lexer.current.substring(0, 1), lexer.current.substring(1, 2) );
 		if (list != null && list.info.get('type') != map.get('type') || list == null) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
@@ -563,9 +565,10 @@ class BitSets {
 	bulletList => {
 		var result = -1;
 		var list = lexer.matchContainer( ABlock.ListItem );
-		var map = new StringMap<String>();
+		/*var map = new StringMap<String>();
 		map.set('type', 'bullet');
-		map.set('marker', lexer.current.substring(0, 1));
+		map.set('marker', lexer.current.substring(0, 1));*/
+		var map = collectListInfo( lexer.current );
 		
 		if (list != null && list.info.get('type') != map.get('type') || list == null) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
@@ -843,22 +846,26 @@ class BitSets {
 		}
 	}
 	
-	private static function collectListInfo(token:Generic, string:String):Void {
-		var str:String = string.ltrim();
-		switch (str.charCodeAt(0)) {
-			case '-'.code, '+'.code:
-				token.info.set('type', 'bullet');
-				token.info.set('marker', str.substring(0, 1));
-				
-			// TODO make uft compatible.
-			case x if (x >= 'a'.code && x <= 'z'.code && x >= 'A'.code && x <= 'Z'.code && x >= '0'.code && x <= '9'.code):
-				token.info.set('type', 'ordered');
-				token.info.set('start', str.substring(0, 1));
-				token.info.set('marker', str.substring(1, 2));
+	private static function collectListInfo(value:String):StringMap<String> {
+		value = value.rtrim();
+		var marker = '';
+		var result = new StringMap<String>();
+		
+		result.set( 'marker', marker = value.substr(value.length - 1, value.length) );
+		
+		switch (marker) {
+			case ')', '.':
+				result.set( 'start', value.substr(0, -1) );
+				result.set( 'type', 'ordered' );
 				
 			case _:
+				result.set( 'type', 'bullet' );
 				
 		}
+		
+		trace( [for (k in result.keys()) '$k => ' + result.get( k )] );
+		
+		return result;
 	}
 	
 }
