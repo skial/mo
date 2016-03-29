@@ -236,9 +236,12 @@ class BitSets {
 	public var newlines:Int = 0;
 	public var backlog:Array<Generic> = [];
 	public var containers:Array<Generic> = [];
+	public var document:Generic = new Generic( -1, [] );
+	public var parent:Generic;
 	
 	public function new(content:ByteData, name:String) {
 		super( content, name );
+		parent = document;
 	}
 	
 	/**
@@ -472,6 +475,7 @@ class BitSets {
 	listMarker => {
 		//lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );
 		var index = -1;
+		var result = index;
 		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
 			index = idx;
 			lexer.containers[idx].complete = true;
@@ -498,21 +502,31 @@ class BitSets {
 		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
 		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			result = if ([ABlock.Text].indexOf( lexer.parent.type ) != -1 && lexer.containers.lastIndexOf( lexer.parent ) - 1 < 0) {
+				lexer.document.tokens.push( list );
+				
+			} else {
+				lexer.parent.tokens.push( list );
+			}
 			trace( 'create new ' + printType( list ) );
 			
 		}  else {
 			trace( 'using previous ' + printType( list ) );
 		}
 		
-		lexer.pos -= lexer.current.length;
-		var result = lexer.token( listRuleSet );
-		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		var originalParent = lexer.parent;
+		lexer.parent = list;
 		
-		list;
+		lexer.pos -= lexer.current.length;
+		/*var result = */lexer.token( listRuleSet );
+		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		
+		lexer.parent = originalParent;
+		result;
 	},
 	notContainer => {
 		lexer.createContainer( ABlock.Text, leafRuleSet, blockRuleSet );
-	}
+	},
 	] );
 	
 	public static var listRuleSet = Mo.rules( [ 
@@ -521,6 +535,7 @@ class BitSets {
 		lexer.token( listRuleSet );
 	},
 	orderedList => {
+		var result = -1;
 		var list = lexer.matchContainer( ABlock.ListItem );
 		var map = new StringMap<String>();
 		map.set('type', 'ordered');
@@ -529,16 +544,24 @@ class BitSets {
 		trace( 'ordered', lexer.current.substring(0, 1), lexer.current.substring(1, 2) );
 		if (list != null && list.info.get('type') != map.get('type') || list == null) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
+			result = lexer.parent.tokens.push( list );
 			list.info = map;
 		}
 		
-		var result = lexer.token( leafRuleSet );
-		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		var originalParent = lexer.parent;
+		lexer.parent = list;
+		
+		/*var result = */lexer.token( leafRuleSet );
+		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
 		list.complete = true;
 		for (token in list.tokens) token.complete = true;
-		list;
+		
+		lexer.parent = originalParent;
+		
+		result;
 	},
 	bulletList => {
+		var result = -1;
 		var list = lexer.matchContainer( ABlock.ListItem );
 		var map = new StringMap<String>();
 		map.set('type', 'bullet');
@@ -546,14 +569,21 @@ class BitSets {
 		
 		if (list != null && list.info.get('type') != map.get('type') || list == null) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
+			result = lexer.parent.tokens.push( list );
 			list.info = map;
 		}
 		
-		var result = lexer.token( leafRuleSet );
-		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		var originalParent = lexer.parent;
+		lexer.parent = list;
+		
+		/*var result = */lexer.token( leafRuleSet );
+		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
 		list.complete = true;
 		for (token in list.tokens) token.complete = true;
-		list;
+		
+		lexer.parent = originalParent;
+		
+		result;
 	},
 	//'' => lexer.token( blockRuleSet ),
 	] );
@@ -564,7 +594,7 @@ class BitSets {
 		lexer.token( leafRuleSet );
 	},
 	thematicBreak => {
-		(new Leaf( ALeaf.ThematicBreak, [] ):Generic);
+		lexer.parent.tokens.push( (new Leaf( ALeaf.ThematicBreak, [] ):Generic) );
 	},
 	atxHeader => {
 		//new Leaf( ALeaf.Header, lexer.parse( lexer.current.replace('#', '').ltrim(), ALeaf.Header, inlineRuleSet, leafRuleSet ) );
@@ -585,12 +615,13 @@ class BitSets {
 		//leaf.complete = true;
 		leaf;
 	},
-	listMarker => {
+	/*listMarker => {
 		// Lists can be **both** `container` and `leaf` blocks.
 		// Inception, here I come!
 		/*trace( lexer.current );
 		lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );*/
-		var index = -1;
+		/*var index = -1;
+		var result = index;
 		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
 			index = idx;
 			lexer.containers[idx].complete = true;
@@ -617,18 +648,23 @@ class BitSets {
 		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
 		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			result = lexer.parent.tokens.push( list );
 			trace( 'create new ' + printType( list ) );
 			
 		}  else {
 			trace( 'using previous ' + printType( list ) );
 		}
 		
-		lexer.pos -= lexer.current.length;
-		var result = lexer.token( listRuleSet );
-		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		var originalParent = lexer.parent;
+		lexer.parent = originalParent;
 		
-		list;
-	},
+		lexer.pos -= lexer.current.length;
+		/*var result = *//*lexer.token( listRuleSet );
+		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		
+		lexer.parent = originalParent;
+		result;
+	},*/
 	'' /*EOF*/ => {
 		lexer.token( blockRuleSet );
 	},
@@ -640,7 +676,7 @@ class BitSets {
 		lexer.token( inlineRuleSet );
 	},
 	'$character+' => {
-		new Inline( AInline.Text, [lexer.current] );
+		lexer.parent.tokens.push( new Inline( AInline.Text, [lexer.current] ) );
 	},
 	'' /*EOF*/ => {
 		lexer.token( leafRuleSet );
@@ -650,67 +686,84 @@ class BitSets {
 	public static var root = blockRuleSet;
 	
 	@:access(uhx.lexer.Markdown)
-	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Array<Generic> {
+	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>)/*:Array<Generic>*/ {
 		var results = [];
 		//trace( printType( type ) );
 		trace( value );
 		//var mdl = new Markdown( ByteData.ofString( value ), name );
-		var mdl = lexer;
 		var originalBytes = lexer.input;
 		var originalPosition = lexer.pos;
 		
 		lexer.pos = 0;
 		lexer.input = ByteData.ofString( value );
 		
-		try while (true) {
-			var token = mdl.token( subRuleSet );
-			if (results.lastIndexOf( token ) == -1) results.push( token );
+		/*try while (true) {
+			/*var token = *///lexer.token( subRuleSet );
+			/*if (results.lastIndexOf( token ) == -1) results.push( token );*/
 			
-		} catch (e:Eof) {
+		/*} catch (e:Eof) {
 			
 		} catch (e:UnexpectedChar) {
 			trace( 'unexpected character ' + e );
 			// Continue parsing, with the result finding its way
 			// into an existing container.
-			var unexpected = lexer.token( unexpectedRuleSet );
+			/*var unexpected = *//*lexer.token( unexpectedRuleSet );
+			
+		}*/
+		
+		while (true) try {
+			lexer.token( subRuleSet );
+			
+		} catch (e:UnexpectedChar) {
+			lexer.token( unexpectedRuleSet );
+			
+		} catch (e:Eof) {
+			break;
 			
 		}
 		
 		lexer.pos = originalPosition;
 		lexer.input = originalBytes;
 		
-		return results;
+		/*return results;*/
 	}
 	
 	private static function contained<T>(token:T, array:Array<T>):Bool {
 		return array.lastIndexOf( token ) == -1;
 	}
 	
-	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void):Generic {
+	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void) {
 		lexer.newlines = -1;
 		var block = lexer.matchContainer( type );
+		var originalParent = lexer.parent;
+		var result = -1;
 		
 		if (block != null && !block.complete) {
 			trace( 'using previous ' + printType( block ) );
 			if (inspect != null) inspect( block, lexer.current );
-			var tokens = lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
-			trace( block.tokens, tokens );
-			block.tokens = block.tokens.concat( tokens.filter( contained.bind(_, block.tokens) ) );
+			lexer.parent = block;
+			/*var tokens = */lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			//trace( block.tokens/*, tokens*/ );
+			//block.tokens = block.tokens.concat( tokens.filter( contained.bind(_, block.tokens) ) );
 			
 		} else {
 			lexer.containers.push( block = new Container( type, [] ) );
 			if (inspect != null) inspect( block, lexer.current );
+			lexer.parent = block;
 			trace( 'create new ' + printType( block ) );
-			var tokens =  lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
-			trace( block.tokens, tokens );
+			result = originalParent.tokens.push( block );
+			/*var tokens = */lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			//trace( block.tokens/*, tokens*/ );
 			// As a new container, `tokens` are the first tokens found
 			// before any potential `unexpectedRuleSet` tokens, which
 			// _self add_ themselves.
-			block.tokens = tokens.concat( cast block.tokens.filter( contained.bind(_, tokens) ) );
+			//block.tokens = tokens.concat( cast block.tokens.filter( contained.bind(_, tokens) ) );
 			
 		}
 		
-		return block;
+		lexer.parent = originalParent;
+		
+		return result;
 	}
 	
 	private static function matchContainer(lexer:Markdown, type:Int):Null<Generic> {
