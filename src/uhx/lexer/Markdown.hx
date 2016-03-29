@@ -236,7 +236,6 @@ class BitSets {
 	public var newlines:Int = 0;
 	public var backlog:Array<Generic> = [];
 	public var containers:Array<Generic> = [];
-	public var ruleset:Ruleset<Generic> = Markdown.root;
 	
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -586,12 +585,12 @@ class BitSets {
 		//leaf.complete = true;
 		leaf;
 	},
-	/*listMarker => {
+	listMarker => {
 		// Lists can be **both** `container` and `leaf` blocks.
 		// Inception, here I come!
 		/*trace( lexer.current );
 		lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );*/
-		/*var index = -1;
+		var index = -1;
 		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
 			index = idx;
 			lexer.containers[idx].complete = true;
@@ -629,7 +628,7 @@ class BitSets {
 		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
 		
 		list;
-	},*/
+	},
 	'' /*EOF*/ => {
 		lexer.token( blockRuleSet );
 	},
@@ -674,7 +673,6 @@ class BitSets {
 			// Continue parsing, with the result finding its way
 			// into an existing container.
 			var unexpected = lexer.token( unexpectedRuleSet );
-			//lexer.ruleset = unexpectedRuleSet;
 			
 		}
 		
