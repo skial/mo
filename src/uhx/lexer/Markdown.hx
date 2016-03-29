@@ -236,6 +236,7 @@ class BitSets {
 	public var newlines:Int = 0;
 	public var backlog:Array<Generic> = [];
 	public var containers:Array<Generic> = [];
+	public var ruleset:Ruleset<Generic> = Markdown.root;
 	
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -471,13 +472,37 @@ class BitSets {
 	},
 	listMarker => {
 		//lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );
+		var index = -1;
+		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
+			index = idx;
+			lexer.containers[idx].complete = true;
+			break;
+			
+		}
+		
+		if (index > -1) {
+			var idx = 0;
+			while (idx <= index) {
+				if (lexer.containers[idx].type != ABlock.List) {
+					lexer.containers[idx].complete = true;
+					trace( printType( lexer.containers[idx] ) );
+				}
+				idx++;
+				
+			}
+			
+		}
+		
 		var list = lexer.matchContainer( ABlock.List );
 		var marker = lexer.current.rtrim().substring(1, 2);
 		
 		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
 		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			trace( 'create new ' + printType( list ) );
 			
+		}  else {
+			trace( 'using previous ' + printType( list ) );
 		}
 		
 		lexer.pos -= lexer.current.length;
@@ -561,18 +586,42 @@ class BitSets {
 		//leaf.complete = true;
 		leaf;
 	},
-	listMarker => {
+	/*listMarker => {
 		// Lists can be **both** `container` and `leaf` blocks.
 		// Inception, here I come!
 		/*trace( lexer.current );
 		lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );*/
+		/*var index = -1;
+		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
+			index = idx;
+			lexer.containers[idx].complete = true;
+			break;
+			
+		}
+		
+		if (index > -1) {
+			var idx = 0;
+			while (idx <= index) {
+				if (lexer.containers[idx].type != ABlock.List) {
+					lexer.containers[idx].complete = true;
+					trace( printType( lexer.containers[idx] ) );
+				}
+				idx++;
+				
+			}
+			
+		}
+		
 		var list = lexer.matchContainer( ABlock.List );
 		var marker = lexer.current.rtrim().substring(1, 2);
 		
 		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
 		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			trace( 'create new ' + printType( list ) );
 			
+		}  else {
+			trace( 'using previous ' + printType( list ) );
 		}
 		
 		lexer.pos -= lexer.current.length;
@@ -580,7 +629,7 @@ class BitSets {
 		if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
 		
 		list;
-	},
+	},*/
 	'' /*EOF*/ => {
 		lexer.token( blockRuleSet );
 	},
@@ -615,7 +664,8 @@ class BitSets {
 		lexer.input = ByteData.ofString( value );
 		
 		try while (true) {
-			results.push( mdl.token( subRuleSet ) );
+			var token = mdl.token( subRuleSet );
+			if (results.lastIndexOf( token ) == -1) results.push( token );
 			
 		} catch (e:Eof) {
 			
@@ -624,6 +674,7 @@ class BitSets {
 			// Continue parsing, with the result finding its way
 			// into an existing container.
 			var unexpected = lexer.token( unexpectedRuleSet );
+			//lexer.ruleset = unexpectedRuleSet;
 			
 		}
 		
