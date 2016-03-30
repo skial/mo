@@ -473,36 +473,18 @@ class BitSets {
 		lexer.createContainer( ABlock.Quote, leafRuleSet, blockRuleSet, function(s) return s.substring(1).ltrim() );
 	},
 	listMarker => {
-		//lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );
-		var index = -1;
-		var result = index;
-		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
-			index = idx;
-			lexer.containers[idx].complete = true;
-			break;
-			
-		}
-		
-		if (index > -1) {
-			var idx = 0;
-			while (idx <= index) {
-				if (lexer.containers[idx].type != ABlock.List) {
-					lexer.containers[idx].complete = true;
-					trace( printType( lexer.containers[idx] ) );
-				}
-				idx++;
-				
-			}
-			
-		}
-		
+		var result = -1;
+		trace( printType( lexer.parent ) );
 		var list = lexer.matchContainer( ABlock.List );
 		var marker = lexer.current.rtrim().substring(1, 2);
 		
 		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
 		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
-			result = if ([ABlock.Text].indexOf( lexer.parent.type ) != -1 && lexer.containers.lastIndexOf( lexer.parent ) - 1 < 0) {
+			
+			result = if ([ABlock.Text].indexOf( lexer.parent.type ) != -1) {
+				lexer.parent.complete = true;
+				for (token in lexer.parent.tokens) token.complete = true;
 				lexer.document.tokens.push( list );
 				
 			} else {
@@ -718,6 +700,7 @@ class BitSets {
 			lexer.token( subRuleSet );
 			
 		} catch (e:UnexpectedChar) {
+			trace( '$e' );
 			lexer.token( unexpectedRuleSet );
 			
 		} catch (e:Eof) {
@@ -839,8 +822,27 @@ class BitSets {
 		// TODO only continue if two newlines follow in succession, not when a total of
 		// newlines have been encounters.
 		if (lexer.newlines > 1) {
-			var token = lexer.matchContainer( ALeaf.Paragraph );
+			/*var token = lexer.matchContainer( ALeaf.Paragraph );
 			if (token != null) token.complete = true;
+			lexer.newlines = -1;*/
+			for (type in ([ALeaf.Paragraph, ABlock.ListItem, ABlock.List]:Array<Int>)) {
+				/*var index = lexer.containers.length - 1;
+				
+				while (index > -1) {
+					if (!lexer.containers[index].complete && lexer.containers[index].type == type) {
+						result = lexer.containers[index];
+						break;
+						
+					}
+					
+					index--;
+				}*/
+				var token = lexer.matchContainer( type );
+				if (token != null) token.complete = true;
+				
+				
+			}
+			
 			lexer.newlines = -1;
 			
 		}
