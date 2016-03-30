@@ -33,6 +33,8 @@ class Container<T> {
 	public var id:Int = counter++;
 	public var tokens:T;
 	public var type:Int = -1;
+	public var spaces:Int = 0;	//	The amount of spaces that follow a _marker_;
+	public var indentation:Int = 0;	//	The amount of, max?, spaces the should preceed children.
 	public var complete:Bool = false;
 	public var info:StringMap<String>;
 	
@@ -323,7 +325,8 @@ class BitSets {
 	public static var punctuation = asciiPunctuation + unicodePunctuation;
 	
 	// Space Indentation
-	public static var si = '( ? ? ?)';
+	//public static var si = '( ? ? ?)';
+	public static var si = '( *)';
 	
 	//\/\// Leaf Blocks - @see http://spec.commonmark.org/0.18/#leaf-blocks
 	
@@ -350,7 +353,8 @@ class BitSets {
 	//public static var indentedCode = '(     *($character+))+';
 	public static var indentedCodeStart = '   [ ]+';
 	//public static var indentedCode = '($indentedCodeStart($character+))+';
-	public static var indentedCode = '($indentedCodeStart$character+)+';
+	//public static var indentedCode = '($indentedCodeStart$character+)+';
+	public static var indentedCode = '$indentedCodeStart$character+';
 	//public static var fencedCode = '(````*|~~~~*)( *[$character]+)? *$si(````*|~~~~*) *';
 	public static var fencedCodeStart = '(````*|~~~~*)';
 	//public static var fencedCode = '(````*|~~~~*)( *$character+)? *$si(````*|~~~~*) *';
@@ -474,16 +478,22 @@ class BitSets {
 	},
 	listMarker => {
 		var result = -1;
-		trace( printType( lexer.parent ) );
+		
+		//var spaces = lexer.current.countLeadingSpaces();
+		/*if ((spaces - lexer.parent.spaces) > 3 && type != ALeaf.Code) {
+			type = type.defaultType();
+			sanitize = null;
+		}*/
+		//trace( printType( lexer.parent ) );
 		var list = lexer.matchContainer( ABlock.List );
 		var map = collectListInfo( lexer.current );
-		/*var marker = lexer.current.rtrim().substring(1, 2);
 		
-		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);*/
 		//if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
 		if (list == null || list.info.get('marker') != map.get('marker')) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
 			list.info = map;
+			list.spaces = lexer.current.countLeadingSpaces();
+			list.indentation = lexer.current.length;
 			
 			result = if ([ABlock.Text].indexOf( lexer.parent.type ) != -1) {
 				lexer.parent.complete = true;
@@ -503,8 +513,7 @@ class BitSets {
 		lexer.parent = list;
 		
 		lexer.pos -= lexer.current.length;
-		/*var result = */lexer.token( listRuleSet );
-		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
+		lexer.token( listRuleSet );
 		
 		lexer.parent = originalParent;
 		result;
@@ -532,6 +541,8 @@ class BitSets {
 		//if (list != null && list.info.get('type') != map.get('type') || list == null) {
 		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
+			list.spaces = lexer.parent.spaces;
+			list.indentation = lexer.parent.indentation;
 			result = lexer.parent.tokens.push( list );
 			//list.info = map;
 		}
@@ -541,7 +552,7 @@ class BitSets {
 		
 		/*var result = */lexer.token( leafRuleSet );
 		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
-		list.complete = true;
+		//list.complete = true;
 		for (token in list.tokens) token.complete = true;
 		
 		lexer.parent = originalParent;
@@ -559,6 +570,8 @@ class BitSets {
 		//if (list != null && list.info.get('type') != map.get('type') || list == null) {
 		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
+			list.spaces = lexer.parent.spaces;
+			list.indentation = lexer.parent.indentation;
 			result = lexer.parent.tokens.push( list );
 			//list.info = map;
 		}
@@ -568,7 +581,7 @@ class BitSets {
 		
 		/*var result = */lexer.token( leafRuleSet );
 		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
-		list.complete = true;
+		//list.complete = true;
 		for (token in list.tokens) token.complete = true;
 		
 		lexer.parent = originalParent;
@@ -587,74 +600,21 @@ class BitSets {
 		lexer.parent.tokens.push( (new Leaf( ALeaf.ThematicBreak, [] ):Generic) );
 	},
 	atxHeader => {
-		//new Leaf( ALeaf.Header, lexer.parse( lexer.current.replace('#', '').ltrim(), ALeaf.Header, inlineRuleSet, leafRuleSet ) );
 		lexer.createContainer( ALeaf.Header, inlineRuleSet, leafRuleSet, function(s) return s.replace('#', '').ltrim() );
 	},
-	'($indentedCode$lineEnding?)+' => {
-		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
+	//'($indentedCode$lineEnding?)+' => {
+	//indentedCode => {
+	'$indentedCode$lineEnding?' => {
 		// TODO need to detect spaces, potentially 4, then remove.
 		lexer.createContainer( ALeaf.Code, inlineRuleSet, leafRuleSet, function(s) return [for (x in s.split('\n')) x.ltrim()].join('\n') );
 	},
 	fencedCode => {
-		//new Leaf( ALeaf.Code, lexer.parse( lexer.current, ALeaf.Code, inlineRuleSet, leafRuleSet ) );
 		lexer.createContainer( ALeaf.Code, inlineRuleSet, leafRuleSet );
 	},
+	//'$si([^_#>\n\r\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+' => {
 	'([^_#>\n\r\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+' => {
-		//new Leaf( ALeaf.Paragraph, lexer.parse( lexer.current, ALeaf.Paragraph, inlineRuleSet, leafRuleSet ) );
-		var leaf = lexer.createContainer( ALeaf.Paragraph, inlineRuleSet, leafRuleSet );
-		//leaf.complete = true;
-		leaf;
+		lexer.createContainer( ALeaf.Paragraph, inlineRuleSet, leafRuleSet );
 	},
-	/*listMarker => {
-		// Lists can be **both** `container` and `leaf` blocks.
-		// Inception, here I come!
-		/*trace( lexer.current );
-		lexer.createContainer( ABlock.List, listRuleSet, blockRuleSet );*/
-		/*var index = -1;
-		var result = index;
-		for (idx in 0...lexer.containers.length) if (lexer.containers[idx].type > ABlock.MAX) {
-			index = idx;
-			lexer.containers[idx].complete = true;
-			break;
-			
-		}
-		
-		if (index > -1) {
-			var idx = 0;
-			while (idx <= index) {
-				if (lexer.containers[idx].type != ABlock.List) {
-					lexer.containers[idx].complete = true;
-					trace( printType( lexer.containers[idx] ) );
-				}
-				idx++;
-				
-			}
-			
-		}
-		
-		var list = lexer.matchContainer( ABlock.List );
-		var marker = lexer.current.rtrim().substring(1, 2);
-		
-		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
-		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
-			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
-			result = lexer.parent.tokens.push( list );
-			trace( 'create new ' + printType( list ) );
-			
-		}  else {
-			trace( 'using previous ' + printType( list ) );
-		}
-		
-		var originalParent = lexer.parent;
-		lexer.parent = originalParent;
-		
-		lexer.pos -= lexer.current.length;
-		/*var result = *//*lexer.token( listRuleSet );
-		//if (list.tokens.lastIndexOf( result ) == -1) list.tokens.push( result );
-		
-		lexer.parent = originalParent;
-		result;
-	},*/
 	'' /*EOF*/ => {
 		lexer.token( blockRuleSet );
 	},
@@ -666,7 +626,11 @@ class BitSets {
 		lexer.token( inlineRuleSet );
 	},
 	'$character+' => {
-		lexer.parent.tokens.push( new Inline( AInline.Text, [lexer.current] ) );
+		lexer.newlines = -1;
+		var block =  new Generic( AInline.Text, [lexer.current] );
+		trace( 'creating ' + printType( block ) );
+		block.spaces = lexer.current.countLeadingSpaces() - lexer.parent.indentation;
+		lexer.parent.tokens.push( block );
 	},
 	'' /*EOF*/ => {
 		lexer.token( leafRuleSet );
@@ -676,36 +640,25 @@ class BitSets {
 	public static var root = blockRuleSet;
 	
 	@:access(uhx.lexer.Markdown)
-	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>)/*:Array<Generic>*/ {
-		var results = [];
-		//trace( printType( type ) );
+	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Void {
 		trace( value );
-		//var mdl = new Markdown( ByteData.ofString( value ), name );
 		var originalBytes = lexer.input;
 		var originalPosition = lexer.pos;
 		
+		//lexer.current = lexer.current.substr(lexer.parent.indentation);
+		var indent = '';
+		for (i in 0...lexer.parent.indentation) indent += ' ';
+		value = [for (part in value.split('\n')) (part.startsWith(indent)) ? part = part.substr(lexer.parent.indentation) : part].join('\n');
+		
 		lexer.pos = 0;
 		lexer.input = ByteData.ofString( value );
-		
-		/*try while (true) {
-			/*var token = *///lexer.token( subRuleSet );
-			/*if (results.lastIndexOf( token ) == -1) results.push( token );*/
-			
-		/*} catch (e:Eof) {
-			
-		} catch (e:UnexpectedChar) {
-			trace( 'unexpected character ' + e );
-			// Continue parsing, with the result finding its way
-			// into an existing container.
-			/*var unexpected = *//*lexer.token( unexpectedRuleSet );
-			
-		}*/
 		
 		while (true) try {
 			lexer.token( subRuleSet );
 			
 		} catch (e:UnexpectedChar) {
-			trace( '$e' );
+			trace( '$e', e.pos.pmin, e.pos.pmax );
+			lexer.pos -= e.char.length;
 			lexer.token( unexpectedRuleSet );
 			
 		} catch (e:Eof) {
@@ -715,8 +668,6 @@ class BitSets {
 		
 		lexer.pos = originalPosition;
 		lexer.input = originalBytes;
-		
-		/*return results;*/
 	}
 	
 	private static function contained<T>(token:T, array:Array<T>):Bool {
@@ -725,30 +676,28 @@ class BitSets {
 	
 	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void) {
 		lexer.newlines = -1;
-		var block = lexer.matchContainer( type );
+		
+		var spaces = lexer.current.countLeadingSpaces();
+		var block = (ABlock.match( type )) ? lexer.matchCategory( type ) : lexer.matchContainer( type );
 		var originalParent = lexer.parent;
 		var result = -1;
 		
-		if (block != null && !block.complete) {
+		if (block != null && !block.complete/* && spaces >= lexer.parent.indentation*/) {
 			trace( 'using previous ' + printType( block ) );
 			if (inspect != null) inspect( block, lexer.current );
 			lexer.parent = block;
-			/*var tokens = */lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
-			//trace( block.tokens/*, tokens*/ );
-			//block.tokens = block.tokens.concat( tokens.filter( contained.bind(_, block.tokens) ) );
+			lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
 			
 		} else {
 			lexer.containers.push( block = new Container( type, [] ) );
+			block.spaces = spaces - lexer.parent.indentation;
+			block.indentation = lexer.current.countSuccessiveSpaces();
 			if (inspect != null) inspect( block, lexer.current );
 			lexer.parent = block;
 			trace( 'create new ' + printType( block ) );
 			result = originalParent.tokens.push( block );
-			/*var tokens = */lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
-			//trace( block.tokens/*, tokens*/ );
-			// As a new container, `tokens` are the first tokens found
-			// before any potential `unexpectedRuleSet` tokens, which
-			// _self add_ themselves.
-			//block.tokens = tokens.concat( cast block.tokens.filter( contained.bind(_, tokens) ) );
+			lexer.parse( sanitize == null ? lexer.current : sanitize( lexer.current ), type, subRuleSet, unexpectedRuleSet );
+			
 			
 		}
 		
@@ -792,6 +741,22 @@ class BitSets {
 		return result;
 	}
 	
+	private static inline function defaultType(type:Int):Int {
+		return switch (type) {
+			case x if (ALeaf.match(x)): ALeaf.MAX;
+			case x if (AInline.match(x)): AInline.MAX;
+			case _: ABlock.MAX;
+		}
+	}
+	
+	private static inline function defaultRuleSet(type:Int):Ruleset<Generic> {
+		return switch (type) {
+			case x if (ALeaf.match(x)): leafRuleSet;
+			case x if (AInline.match(x)): inlineRuleSet;
+			case _: blockRuleSet;
+		}
+	}
+	
 	public static function printType(t:Generic):String {
 		var result = switch (t.type) {
 			case x if (ABlock.match(x)): 'Block.' + (x:ABlock);
@@ -800,7 +765,7 @@ class BitSets {
 			case _: '<unknown>';
 		}
 		
-		return result + '(${t.id})' + (t.complete?'':'!') + ':${t.tokens.length}';
+		return result + '(${t.id})' + (t.complete?'':'!') + ':${t.tokens.length}:(<${t.spaces},>${t.indentation})';
 	}
 	
 	private static function escape(value:CodePoint):String {
@@ -852,12 +817,12 @@ class BitSets {
 	}
 	
 	private static function collectListInfo(value:String):StringMap<String> {
-		var index = value.indexOf(' ');
+		//var index = value.indexOf(' ');
 		var marker = '';
 		var result = new StringMap<String>();
-		if (index > -1) {
+		/*if (index > -1) {
 			result.set( 'indent', '' + (value.length - index) );
-		}
+		}*/
 		value = value.rtrim();
 		
 		result.set( 'marker', marker = value.substr(value.length - 1, value.length) );
@@ -873,6 +838,39 @@ class BitSets {
 		}
 		
 		//trace( [for (k in result.keys()) '$k => ' + result.get( k )] );
+		
+		return result;
+	}
+	
+	private static function countLeadingSpaces(value:String):Int {
+		var result = 0;
+		
+		for (i in 0...value.length) if (value.charCodeAt(i) == ' '.code) {
+			result++;
+			
+		} else {
+			break;
+			
+		}
+		
+		return result;
+	}
+	
+	private static function countSuccessiveSpaces(value:String):Int {
+		var result = 0;
+		var index = value.length - 1;
+		while (index > -1) {
+			if (value.charCodeAt(index) == ' '.code) {
+				result++;
+				
+			} else {
+				break;
+				
+			}
+			
+			index--;
+			
+		}
 		
 		return result;
 	}
