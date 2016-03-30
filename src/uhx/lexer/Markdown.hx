@@ -476,11 +476,14 @@ class BitSets {
 		var result = -1;
 		trace( printType( lexer.parent ) );
 		var list = lexer.matchContainer( ABlock.List );
-		var marker = lexer.current.rtrim().substring(1, 2);
+		var map = collectListInfo( lexer.current );
+		/*var marker = lexer.current.rtrim().substring(1, 2);
 		
-		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);
-		if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
+		if (marker == null || marker.length == 0) marker = lexer.current.substring(0, 1);*/
+		//if (list == null || list.tokens.length > 0 && list.tokens[0].info.get('marker') != marker) {
+		if (list == null || list.info.get('marker') != map.get('marker')) {
 			lexer.containers.push( list = new Generic( ABlock.List, [] ) );
+			list.info = map;
 			
 			result = if ([ABlock.Text].indexOf( lexer.parent.type ) != -1) {
 				lexer.parent.complete = true;
@@ -526,10 +529,11 @@ class BitSets {
 		
 		var map = collectListInfo( lexer.current );
 		trace( 'ordered', lexer.current.substring(0, 1), lexer.current.substring(1, 2) );
-		if (list != null && list.info.get('type') != map.get('type') || list == null) {
+		//if (list != null && list.info.get('type') != map.get('type') || list == null) {
+		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
 			result = lexer.parent.tokens.push( list );
-			list.info = map;
+			//list.info = map;
 		}
 		
 		var originalParent = lexer.parent;
@@ -552,10 +556,11 @@ class BitSets {
 		map.set('marker', lexer.current.substring(0, 1));*/
 		var map = collectListInfo( lexer.current );
 		
-		if (list != null && list.info.get('type') != map.get('type') || list == null) {
+		//if (list != null && list.info.get('type') != map.get('type') || list == null) {
+		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
 			result = lexer.parent.tokens.push( list );
-			list.info = map;
+			//list.info = map;
 		}
 		
 		var originalParent = lexer.parent;
@@ -792,9 +797,7 @@ class BitSets {
 			case x if (ABlock.match(x)): 'Block.' + (x:ABlock);
 			case x if (ALeaf.match(x)): 'Leaf.' + (x:ALeaf);
 			case x if (AInline.match(x)): 'Inline.' + (x:AInline);
-			case _: 
-				trace( t.type );
-				'<unknown>';
+			case _: '<unknown>';
 		}
 		
 		return result + '(${t.id})' + (t.complete?'':'!') + ':${t.tokens.length}';
@@ -849,9 +852,13 @@ class BitSets {
 	}
 	
 	private static function collectListInfo(value:String):StringMap<String> {
-		value = value.rtrim();
+		var index = value.indexOf(' ');
 		var marker = '';
 		var result = new StringMap<String>();
+		if (index > -1) {
+			result.set( 'indent', '' + (value.length - index) );
+		}
+		value = value.rtrim();
 		
 		result.set( 'marker', marker = value.substr(value.length - 1, value.length) );
 		
@@ -865,7 +872,7 @@ class BitSets {
 				
 		}
 		
-		trace( [for (k in result.keys()) '$k => ' + result.get( k )] );
+		//trace( [for (k in result.keys()) '$k => ' + result.get( k )] );
 		
 		return result;
 	}
