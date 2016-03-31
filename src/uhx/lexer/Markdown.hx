@@ -479,6 +479,8 @@ class BitSets {
 		lexer.createContainer( ABlock.Quote, leafRuleSet, blockRuleSet, function(s) return s.substring(1).ltrim() );
 	},
 	listMarker => {
+		lexer.processNewline();
+		
 		var result = -1;
 		var list = lexer.matchContainer( ABlock.List );
 		var map = collectListInfo( lexer.current );
@@ -533,7 +535,7 @@ class BitSets {
 		var result = -1;
 		var list = null/*lexer.matchContainer( ABlock.ListItem )*/;
 		var map = collectListInfo( lexer.current );
-		lexer.processNewline();
+		//lexer.processNewline();
 		
 		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
@@ -558,7 +560,7 @@ class BitSets {
 		var result = -1;
 		var list = null/*lexer.matchContainer( ABlock.ListItem )*/;
 		var map = collectListInfo( lexer.current );
-		lexer.processNewline();
+		//lexer.processNewline();
 		
 		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
@@ -622,7 +624,8 @@ class BitSets {
 		lexer.token( inlineRuleSet );
 	},
 	'$character+' => {
-		lexer.newlines = 0;
+		//lexer.newlines = 0;
+		lexer.processNewline();
 		var block =  new Generic( AInline.Text, [lexer.current] );
 		trace( 'creating ' + printType( block ) );
 		trace( lexer.current );
@@ -639,7 +642,8 @@ class BitSets {
 	@:access(uhx.lexer.Markdown)
 	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Void {
 		trace( value );
-		lexer.newlines = 0;
+		//lexer.newlines = 0;
+		
 		var originalBytes = lexer.input;
 		var originalPosition = lexer.pos;
 		
@@ -647,10 +651,12 @@ class BitSets {
 		lexer.input = ByteData.ofString( value );
 		
 		while (true) try {
+			lexer.processNewline();
 			lexer.token( subRuleSet );
 			
 		} catch (e:UnexpectedChar) {
 			trace( '$e', e.pos.pmin, e.pos.pmax );
+			lexer.processNewline();
 			lexer.pos -= e.char.length;
 			lexer.token( unexpectedRuleSet );
 			
@@ -668,7 +674,7 @@ class BitSets {
 	}
 	
 	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void) {
-		lexer.processNewline();
+		//lexer.processNewline();
 		//lexer.newlines = 0;
 		
 		var spaces = lexer.current.countLeadingSpaces();
@@ -837,7 +843,7 @@ class BitSets {
 			/*var token = lexer.matchContainer( ALeaf.Paragraph );
 			if (token != null) token.complete = true;
 			lexer.newlines = -1;*/
-			for (type in ([ALeaf.Paragraph, ABlock.ListItem, ABlock.List]:Array<Int>)) {
+			/*for (type in ([ALeaf.Paragraph, ABlock.ListItem, ABlock.List]:Array<Int>)) {
 				var token = lexer.matchContainer( type );
 				if (token != null) {
 					token.complete = true;
@@ -845,12 +851,16 @@ class BitSets {
 				}
 				
 				
-			}
+			}*/
+			for (token in lexer.containers) token.complete = true;
+			while (lexer.containers.length > 0) lexer.containers.pop();
 			
 			lexer.newlines = 0;
+			trace( 'reset newlines ${lexer.newlines}' );
 			
 		} else {
-			lexer.newlines++;
+			//lexer.newlines++;
+			trace( 'newlines ${lexer.newlines}' );
 			
 		}
 		
