@@ -1,5 +1,6 @@
 package uhx.lexer;
 
+import haxe.CallStack;
 import haxe.io.Eof;
 import haxe.DynamicAccess;
 import hxparse.Unexpected.Unexpected;
@@ -470,16 +471,16 @@ class BitSets {
 	
 	public static var blockRuleSet = Mo.rules( [ 
 	lineEnding => {
-		/*lexer.newlines++;
+		lexer.newlines++;
 		trace(lexer.newlines);
-		//lexer.processNewline();*/
+		lexer.processNewline();
 		lexer.token( blockRuleSet );
 	},
 	quote => {
 		lexer.createContainer( ABlock.Quote, leafRuleSet, blockRuleSet, function(s) return s.substring(1).ltrim() );
 	},
 	listMarker => {
-		lexer.processNewline();
+		//lexer.processNewline();
 		
 		var result = -1;
 		var list = lexer.matchContainer( ABlock.List );
@@ -526,9 +527,9 @@ class BitSets {
 	
 	public static var listRuleSet = Mo.rules( [ 
 	lineEnding => {
-		//lexer.processNewline();
 		lexer.newlines++;
 		trace(lexer.newlines);
+		lexer.processNewline();
 		lexer.token( listRuleSet );
 	},
 	orderedList => {
@@ -587,16 +588,16 @@ class BitSets {
 	
 	public static var leafRuleSet = Mo.rules( [ 
 	lineEnding => {
-		//lexer.processNewline();
 		lexer.newlines++;
 		trace(lexer.newlines);
+		lexer.processNewline();
 		lexer.token( leafRuleSet );
 	},
 	thematicBreak => {
 		lexer.parent.tokens.push( (new Leaf( ALeaf.ThematicBreak, [] ):Generic) );
 	},
 	atxHeader => {
-		lexer.createContainer( ALeaf.Header, inlineRuleSet, leafRuleSet, function(s) return s.replace('#', '').ltrim() );
+		lexer.createContainer( ALeaf.Header, inlineRuleSet, leafRuleSet, function(s) return s.replace('#', '') );
 	},
 	//'($indentedCode$lineEnding?)+' => {
 	//indentedCode => {
@@ -620,12 +621,12 @@ class BitSets {
 	lineEnding => {
 		lexer.newlines++;
 		trace(lexer.newlines);
-		//lexer.processNewline();
+		lexer.processNewline();
 		lexer.token( inlineRuleSet );
 	},
 	'$character+' => {
-		//lexer.newlines = 0;
-		lexer.processNewline();
+		lexer.newlines = 0;
+		//lexer.processNewline();
 		var block =  new Generic( AInline.Text, [lexer.current] );
 		trace( 'creating ' + printType( block ) );
 		trace( lexer.current );
@@ -642,7 +643,6 @@ class BitSets {
 	@:access(uhx.lexer.Markdown)
 	private static function parse(lexer:Markdown, value:String, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>):Void {
 		trace( value );
-		//lexer.newlines = 0;
 		
 		var originalBytes = lexer.input;
 		var originalPosition = lexer.pos;
@@ -650,14 +650,21 @@ class BitSets {
 		lexer.pos = 0;
 		lexer.input = ByteData.ofString( value );
 		
+		var lastPosition = 0;
+		var lastNewlineCount = 0;
+		
 		while (true) try {
-			lexer.processNewline();
+			//lexer.processNewline();
+			lastPosition = lexer.pos;
+			lastNewlineCount = lexer.newlines;
 			lexer.token( subRuleSet );
 			
 		} catch (e:UnexpectedChar) {
-			trace( '$e', e.pos.pmin, e.pos.pmax );
-			lexer.processNewline();
-			lexer.pos -= e.char.length;
+			trace( '$e', e.pos.pmin, e.pos.pmax, lexer.pos, lastPosition, lexer.newlines, lastNewlineCount );
+			//lexer.processNewline();
+			//lexer.pos -= e.char.length;
+			lexer.pos = lastPosition;
+			lexer.newlines = lastNewlineCount;
 			lexer.token( unexpectedRuleSet );
 			
 		} catch (e:Eof) {
@@ -674,9 +681,6 @@ class BitSets {
 	}
 	
 	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void) {
-		//lexer.processNewline();
-		//lexer.newlines = 0;
-		
 		var spaces = lexer.current.countLeadingSpaces();
 		//trace( spaces, lexer.parent.indentation );
 		if ((spaces - lexer.parent.indentation) > 3 && type != ALeaf.Code) {
@@ -836,10 +840,20 @@ class BitSets {
 	
 	private static function processNewline(lexer:Markdown):Void {
 		
+		trace( CallStack.toString( CallStack.callStack() ) );
 		trace( lexer.containers.map( printType ) );
 		// TODO only continue if two newlines follow in succession, not when a total of
 		// newlines have been encounters.
-		if (lexer.newlines >= 2) {
+		if (lexer.newlines > 1 && lexer.containers[lexer.containers.length - 1].type == ALeaf.Paragraph) {
+			trace( lexer.parent.printType() );
+			var token = lexer.containers.pop();
+			token.complete = true;
+			for (child in token.tokens) child.complete = true;
+			
+			trace( 'paragraph reset newlines ${lexer.newlines}' );
+			
+		}
+		if (lexer.newlines > 2) {
 			/*var token = lexer.matchContainer( ALeaf.Paragraph );
 			if (token != null) token.complete = true;
 			lexer.newlines = -1;*/
@@ -856,7 +870,7 @@ class BitSets {
 			while (lexer.containers.length > 0) lexer.containers.pop();
 			
 			lexer.newlines = 0;
-			trace( 'reset newlines ${lexer.newlines}' );
+			trace( 'line break reset newlines ${lexer.newlines}' );
 			
 		} else {
 			//lexer.newlines++;
