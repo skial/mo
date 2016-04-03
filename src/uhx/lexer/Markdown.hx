@@ -327,7 +327,7 @@ class BitSets {
 	
 	// Space Indentation
 	//public static var si = '( ? ? ?)';
-	public static var si = '( *)';
+	public static var si = ' *';
 	
 	//\/\// Leaf Blocks - @see http://spec.commonmark.org/0.18/#leaf-blocks
 	
@@ -394,7 +394,7 @@ class BitSets {
 	 * A list marker is a bullet list marker or an ordered list marker.
 	 * @see http://spec.commonmark.org/0.18/#list-marker
 	 */
-	public static var listMarker = '$si($bulletList|$orderedList) *';
+	public static var listMarker = '$si($bulletList|$orderedList) +';
 	
 	/**
 	 * It is tempting to think of this in terms of columns: the continuation 
@@ -412,7 +412,9 @@ class BitSets {
 	 */
 	public static var list = '$si[\\-\\+\\*0-9\\.\\)]$paragraph';
 	
-	public static var notContainer = '[^>\\-\\+\\*\n\r0123456789]+.+';
+	//public static var notContainer = '[^>\\-\\+\\*\n\r0123456789]+.+';
+	//public static var notContainer = '$si([^>\n\r\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+';
+	public static var notContainer = '([^\n\r\\>\\-\\+\\*\\.\\)0123456789]+$character+$lineEnding?)+';
 	//public static var notContainer = '([^>-+\\*0-9]*)+$lineEnding';
 	
 	//\/\// Inlines - @see http://spec.commonmark.org/0.18/#inlines
@@ -480,12 +482,10 @@ class BitSets {
 		lexer.createContainer( ABlock.Quote, leafRuleSet, blockRuleSet, function(s) return s.substring(1).ltrim() );
 	},
 	listMarker => {
-		//lexer.processNewline();
-		
 		var result = -1;
 		var list = lexer.matchContainer( ABlock.List );
 		var map = collectListInfo( lexer.current );
-		
+		trace( lexer.current, lexer.parent.indentation, lexer.current.countLeadingSpaces() );
 		if (list == null || list.info.get('marker') != map.get('marker')) {
 			if (list != null) {
 				list.complete = true;
@@ -515,14 +515,49 @@ class BitSets {
 		lexer.parent = list;
 		
 		lexer.pos -= lexer.current.length;
-		lexer.token( listRuleSet );
+		// TODO add try catch blocks.
+		try {
+			lexer.token( listRuleSet );
+			
+		} catch (e:UnexpectedChar) {
+			trace( lexer.input );
+			trace( e.char.replace(' ', '\\s') );
+			trace( CallStack.toString( CallStack.exceptionStack() ) );
+			lexer.token( blockRuleSet );
+			
+		}
 		
 		lexer.parent = originalParent;
 		result;
 	},
-	notContainer => {
+	//notContainer => {
+	'[^\n\r\\-\\+\\*\\.\\)\\>]' => {
+		//lexer.createContainer( ABlock.Text, leafRuleSet, blockRuleSet );
+		lexer.pos--;
+		try {
+			lexer.token( textRuleSet );
+			
+		} catch (e:UnexpectedChar) {
+			trace( e );
+			lexer.token( blockRuleSet );
+			
+		}
+	},
+	] );
+	
+	public static var textRuleSet = Mo.rules( [ 
+	lineEnding => {
+		lexer.newlines++;
+		trace(lexer.newlines);
+		lexer.processNewline();
+		lexer.token( textRuleSet );
+	},
+	'$character+' => {
 		lexer.createContainer( ABlock.Text, leafRuleSet, blockRuleSet );
 	},
+	'' /*EOF*/ => {
+		lexer.token( blockRuleSet );
+	}
 	] );
 	
 	public static var listRuleSet = Mo.rules( [ 
@@ -532,7 +567,8 @@ class BitSets {
 		lexer.processNewline();
 		lexer.token( listRuleSet );
 	},
-	orderedList => {
+	//orderedList => {
+	'$si$orderedList$si' => {
 		var result = -1;
 		var list = null/*lexer.matchContainer( ABlock.ListItem )*/;
 		var map = collectListInfo( lexer.current );
@@ -549,7 +585,13 @@ class BitSets {
 		var originalParent = lexer.parent;
 		lexer.parent = list;
 		
-		lexer.token( leafRuleSet );
+		try {
+			lexer.token( leafRuleSet );
+			
+		} catch (e:UnexpectedChar) {
+			lexer.token( blockRuleSet );
+			
+		}
 		//list.complete = true;
 		for (token in list.tokens) token.complete = true;
 		
@@ -557,12 +599,13 @@ class BitSets {
 		
 		result;
 	},
-	bulletList => {
+	//bulletList => {
+	'$si$bulletList$si' => {
 		var result = -1;
 		var list = null/*lexer.matchContainer( ABlock.ListItem )*/;
 		var map = collectListInfo( lexer.current );
 		//lexer.processNewline();
-		
+		trace( lexer.current );
 		if (list == null || list != null && lexer.parent.info.get('type') != map.get('type')) {
 			lexer.containers.push( list = new Generic( ABlock.ListItem, [] ) );
 			list.spaces = lexer.parent.spaces;
@@ -574,7 +617,15 @@ class BitSets {
 		var originalParent = lexer.parent;
 		lexer.parent = list;
 		
-		lexer.token( leafRuleSet );
+		try {
+			lexer.token( leafRuleSet );
+			
+		} catch (e:UnexpectedChar) {
+			trace( 'list unexpectedchar $e' );
+			lexer.pos -= e.char.length/* + lexer.parent.indentation*/;
+			lexer.token( blockRuleSet );
+			
+		}
 		
 		//list.complete = true;
 		for (token in list.tokens) token.complete = true;
@@ -609,7 +660,8 @@ class BitSets {
 		lexer.createContainer( ALeaf.Code, inlineRuleSet, leafRuleSet );
 	},
 	//'$si([^_#>\n\r\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+' => {
-	'([^_#>\n\r\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+' => {
+	'([^\n\r\\_\\#\\>\\*\\-\\+\\.\\)0123456789]+$character+$lineEnding?)+' => {
+		trace( lexer.current );
 		lexer.createContainer( ALeaf.Paragraph, inlineRuleSet, leafRuleSet );
 	},
 	'' /*EOF*/ => {
@@ -624,15 +676,21 @@ class BitSets {
 		lexer.processNewline();
 		lexer.token( inlineRuleSet );
 	},
-	'$character+' => {
+	//'$character+' => {
+	'[^_#>\n\r\\*\\-\\+\\.\\)0123456789]+$character+' => {
 		lexer.newlines = 0;
 		//lexer.processNewline();
-		var block =  new Generic( AInline.Text, [lexer.current] );
+		var block =  new Generic( AInline.Text, [lexer.current.trim()] );
 		trace( 'creating ' + printType( block ) );
 		trace( lexer.current );
 		block.spaces = lexer.current.countLeadingSpaces() - lexer.parent.indentation;
 		lexer.parent.tokens.push( block );
 	},
+	/*listMarker => {
+		// TODO remove this and figure out how to catch the doubly nested thrown `unexpectedchar` obj.
+		lexer.pos -= lexer.current.length;
+		lexer.token( blockRuleSet );
+	},****/
 	'' /*EOF*/ => {
 		lexer.token( leafRuleSet );
 	},
@@ -663,6 +721,7 @@ class BitSets {
 			trace( '$e', e.pos.pmin, e.pos.pmax, lexer.pos, lastPosition, lexer.newlines, lastNewlineCount );
 			//lexer.processNewline();
 			//lexer.pos -= e.char.length;
+			trace( CallStack.toString( CallStack.exceptionStack() ) );
 			lexer.pos = lastPosition;
 			lexer.newlines = lastNewlineCount;
 			lexer.token( unexpectedRuleSet );
@@ -682,7 +741,8 @@ class BitSets {
 	
 	private static function createContainer(lexer:Markdown, type:Int, subRuleSet:Ruleset<Generic>, unexpectedRuleSet:Ruleset<Generic>, ?sanitize:String->String, ?inspect:Generic->String->Void) {
 		var spaces = lexer.current.countLeadingSpaces();
-		//trace( spaces, lexer.parent.indentation );
+		//trace( lexer.current );
+		trace( printType( new Generic(type, []) ), spaces, lexer.parent.printType() );
 		if ((spaces - lexer.parent.indentation) > 3 && type != ALeaf.Code) {
 			type = switch (type) {
 				case t if (ALeaf.match(t)): ALeaf.Code;
@@ -699,7 +759,7 @@ class BitSets {
 		var originalParent = lexer.parent;
 		var result = -1;
 		
-		if (block != null && !block.complete) {
+		if (block != null && !block.complete && spaces >= block.indentation) {
 			trace( 'using previous ' + printType( block ) );
 			if (inspect != null) inspect( block, lexer.current );
 			lexer.parent = block;
@@ -840,17 +900,17 @@ class BitSets {
 	
 	private static function processNewline(lexer:Markdown):Void {
 		
-		trace( CallStack.toString( CallStack.callStack() ) );
-		trace( lexer.containers.map( printType ) );
+		//trace( CallStack.toString( CallStack.callStack() ) );
+		//trace( lexer.containers.map( printType ) );
 		// TODO only continue if two newlines follow in succession, not when a total of
 		// newlines have been encounters.
 		if (lexer.newlines > 1 && lexer.containers[lexer.containers.length - 1].type == ALeaf.Paragraph) {
-			trace( lexer.parent.printType() );
+			//trace( lexer.parent.printType() );
 			var token = lexer.containers.pop();
 			token.complete = true;
 			for (child in token.tokens) child.complete = true;
 			
-			trace( 'paragraph reset newlines ${lexer.newlines}' );
+			//trace( 'paragraph reset newlines ${lexer.newlines}' );
 			
 		}
 		if (lexer.newlines > 2) {
@@ -870,11 +930,11 @@ class BitSets {
 			while (lexer.containers.length > 0) lexer.containers.pop();
 			
 			lexer.newlines = 0;
-			trace( 'line break reset newlines ${lexer.newlines}' );
+			//trace( 'line break reset newlines ${lexer.newlines}' );
 			
 		} else {
 			//lexer.newlines++;
-			trace( 'newlines ${lexer.newlines}' );
+			//trace( 'newlines ${lexer.newlines}' );
 			
 		}
 		
