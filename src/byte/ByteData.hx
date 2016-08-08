@@ -67,4 +67,8 @@ abstract ByteData(UtfX) from UtfX to UtfX {
 		return result;
 	}
 	
+	public function readBytes(pos:Int, len:Int):ByteData {
+		new ByteData( this.toBytes().sub(pos, len) );
+	}
+	
 }

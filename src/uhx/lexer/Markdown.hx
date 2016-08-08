@@ -476,17 +476,18 @@ class BitSets {
 	public static var blockRuleSet = Mo.rules( [ 
 	lineEnding => {
 		lexer.newlines++;
-		lexer.processNewline();
+		lexer.processNewline( ABlock.MIN );
 		lexer.token( blockRuleSet );
 	},
-	'   [ ]+' => {
+	//'   [ ]+' => {
+	' *' => {
 		var ruleset = inlineRuleSet;
 		var spaces = lexer.current.length;
 		var result = -1;
 		var token = null;
 		
 		trace( 'number of spaces is ' + spaces );
-		if (spaces > 3) {
+		//if (spaces > 3) {
 			/*trace( _matchContainerIndent( lexer.containers, ABlock.Text, spaces ) );
 			trace( _matchCategoryIndent( lexer.containers, ABlock.Text, spaces ) );
 			trace( matchIndent( lexer.containers, spaces ) );*/
@@ -503,16 +504,16 @@ class BitSets {
 			}*/
 			token = _matchCategoryIndent( lexer.containers, ABlock.MAX, spaces );
 			
-		} else {
+		/*} else {
 			//ruleset = blockRuleSet;
 			
-		}
+		}*/
 		
 		trace( token == null ? null : printType( token ) );
 		
 		if (token == null) {
 			var parent = null;
-			result = lexer.containers.push( parent = new Generic( ABlock.Text, [token = new Generic( ALeaf.Code, [] )] ) );
+			result = lexer.containers.push( parent = new Generic( ABlock.Text, [token = new Generic( (spaces > 3) ? ALeaf.Code : ALeaf.Paragraph, [] )] ) );
 			parent.indentation = token.indentation = spaces;
 			lexer.containers.push( token );
 			lexer.parent.tokens.push( parent );
@@ -605,7 +606,8 @@ class BitSets {
 		//lexer.pos -= lexer.current.length;
 		
 		try {
-			lexer.token( leafRuleSet );
+			//lexer.token( leafRuleSet );
+			lexer.token( blockRuleSet );
 			
 		} catch (e:UnexpectedChar) {
 			trace( e.char.replace(' ', '\\s') );
@@ -670,7 +672,8 @@ class BitSets {
 		result;
 	},
 	//'$si[^ \n\r\\+\\*\\.\\)\\>]' => {
-	'$si[^ \n\r]' => {
+	//'$si[^ \n\r]' => {
+	'[^ \n\r]' => {
 		var result = -1;
 		var text = _matchCategoryIndent( lexer.containers, ABlock.Text, lexer.parent.indentation );
 		if (text == null) {
@@ -707,7 +710,7 @@ class BitSets {
 	public static var listRuleSet = Mo.rules( [ 
 	lineEnding => {
 		lexer.newlines++;
-		lexer.processNewline();
+		lexer.processNewline( ABlock.MIN );
 		lexer.token( listRuleSet );
 	},
 	'   [ ]+' => {
@@ -829,7 +832,7 @@ class BitSets {
 	public static var leafRuleSet = Mo.rules( [ 
 	lineEnding => {
 		lexer.newlines++;
-		lexer.processNewline();
+		lexer.processNewline( ALeaf.MIN );
 		lexer.token( leafRuleSet );
 	},
 	'   [ ]+' => {
@@ -971,7 +974,7 @@ class BitSets {
 	public static var inlineRuleSet = Mo.rules( [ 
 	lineEnding => {
 		lexer.newlines++;
-		lexer.processNewline();
+		lexer.processNewline( AInline.MIN );
 		lexer.token( inlineRuleSet );
 	},
 	'[^ ]$character+' => {
@@ -1177,6 +1180,8 @@ class BitSets {
 		var finalists:IntMap<Generic> = new IntMap();
 		var potentials:Array<Generic> = [for (token in tokens) if (condition(token) && !token.complete && token.indentation <= max) token];
 		
+		trace( max, tokens.map( printType ) );
+		
 		ArraySort.sort( potentials, function(a, b) {
 			var result = 0;
 			result = (a.indentation < b.indentation) ? 1 : -1;
@@ -1309,19 +1314,13 @@ class BitSets {
 		return codepoint == '"'.code || codepoint == '&'.code || codepoint == '<'.code || codepoint == '>'.code;
 	}
 	
-	private static function processNewline(lexer:Markdown):Void {
-		//trace( lexer.newlines );
-		//trace( CallStack.toString( CallStack.callStack() ) );
-		//trace( lexer.containers.map( printType ) );
+	private static function processNewline(lexer:Markdown, ?type:Int = 0):Void {
 		// TODO only continue if two newlines follow in succession, not when a total of
 		// newlines have been encounters.
 		if (lexer.newlines > 1 && lexer.containers[lexer.containers.length - 1].type == ALeaf.Paragraph) {
-			//trace( lexer.parent.printType() );
 			var token = lexer.containers.pop();
-			//trace( token.printType() );
 			token.complete = true;
 			for (child in token.tokens) {
-				//if (child.type < AInline.MIN) trace( child.printType() );
 				child.complete = true;
 				
 			}
@@ -1330,29 +1329,37 @@ class BitSets {
 			
 		}
 		if (lexer.newlines > 2) {
-			/*var token = lexer.matchContainer( ALeaf.Paragraph );
-			if (token != null) token.complete = true;
-			lexer.newlines = -1;*/
-			/*for (type in ([ALeaf.Paragraph, ABlock.ListItem, ABlock.List]:Array<Int>)) {
-				var token = lexer.matchContainer( type );
-				if (token != null) {
-					token.complete = true;
-					trace( 'closing ' + token.printType() );
+			var index = lexer.containers.length - 1;
+			trace( 'index => $index' );
+			while (index > -1) {
+				if (lexer.containers[index].type >= type) {
+					lexer.containers[index].complete = true;
+					
+				} else {
+					break;
+					
 				}
 				
-				
-			}*/
-			for (token in lexer.containers) token.complete = true;
-			while (lexer.containers.length > 0) {
-				/*trace( */lexer.containers.pop().printType()/* )*/;
+				index--;
 				
 			}
+			trace( 'removing tokens until $index' );
+			while (lexer.containers.length > index + 1) {
+				var popped = lexer.containers.pop();
+				trace( 'removed ' + popped.printType() );
+			}
+			
+			
+			/*for (token in lexer.containers) token.complete = true;
+			while (lexer.containers.length > 0) {
+				lexer.containers.pop().printType();
+				
+			}*/
 			
 			lexer.newlines = 0;
 			trace( 'line break reset newlines ${lexer.newlines}' );
 			
 		} else {
-			//lexer.newlines++;
 			trace( 'newlines ${lexer.newlines}' );
 			
 		}

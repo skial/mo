@@ -35,23 +35,23 @@ enum CssSelectors {
 	Combinator(selector:CssSelectors, next:CssSelectors, type:CombinatorType);
 }
 
-@:enum abstract AttributeType(EitherType<Int,String>) from EitherType<Int,String> to EitherType<Int,String> {
+@:enum abstract AttributeType(Int) from Int to Int {
 	public var Unknown = -1;
-	public var Exact = 0;				//	att=val
-	public var List = 1;				//	att~=val
-	/*@split */public var DashList = 2;		//	att|=val
-	public var Prefix = 3;				//	att^=val
-	public var Suffix = 4;				//	att$=val
-	public var Contains = 5;			//	att*=val
+	public var Exact = 0;						//	att=val
+	public var List = 1;						//	att~=val
+	public var DashList = 2;				//	att|=val
+	public var Prefix = 3;					//	att^=val
+	public var Suffix = 4;					//	att$=val
+	public var Contains = 5;				//	att*=val
 }
 
 @:enum abstract CombinatorType(Int) from Int to Int {
-	public var None = 0;				// Used in `type.class`, `type:pseudo` and `type[attribute]`
-	public var Child = 1;				//	`>`
+	public var None = 0;						// Used in `type.class`, `type:pseudo` and `type[attribute]`
+	public var Child = 1;						//	`>`
 	public var Descendant = 2;			//	` `
-	public var Adjacent = 3;			//	`+`
-	public var General = 4;				//	`~`
-	public var Shadow = 5;				//	`>>>`
+	public var Adjacent = 3;				//	`+`
+	public var General = 4;					//	`~`
+	public var Shadow = 5;					//	`>>>`
 }
 
 private typedef Queries = Array<CssMedia>;
@@ -292,7 +292,7 @@ enum CssMedia {
 		var current = lexer.current;
 		
 		handleSelectors(lexer, function(i) {
-			var tokens = parse(ByteData.ofString(current.substring(1, i == -1 ? current.length - 1 : i-1)), 'attributes', attributes);
+			var tokens:Array<Dynamic> = parse(ByteData.ofString(current.substring(1, i == -1 ? current.length - 1 : i-1)), 'attributes', attributes);
 			return Attribute( 
 				(tokens.length > 0) ? tokens[0] : '', 
 				(tokens.length > 1) ? tokens[1] : -1, 
@@ -337,7 +337,9 @@ enum CssMedia {
 		var value = lexer.current.trim();
 		if (value.startsWith('"')) value = value.substring(1);
 		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
-		value;
+		//value;
+		trace( value );
+		Unknown;
 	}
 	]);
 	

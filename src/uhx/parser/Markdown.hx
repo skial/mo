@@ -1,11 +1,17 @@
 package uhx.parser;
 
+import haxe.CallStack;
 import hxparse.Lexer;
 import haxe.io.Eof;
+import hxparse.Unexpected;
 import hxparse.UnexpectedChar;
 import uhx.mo.Token;
 import byte.ByteData;
+import uhx.lexer.Markdown.Generic;
 import uhx.lexer.Markdown.Block;
+import uhx.lexer.Markdown.Leaf;
+import uhx.lexer.Markdown.Inline;
+import uhx.lexer.Markdown.Container;
 import uhx.lexer.Markdown as MarkdownLexer;
 
 using Mo;
@@ -38,28 +44,20 @@ class Markdown {
 		}
 	}*/
 	
-	public function toTokens(input:ByteData, name:String):Array<Block> {
+	public function toTokens(input:ByteData, name:String):Array<Generic> {
 		var results = [];
 		
 		lexer = new MarkdownLexer( input, name );
 		
 		try {
-			
-			while ( true ) {
-				var token = lexer.token( MarkdownLexer.root );
-				results.push( token );
-			}
+			while (true) lexer.token( MarkdownLexer.root );
 			
 		} catch (e:Eof) {
 			
-		} catch (e:Dynamic) {
-			// rawr
-			//trace(name);
-			trace(e);
-			untyped trace(input.readString(0,input.length).substring(lexer.pos));
+			
 		}
 		
-		return results;
+		return cast lexer.document.tokens;
 	}
 	
 	/*public function printString(token:Token<MarkdownKeywords>):String {

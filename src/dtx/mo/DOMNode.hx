@@ -309,7 +309,7 @@ abstract DOMNode(Token<HtmlKeywords>) from Token<HtmlKeywords> to Token<HtmlKeyw
 			case Keyword(HtmlKeywords.Text(e)):
 				StringTools.htmlUnescape( e.tokens );
 				
-			case Keyword(Instruction( { tokens:a } )):
+			case Keyword(HtmlKeywords.Instruction( { tokens:a } )):
 				if (a[0] == '--' && a[a.length - 1] == '--') {
 					//a.slice(1, a.length - 1).join(' ');
 					a.slice(1, a.length - 1).join('');
