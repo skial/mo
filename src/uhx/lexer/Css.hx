@@ -8,6 +8,7 @@ import byte.ByteData;
 import hxparse.Ruleset;
 import haxe.extern.EitherType;
 
+using Std;
 using StringTools;
 
 /**
@@ -63,6 +64,11 @@ enum CssMedia {
 	Group(queries:Array<Queries>);
 	Expr(name:String, value:String);
 }
+
+enum NthExpressions {
+	Index(position:Int);
+	Notation(a:Int, b:Int, negative:Bool);
+}
  
 @:access(hxparse.Lexer) class Css extends Lexer {
 
@@ -76,7 +82,8 @@ enum CssMedia {
 	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|\\+';
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
-	public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
+	//public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
+	public static var combinator = '( +| *> *| *\\+ *| *~ *)?';
 	
 	private static function makeRuleSet(rule:String, tokens:Tokens) {
 		var selector = parse(ByteData.ofString(rule), 'selector', selectors);
@@ -165,20 +172,57 @@ enum CssMedia {
 	]);
 	
 	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
-		var idx = -1;
-		var result = null;
-		var tmp = new StringBuf();
 		var current = lexer.current;
+		var idx = current.length-1;
+		var result = null;
+		//var tmp = new StringBuf();
 		var len = current.length - 1;
-		var type:Null<CombinatorType> = null;
-		
+		var type:CombinatorType = None;
+		//trace( current, len );
 		// Putting `-(current.lenght+1)...1` causes Neko to crash with a stringbuf error.
-		for (i in -current.length + 1...1) tmp.addChar( current.fastCodeAt( -i ) );
-		var combinatorLexer = new Lexer(ByteData.ofString( tmp.toString() ), 'combinator');
+		while (idx > 0) switch current.fastCodeAt(idx) {
+				case ' '.code: 
+					trace( type );
+					if (type == None) type = Descendant;
+					idx--;
+					
+				case '>'.code: 
+					type = Child;
+					idx--;
+					
+				case '+'.code: 
+					type = Adjacent;
+					idx--;
+					
+				case '~'.code: 
+					type = General;
+					idx--;
+					
+				case x: 
+					idx++;
+					break;
+		}
+		//trace( idx, current.length, current, current.substring(0, idx), type );
+		/*for (i in -current.length + 1...1) {
+			//*trace( i, String.fromCharCode(current.fastCodeAt(-i)) );
+			switch current.fastCodeAt(-(pos = i)) {
+				case ' '.code: type = Descendant;
+				case '>'.code: type = Child;
+				case '+'.code: type = Adjacent;
+				case '~'.code: type = General;
+				case _: break;
+			}
+			
+			//tmp.addChar( current.fastCodeAt( -i ) );
+		}*/
+		//trace( current.length, pos, type, current.length - pos );
+		//idx = current.length - pos;
 		
+		/*var combinatorLexer = new Lexer(ByteData.ofString( tmp.toString() ), 'combinator');
+		//trace( current );
 		try while (true) {
 			type = combinatorLexer.token( combinators );
-			
+			trace( type );
 			switch (type) {
 				case None, Descendant, Child, Adjacent, General:
 					idx = current.length - combinatorLexer.pos;
@@ -192,9 +236,9 @@ enum CssMedia {
 			
 		} catch (e:Dynamic) {
 			//trace( e );
-		}
+		}*/
 		
-		if (type == None) lexer.pos--;
+		//if (type == None) lexer.pos--;
 		
 		if (type != null) {
 			var tokens = [];
@@ -205,6 +249,7 @@ enum CssMedia {
 				
 			} catch (e:Dynamic) {
 				trace( e );
+				trace( lexer.source );
 				trace( lexer.input );
 				trace( lexer.input.readString(0, lexer.pos) );
 			}
@@ -214,7 +259,7 @@ enum CssMedia {
 		}
 		
 		if (result == null) result =  single(idx);
-		
+		//trace( result );
 		return result;
 	}
 	
@@ -270,21 +315,22 @@ enum CssMedia {
 			return Class( parts );
 		} );
 	},
-	'::?([$ident]+$escaped*)+[ ]*(\\(.*\\))?($combinator|[ ]*)' => {
+	'::?([$ident]+$escaped*)+[ ]*(\\([$selector\\+]*\\))?($combinator)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
+		var lindex = current.length;
 		
-		if (current.endsWith(')')) {
+		if ((lindex = current.lastIndexOf(')')) > -1) {
 			index = current.indexOf('(');
-			expression = current.substring(index + 1, current.length - 1);
+			expression = current.substring(index + 1, lindex);
 		}
 		
 		handleSelectors(lexer, function(i) {
 			if (i > -1 && i < index) {
 				index = i;
 			}
-			
+			//trace( index, lindex, current, current.substring(1, index) );
 			return Pseudo(current.substring(1, index).trim(), expression);
 		} );
 	},
@@ -292,7 +338,8 @@ enum CssMedia {
 		var current = lexer.current;
 		
 		handleSelectors(lexer, function(i) {
-			var tokens:Array<Dynamic> = parse(ByteData.ofString(current.substring(1, i == -1 ? current.length - 1 : i-1)), 'attributes', attributes);
+			//var tokens:Array<Dynamic> = parse(ByteData.ofString(current.substring(1, i == -1 ? current.length - 1 : i-1)), 'attributes', attributes);
+			var tokens:Array<Dynamic> = parse(ByteData.ofString(current.substring(1, current.length-1)), 'attributes', attributes);
 			return Attribute( 
 				(tokens.length > 0) ? tokens[0] : '', 
 				(tokens.length > 1) ? tokens[1] : -1, 
@@ -300,7 +347,7 @@ enum CssMedia {
 			);
 		} );
 	},
-	'([^,(]+,[^,)]+)+' => {
+	'([^,]+,[^,]+)+' => {
 		var tokens = [];
 		
 		for (part in lexer.current.split(',')) {
@@ -333,13 +380,11 @@ enum CssMedia {
 	'\\^=' => Prefix,
 	'$=' => Suffix,
 	'\\*=' => Contains,
-	'[$s]*[^$s=~$\\|\\^\\*\\[\\]]+[$s]*' => {
+	'[$s]*[^\t\n\r=~\\$\\|\\^\\*\\[\\]]+[$s]*' => {
 		var value = lexer.current.trim();
-		if (value.startsWith('"')) value = value.substring(1);
-		if (value.endsWith('"')) value = value.substring(0, value.length - 1);
-		//value;
-		trace( value );
-		Unknown;
+		if (value.startsWith('"') || value.startsWith("'")) value = value.substring(1);
+		if (value.endsWith('"') || value.endsWith("'")) value = value.substring(0, value.length - 1);
+		value;
 	}
 	]);
 	
@@ -389,6 +434,32 @@ enum CssMedia {
 	},
 	'\\)' => Feature(')'),
 	'[ :,]' => lexer.token( mediaQueries ),
+	]);
+	
+	public static var nthExpression = Mo.rules([
+		'[$s]*' => lexer.token( nthExpression ),
+		'odd' => Notation(2, 1, false),
+		'even' => Notation(2, 0, false),
+		'[0-9]*n' => {
+			var a = lexer.current.substring(0, lexer.current.length-1).parseInt();
+			var b = try lexer.token( nthExpression ) catch(e:Any) Index(0);
+			var r = Notation(a != null ? a : 1, switch b {
+				case Index(v): v;
+				case _: 0;
+			}, false);
+			r;
+		},
+		'[0-9]+' => {
+			Index(lexer.current.parseInt());
+		},
+		'-' => {
+			var r = switch lexer.token( nthExpression ) {
+				case Index(v): Index(-v);
+				case Notation(a, b, n): Notation(a, b, true);
+			}
+			r;
+		},
+		'+' => lexer.token( nthExpression ),
 	]);
 	
 	private static function parse<T>(value:ByteData, name:String, rule:Ruleset<T>):Array<T> {
