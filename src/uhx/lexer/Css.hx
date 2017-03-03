@@ -79,7 +79,7 @@ enum NthExpressions {
 	public static var s = ' \t\r\n';
 	public static var escaped = '(\u005c\u005c.?)';
 	public static var ident = 'a-zA-Z0-9\\-\\_';
-	public static var selector = 'a-zA-Z0-9$:#=>~\\.\\-\\_\\*\\^\\|\\+';
+	public static var selector = "a-zA-Z0-9\\$\\:\\#\\>\\~\\=\\.\\-\\_\\*\\^\\|\\+";
 	public static var any = 'a-zA-Z0-9 "\',%#~=:;@!$&\t\r\n\\{\\}\\(\\)\\[\\]\\|\\.\\-\\_\\*';
 	public static var declaration = '[$ident]+[$s]*:[$s]*[^;{]+;';
 	//public static var combinator = '( +| *> *| *\\+ *| *~ *|\\.|:|\\[)?';
@@ -172,17 +172,14 @@ enum NthExpressions {
 	]);
 	
 	private static function handleSelectors(lexer:Lexer, single:Int->CssSelectors) {
+		var result = null;
 		var current = lexer.current;
 		var idx = current.length-1;
-		var result = null;
-		//var tmp = new StringBuf();
 		var len = current.length - 1;
 		var type:CombinatorType = None;
-		//trace( current, len );
-		// Putting `-(current.lenght+1)...1` causes Neko to crash with a stringbuf error.
+		
 		while (idx > 0) switch current.fastCodeAt(idx) {
 				case ' '.code: 
-					trace( type );
 					if (type == None) type = Descendant;
 					idx--;
 					
@@ -202,64 +199,25 @@ enum NthExpressions {
 					idx++;
 					break;
 		}
-		//trace( idx, current.length, current, current.substring(0, idx), type );
-		/*for (i in -current.length + 1...1) {
-			//*trace( i, String.fromCharCode(current.fastCodeAt(-i)) );
-			switch current.fastCodeAt(-(pos = i)) {
-				case ' '.code: type = Descendant;
-				case '>'.code: type = Child;
-				case '+'.code: type = Adjacent;
-				case '~'.code: type = General;
-				case _: break;
-			}
-			
-			//tmp.addChar( current.fastCodeAt( -i ) );
-		}*/
-		//trace( current.length, pos, type, current.length - pos );
-		//idx = current.length - pos;
 		
-		/*var combinatorLexer = new Lexer(ByteData.ofString( tmp.toString() ), 'combinator');
-		//trace( current );
+		var tokens = [];
 		try while (true) {
-			type = combinatorLexer.token( combinators );
-			trace( type );
-			switch (type) {
-				case None, Descendant, Child, Adjacent, General:
-					idx = current.length - combinatorLexer.pos;
-					if (type != Descendant) break;
-					
-				case _:
-					idx = 0;
-					
-			}
+			tokens.push( lexer.token(selectors) );
+			
 		} catch (e:Eof) {
 			
 		} catch (e:Dynamic) {
-			//trace( e );
-		}*/
-		
-		//if (type == None) lexer.pos--;
-		
-		if (type != null) {
-			var tokens = [];
-			try while (true) {
-				tokens.push( lexer.token(selectors) );
-				
-			} catch (e:Eof) {
-				
-			} catch (e:Dynamic) {
-				trace( e );
-				trace( lexer.source );
-				trace( lexer.input );
-				trace( lexer.input.readString(0, lexer.pos) );
-			}
-			
-			var next = tokens.length > 1 ? CssSelectors.Group(tokens) : tokens[0];
-			if (tokens.length > 0) result = Combinator(single(idx), next, type);
+			trace( e );
+			trace( lexer.source );
+			trace( lexer.input );
+			trace( lexer.input.readString(0, lexer.pos) );
 		}
+			
+		var next = tokens.length > 1 ? CssSelectors.Group(tokens) : tokens[0];
+		if (tokens.length > 0) result = Combinator(single(idx), next, type);
 		
 		if (result == null) result =  single(idx);
-		//trace( result );
+		
 		return result;
 	}
 	
@@ -315,7 +273,7 @@ enum NthExpressions {
 			return Class( parts );
 		} );
 	},
-	'::?([$ident]+$escaped*)+[ ]*(\\([$selector\\+]*\\))?($combinator)' => {
+	'::?([$ident]+$escaped*)+[ ]*(\\([^\\(\\)]*\\))?($combinator)' => {
 		var current = lexer.current.trim();
 		var expression = '';
 		var index = current.length;
