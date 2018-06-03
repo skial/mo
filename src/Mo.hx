@@ -147,7 +147,7 @@ class Mo {
 							
 							var ltype = Context.getLocalType();
 							var ctype = Context.toComplexType(ltype);
-							if (!Context.unify( ctype.toType(), (macro:Lexer).toType() )) ctype = macro:Lexer;
+							if (!Context.unify( ltype, (macro:Lexer).toType() )) ctype = macro:Lexer;
 							results.push( macro cast {rule:$rule, func:function(lexer:$ctype) $res} );
 							
 						case _:
