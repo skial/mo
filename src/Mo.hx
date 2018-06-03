@@ -1,13 +1,13 @@
 package ;
 
-import haxe.macro.Printer;
 import uhx.mo.Token;
 import hxparse.Lexer;
 import haxe.rtti.Meta;
 import hxparse.Ruleset;
 import haxe.ds.StringMap;
+import haxe.macro.Printer;
 
-#if macro
+#if (macro||eval)
 import haxe.macro.Type as MType;
 import haxe.macro.Expr;
 import haxe.macro.Context;
@@ -145,8 +145,9 @@ class Mo {
 									
 							}
 							
-							var ctype = Context.toComplexType(Context.getLocalType());
-							if (!Context.unify( ctype.toType(), (macro:Lexer).toType() )) ctype = macro:Lexer;
+							var ltype = Context.getLocalType();
+							var ctype = Context.toComplexType(ltype);
+							if (!Context.unify( ltype, (macro:Lexer).toType() )) ctype = macro:Lexer;
 							results.push( macro cast {rule:$rule, func:function(lexer:$ctype) $res} );
 							
 						case _:
@@ -157,7 +158,7 @@ class Mo {
 					
 			}
 			
-			macro hxparse.Lexer.buildRuleset([$a { results } ]);
+			macro hxparse.Lexer.buildRuleset([$a { results } ], $v{Context.getLocalMethod()});
 		} else {
 			macro hxparse.Lexer.buildRuleset([]);
 		}
