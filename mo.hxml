@@ -1,3 +1,10 @@
+-lib hxparse
+-lib unifill
+
 -cp src
+-cp tests
+
+-D analyzer-optimize
+
 -neko bin/mo.n
 -main Main
