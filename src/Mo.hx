@@ -158,7 +158,7 @@ class Mo {
 					
 			}
 			
-			macro hxparse.Lexer.buildRuleset([$a { results } ]);
+			macro hxparse.Lexer.buildRuleset([$a { results } ], $v{Context.getLocalMethod()});
 		} else {
 			macro hxparse.Lexer.buildRuleset([]);
 		}
