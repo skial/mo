@@ -1,8 +1,8 @@
 package ;
 
+import uhx.lexer.*;
+import uhx.parser.*;
 import byte.ByteData;
-import Mo;
-import uhx.mo.Token;
 
 class Main {
 

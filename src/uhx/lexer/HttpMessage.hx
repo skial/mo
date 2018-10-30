@@ -52,12 +52,12 @@ class HttpMessage extends Lexer {
 	}();
 	
 	public static var root = Mo.rules( [
-		LF => Newline,
-		CR => Carriage,
-		HT => Tab(lexer.current.length),
+		LF => lexer -> Newline,
+		CR => lexer -> Carriage,
+		HT => lexer -> Tab(lexer.current.length),
 		SP + '+' => Space(lexer.current.length),
-		DQ => DoubleQuote,
-		SEP => {
+		DQ => lexer -> DoubleQuote,
+		SEP => lexer -> {
 			var sep = lexer.current;
 			if (check( sep )) {
 				check = function(v) return false;
@@ -65,7 +65,7 @@ class HttpMessage extends Lexer {
 			}
 			return Keyword( KwdSeparator( sep ) );
 		},
-		NAME => {
+		NAME => lexer -> {
 			var result = switch (lexer.current) {
 				case _.toLowerCase() => 'http':
 					buf = new StringBuf();
@@ -93,13 +93,13 @@ class HttpMessage extends Lexer {
 	] );
 	
 	public static var response = Mo.rules( [
-		SEP => lexer.token( response ),
-		NAME => buf.add( lexer.current ),
+		SEP => lexer -> lexer.token( response ),
+		NAME => lexer -> buf.add( lexer.current ),
 	] );
 	
 	public static var value = Mo.rules( [
-		SEP => lexer.token( value ),
-		VALUE => buf.add( lexer.current ),
+		SEP => lexer -> lexer.token( value ),
+		VALUE => lexer -> buf.add( lexer.current ),
 	] );
 	
 	// Internal

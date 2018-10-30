@@ -311,36 +311,36 @@ class Markdown extends Lexer {
 	}
 	
 	private static var codeRule = Mo.rules( [
-	'``*' => '`',
-	'[^`]+' => lexer.current,
+	'``*' => lexer -> '`',
+	'[^`]+' => lexer -> lexer.current,
 	] );
 	
 	private static var codeBlockRule = Mo.rules( [
-	'`[a-zA-Z0-9]+\r\n' => lexer.current.rtrim(),
-	'````*' => '```',
-	'[^`]+' => lexer.current,
+	'`[a-zA-Z0-9]+\r\n' => lexer -> lexer.current.rtrim(),
+	'````*' => lexer -> '```',
+	'[^`]+' => lexer -> lexer.current,
 	] );
 	
 	private static var emphasis = Mo.rules( [
-	'\r' => Carriage,
-	'\n' => Newline,
-	'\\*' => Asterisk,
-	'\\_' => Underscore,
-	'~' => Tilde,
-	'`' => GraveAccent,
-	'\t' => Tab(1),
-	' ' => Space(1),
-	'[^\r\n\t\\_\\*~` ]+' => Const(CString(lexer.current)),
+	'\r' => lexer -> Carriage,
+	'\n' => lexer -> Newline,
+	'\\*' => lexer -> Asterisk,
+	'\\_' => lexer -> Underscore,
+	'~' => lexer -> Tilde,
+	'`' => lexer -> GraveAccent,
+	'\t' => lexer -> Tab(1),
+	' ' => lexer -> Space(1),
+	'[^\r\n\t\\_\\*~` ]+' => lexer -> Const(CString(lexer.current)),
 	] );
 	
 	public static var span = Mo.rules( [
 		//dot => Dot,
-		'\t' => Tab(1),
-		'\n' => Newline,
-		'\r' => Carriage,
-		' ' => Space(1),
+		'\t' => lexer -> Tab(1),
+		'\n' => lexer -> Newline,
+		'\r' => lexer -> Carriage,
+		' ' => lexer -> Space(1),
 		//inlineCodeRule => {
-		'``*' => {
+		'``*' => lexer -> {
 			var current = lexer.current;
 			var tokens = [];
 			
@@ -356,7 +356,7 @@ class Markdown extends Lexer {
 			Keyword(Code( false, '', tokens.join('') ));
 		},
 		//italic => {
-		'\\*|\\_' => {
+		'\\*|\\_' => lexer -> {
 			var current = lexer.current;
 			var underscore = current == '_';
 			var tokens = [];
@@ -374,7 +374,7 @@ class Markdown extends Lexer {
 			Keyword(Italic( underscore, tokens ));
 		},
 		//bold => {
-		'\\*\\*|\\_\\_' => {
+		'\\*\\*|\\_\\_' => lexer -> {
 			var current = lexer.current;
 			var underscore = current == '__';
 			var tokens:Tokens = [];
@@ -401,7 +401,7 @@ class Markdown extends Lexer {
 			Keyword(Bold( underscore, tokens ));
 		},
 		//strike => {
-		'~~' => {
+		'~~' => lexer -> {
 			var current = lexer.current;
 			var tokens = [];
 			
@@ -421,48 +421,48 @@ class Markdown extends Lexer {
 			
 			Keyword(Strike( tokens ));
 		},
-		blockquote => {
+		blockquote => lexer -> {
 			handleBlockQuote(lexer);
 		},
-		unorderedItem => {
+		unorderedItem => lexer -> {
 			var current = lexer.current;
 			Keyword(Item( current.substring(0, 1), parse( current.substring(1).ltrim(), 'md-unordered-item', span ) ));
 		},
-		orderedItem => {
+		orderedItem => lexer -> {
 			var current = lexer.current;
 			var index = current.indexOf('.');
 			Keyword(Item( current.substring(0, index), parse( current.substring(index + 1).ltrim(), 'md-ordered-item', span ) ));
 		},
-		link => {
+		link => lexer -> {
 			//trace( 'link' );
 			var res = handleResource( lexer.current );
 			Keyword(Link(false, res.text, res.url, res.title));
 		},
-		image => {
+		image => lexer -> {
 			//trace( 'img' );
 			var res = handleResource( lexer.current.substring(1) );
 			Keyword(Image(false, res.text, res.url, res.title));
 		},
-		'!$reference' => {
+		'!$reference' => lexer -> {
 			//trace( 'img reference' );
 			var res = handleResource( lexer.current.substring(1) );
 			Keyword(Image(true, res.text, res.url, res.title));
 		},
-		reference => { 
+		reference => lexer -> { 
 			//trace( 'reference' );
 			var res = handleResource( lexer.current );
 			Keyword(Link(true, res.text, res.url, res.title));
 		},
-		resource => {
+		resource => lexer -> {
 			//trace( 'resource' );
 			var res = handleResource( lexer.current );
 			Keyword(Resource(res.text, res.url, res.title));
 		},
-		'[\\-]+' => Hyphen(lexer.current.length),
+		'[\\-]+' => lexer -> Hyphen(lexer.current.length),
 		//'  [ ]*$CR?$LF' => Mo.make(lexer, Keyword(Break)),
 		//'[$safeText]+' => Mo.make(lexer, Const(CString( lexer.current ))),
-		'[^\t\r\n\\*\\_~`\\[ ]+' => Const(CString( lexer.current )),
-		'~' => Tilde,
+		'[^\t\r\n\\*\\_~`\\[ ]+' => lexer -> Const(CString( lexer.current )),
+		'~' => lexer -> Tilde,
 		/*'\\#' => Mo.make(lexer, Const(CString( lexer.current ))),
 		'\\\\' => Mo.make(lexer, Const(CString('\\'))),*/
 		/*'\\~' => Mo.make(lexer, Const(CString( lexer.current ))),
@@ -475,12 +475,12 @@ class Markdown extends Lexer {
 	] );
 	
 	public static var blocks = Mo.rules( [
-		header => handleHeader(lexer),
-		altHeader => handleAltHeader(lexer),
-		indentedCode => {
+		header => handleHeader,
+		altHeader => handleAltHeader,
+		indentedCode => lexer -> {
 			Keyword(Code(false, '', lexer.current.ltrim()));
 		},
-		'````*' => {
+		'````*' => lexer -> {
 			var current = lexer.current;
 			var tokens = [];
 			var language = '';
@@ -505,8 +505,8 @@ class Markdown extends Lexer {
 			
 			Keyword(Code( true, language, tokens.join('') ));
 		},
-		unorderedList => Keyword(Collection( false, parse( lexer.current, 'md-unordered-list', span ) )),
-		orderedList => {
+		unorderedList => lexer -> Keyword(Collection( false, parse( lexer.current, 'md-unordered-list', span ) )),
+		orderedList => lexer -> {
 			Keyword(Collection( true, parse( lexer.current, 'md-ordered-list', span ) ));
 		},
 		/*horizontalRule => {
@@ -515,7 +515,7 @@ class Markdown extends Lexer {
 			character = character.endsWith(' ') ? character : character.substring(0, 1);
 			Mo.make(lexer, Keyword(Horizontal(character)));
 		},*/
-		blockquote => {
+		blockquote => lexer -> {
 			handleBlockQuote(lexer);
 		},
 		/*paragraph => {
@@ -523,7 +523,7 @@ class Markdown extends Lexer {
 			//trace( lexer.current.replace('\r', '\\r').replace('\n', '\\n') );
 			Mo.make(lexer, Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) )));
 		},*/
-		'$horizontalRule|$paragraph' => {
+		'$horizontalRule|$paragraph' => lexer -> {
 			var current = lexer.current;
 			switch (current.substring(0, 3)) {
 				case '***', '* *', '---', '- -', '___', '_ _':
@@ -537,10 +537,10 @@ class Markdown extends Lexer {
 					Keyword(Paragraph( parse( lexer.current, 'md-paragraph', span ) ));
 			}
 		},
-		'\t' => Tab(1),
-		'\r' => Carriage,
-		'\n' => Newline,
-		' ' => Space(1),
+		'\t' => lexer -> Tab(1),
+		'\r' => lexer -> Carriage,
+		'\n' => lexer -> Newline,
+		' ' => lexer -> Space(1),
 	] );
 	
 	public static var root = blocks;
