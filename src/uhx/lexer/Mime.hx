@@ -1,5 +1,6 @@
 package uhx.lexer;
 
+import hxparse.Ruleset;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
@@ -30,7 +31,7 @@ class Mime extends Lexer {
 		super( content, name );
 	}
 	
-	public static var root = Mo.rules( [
+	public static var root:Ruleset<Mime, Token<MimeKeywords>> = Mo.rules( [
 	'[ \r\n\t]*' => lexer -> lexer.token( root ),
 	'[a-zA-Z]+\\/' => lexer -> Keyword( Toplevel( lexer.current.substring(0, lexer.current.length - 1).toLowerCase() ) ),
 	'[a-zA-Z]+' => lexer -> Keyword( Subtype( lexer.current ) ),
