@@ -4,7 +4,15 @@
 -cp src
 -cp tests
 
+-dce full
 -D analyzer-optimize
 
--neko bin/mo.n
 -main Main
+
+--each
+
+-neko bin/mo.n
+
+--next
+
+-hl bin/mo.hl
