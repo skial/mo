@@ -124,6 +124,15 @@ class Mo {
 		return name.toLowerCase();
 	}
 	
+	#if (eval || macro)
+	public static function rules<T>(rules:Map<String, Lexer->T>) {
+		var results = [for (key in rules.keys()) {
+			rule: key,
+			func: rules.get(key),
+		}];
+		return hxparse.Lexer.buildRuleset(results, '');
+	}
+	#else
 	public static macro function rules<T>(rules:ExprOf<StringMap<T>>):ExprOf<Ruleset<T>> {
 		var results = [];
 		
@@ -163,5 +172,6 @@ class Mo {
 			macro hxparse.Lexer.buildRuleset([]);
 		}
 	}
-	
+	#end
+
 }

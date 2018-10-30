@@ -31,12 +31,12 @@ class Mime extends Lexer {
 	}
 	
 	public static var root = Mo.rules( [
-	'[ \r\n\t]*' => lexer.token( root ),
-	'[a-zA-Z]+\\/' => Keyword( Toplevel( lexer.current.substring(0, lexer.current.length - 1).toLowerCase() ) ),
-	'[a-zA-Z]+' => Keyword( Subtype( lexer.current ) ),
-	'([a-zA-Z0-9\\-]+\\.?)+' => Keyword( Tree( lexer.current ) ),
-	'\\+[a-zA-Z0-9]+' => Keyword( Suffix( lexer.current.substring(1, lexer.current.length) ) ),
-	'; +[a-zA-Z0-9\\-]+=[a-zA-Z0-9\\-]+' => {
+	'[ \r\n\t]*' => lexer -> lexer.token( root ),
+	'[a-zA-Z]+\\/' => lexer -> Keyword( Toplevel( lexer.current.substring(0, lexer.current.length - 1).toLowerCase() ) ),
+	'[a-zA-Z]+' => lexer -> Keyword( Subtype( lexer.current ) ),
+	'([a-zA-Z0-9\\-]+\\.?)+' => lexer -> Keyword( Tree( lexer.current ) ),
+	'\\+[a-zA-Z0-9]+' => lexer -> Keyword( Suffix( lexer.current.substring(1, lexer.current.length) ) ),
+	'; +[a-zA-Z0-9\\-]+=[a-zA-Z0-9\\-]+' => lexer -> {
 		var pair = lexer.current.substring(1, lexer.current.length).trim().split( '=' );
 		Keyword( Parameter( pair[0], pair[1] ) );
 	}
