@@ -3,13 +3,6 @@
 > Haitian Creole for Words
 
 Mo provides some simple utility files and example lexers.
-
-## Installation
-
-1. [hxparse] - `https://github.com/Simn/hxparse development src`
-2. mo - `haxelib git mo https://github.com/skial/mo master src`
-
-[hxparse]: http://github.com/simn/hxparse "Haxe Lexer and Parser Library"
 	
 ## Libraries and Classes built ontop of Mo
 
