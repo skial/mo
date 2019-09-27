@@ -1,15 +1,22 @@
 -lib hxparse
 -lib unifill
+-lib tink_macro
 
 -cp src
 -cp tests
 
+#-debug
 -dce full
 -D analyzer-optimize
+-D eval-stack
 
 -main Main
 
 --each
+
+-js bin/mo.js
+
+--next
 
 -neko bin/mo.n
 

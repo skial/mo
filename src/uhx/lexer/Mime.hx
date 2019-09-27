@@ -25,7 +25,7 @@ enum MimeKeywords {
 	Parameter(name:String, value:String);
 }
 
-class Mime extends Lexer {
+class Mime extends Lexer implements uhx.mo.RulesCache {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );

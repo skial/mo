@@ -37,7 +37,7 @@ enum MarkdownKeywords {
  * ...
  * @author Skial Bainn
  */
-class Markdown extends Lexer {
+class Markdown extends Lexer implements uhx.mo.RulesCache {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );

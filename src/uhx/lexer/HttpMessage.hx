@@ -4,6 +4,7 @@ import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 import hxparse.Lexer;
+import hxparse.Ruleset;
 import haxe.ds.StringMap;
 
 using Std;
@@ -17,19 +18,19 @@ using uhx.lexer.HttpMessage;
 enum HttpMessageKeywords {
 	@css(3) KwdHeader(n:String, v:String);
 	@css(3) KwdHttp(v:String);
-	// Microsoft can return additional sub decimal values. Of course they can.
+	// Microsoft can return additional sub decimal values.
 	@css(3) KwdStatus(c:Float, s:String);
 	@css(3) KwdSeparator(v:String);
 }
  
-class HttpMessage extends Lexer {
+class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
 	}
 	
 	public static var buf = new StringBuf();
-	public static var CR:String = '\r';
+	/*public static var CR:String = '\r';
 	public static var LF:String = '\n';
 	public static var SP:String = ' ';
 	public static var HT:String = '\t';
@@ -43,29 +44,29 @@ class HttpMessage extends Lexer {
 	public static var NAME:String = '[' + CHARS + LF + ']+';
 	public static var separators:Array<String> = ['\\(', '\\)', '<', '>', '@', ',', ';', ':', '\\', DQ, '/', '\\[', '\\]', '\\?', '=', '{', '}', SP, HT];
 	public static var SEP:String = separators.join('|');
-	public static var VALUE:String = function() {
+	public static var VALUE:String = (function() {
 		var copy = CHARS + separators.join('');
 		for (invalid in CTL.split('|').concat( ['\\(', '\\)'] )) {
 			copy = copy.replace( invalid, '' );
 		}
 		return '[$copy]+';
-	}();
+	})();*/
 	
-	public static var root = Mo.rules( [
-		LF => lexer -> Newline,
-		CR => lexer -> Carriage,
-		HT => lexer -> Tab(lexer.current.length),
-		SP + '+' => Space(lexer.current.length),
-		DQ => lexer -> DoubleQuote,
-		SEP => lexer -> {
+	public static var root:Ruleset<HttpMessage, Token<HttpMessageKeywords>> = Mo.rules( [
+		'\n' => lexer -> Newline,
+		'\r' => lexer -> Carriage,
+		'\t' => lexer -> Tab(lexer.current.length),
+		' +' => lexer -> Space(lexer.current.length),
+		'"' => lexer -> DoubleQuote,
+		'\\(|\\)|<|>|@|,|;|:|\\|"|/|\\[|\\]|\\?|=|{|}| |\t' => lexer -> {
 			var sep = lexer.current;
 			if (check( sep )) {
-				check = function(v) return false;
+				check = v -> false;
 				callback();	
 			}
-			return Keyword( KwdSeparator( sep ) );
+			Keyword( KwdSeparator( sep ) );
 		},
-		NAME => lexer -> {
+		'[a-zA-Z0-9!#$%&\'\\*-.^_`~]+' => lexer -> {
 			var result = switch (lexer.current) {
 				case _.toLowerCase() => 'http':
 					buf = new StringBuf();
@@ -81,25 +82,25 @@ class HttpMessage extends Lexer {
 				case _:
 					var name = lexer.current;
 					buf = new StringBuf();
-					check = function(v) return v == ':';
+					check = v -> v == ':';
 					callback = function() {
 						lexer.token( value );
 					}
 					lexer.token( root );
 					Keyword( KwdHeader( name.trim(), buf.toString() ) );
 			}
-			return result;
+			result;
 		},
 	] );
 	
-	public static var response = Mo.rules( [
-		SEP => lexer -> lexer.token( response ),
-		NAME => lexer -> buf.add( lexer.current ),
+	public static var response:Ruleset<HttpMessage, Void> = Mo.rules( [
+		'\\(|\\)|<|>|@|,|;|:|\\|"|/|\\[|\\]|\\?|=|{|}| |\t' => lexer -> lexer.token( response ),
+		'[a-zA-Z0-9!#$%&\'\\*-.^_`~]+' => lexer -> buf.add( lexer.current ),
 	] );
 	
-	public static var value = Mo.rules( [
-		SEP => lexer -> lexer.token( value ),
-		VALUE => lexer -> buf.add( lexer.current ),
+	public static var value:Ruleset<HttpMessage, Void> = Mo.rules( [
+		'\\(|\\)|<|>|@|,|;|:|\\|"|/|\\[|\\]|\\?|=|{|}| |\t' => lexer -> lexer.token( value ),
+		'[a-zA-Z0-9!#$%&\'\\*-.^_`~\\(\\)<>@,;:\\"/\\[\\]\\?={} ]+' => lexer -> buf.add( lexer.current ),
 	] );
 	
 	// Internal
