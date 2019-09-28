@@ -195,13 +195,19 @@ class RuleCache {
 
             }
 
-            var eof = macro null; // TODO use existing matched EOF functions.
+            var eof = macro null;
+            for (_key in value.keys) if (_key == '') {
+                eof = macro $i{name + '_' + methodName(localName + _key)}
+                break;
+            };
+
             var cases = [for (_key in value.keys) {
                 var value = patterns.get(_key);
                 var access = value.type.getID() + '.' + patternName(_key);
                 macro $e{access.resolve()}
             }];
-            var funcs = [for (_key in value.keys) {
+            
+            var funcs = [for (_key in value.keys) if (_key != '') {
                 macro $i{name + '_' + methodName(localName + _key)}
             }];
 

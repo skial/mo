@@ -91,6 +91,7 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 			}
 			result;
 		},
+		'' => lexer -> EOF,
 	] );
 	
 	public static var response:Ruleset<HttpMessage, Void> = Mo.rules( [

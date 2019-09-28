@@ -28,7 +28,10 @@ class HttpMessage {
 		
 		try while (true) {
 			var token = lexer.token( HttpMessageLexer.root );
-			results.push( token );
+			switch token {
+				case EOF: break;
+				case _: results.push( token );
+			}
 			
 		} catch (e:Any) {
 			//trace(e);

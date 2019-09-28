@@ -2,7 +2,11 @@
 
 > Haitian Creole for Words
 
-Mo provides some simple utility files and example lexers.
+Mo provides some basic types for building lexers & parsers.
+
+## Install
+
+- `lix install gh:skial/mo`
 	
 ## Libraries and Classes built ontop of Mo
 
