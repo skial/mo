@@ -33,15 +33,18 @@ class RuleCache {
         `{ type:Type }` The original class that contained the `pattern`.
     **/
     @:persistent
-    private static var patterns:Map<String, {pattern:Pattern, type:Type}> = [];
+    private static var patterns:Map<String, {pattern:Pattern, type:Type, depth:Int}> = [];
 
     public static function build():Array<Field> {
         var local = Context.getLocalType();
         var localName = local.getID();
         var fields:Array<Field> = Context.getBuildFields();
 
+        // No need to run in display mode.
+        if (Context.defined('display') || Context.defined('display-details')) return fields;
+
         var returnFields = [];
-        var reconstruct:Map<String, {field:Field, ctype:Null<ComplexType>, expr:Null<Expr>, keys:Array<String>}> = [];
+        var reconstruct:Map<String, {field:Field, ctype:Null<ComplexType>, expr:Null<Expr>, keys:Array<String>, patterns:Array<String>}> = [];
 
         for (field in fields) {
             var isStatic = false;
@@ -53,6 +56,7 @@ class RuleCache {
             if (isStatic) switch field.kind {
                 case FVar(ct, e):
                     var keys = [];
+                    var patternKeys = [];
                     var rules:Map<String, {field:Field, ctype:Null<ComplexType>, method:Expr}> = [];
 
                     switch e {
@@ -65,32 +69,34 @@ class RuleCache {
                                         keys.push(value);
                                     }
 
-                                    if (!patterns.exists(value)) {
-                                        var pattern = hxparse.LexEngine.parse(value);
-                                        // Fill `ranges` with `CharRange` values.
-                                        inlineRanges(pattern, local);
-                                        patterns.set( value, {pattern:pattern, type:local} );
-
-                                    }
-
                                     if (!rules.exists(value)) {
+                                        var pattern = hxparse.LexEngine.parse(value);
+                                        var key = patternName(pattern);
+
+                                        if (patternKeys.indexOf(key) == -1) {
+                                            patternKeys.push(key);
+                                        }
+
+                                        cacheRanges(pattern, local);
+                                        cachePatterns(pattern, local);
+
                                         rules.set( value, { field: field, ctype:ct, method: func } );
 
                                     }
 
                                 case _:
-                                    trace('failed to match');
 
                             }
 
-                            if (!reconstruct.exists(localName + field.name)) {
+                            if (!reconstruct.exists(field.name)) {
                                 reconstruct.set(
-                                    localName + field.name, 
+                                    field.name, 
                                     {
                                         field:field, 
                                         ctype:ct, 
                                         expr:e, 
-                                        keys:keys
+                                        keys:keys,
+                                        patterns:patternKeys,
                                     }
                                 );
 
@@ -125,8 +131,9 @@ class RuleCache {
 
                                 }
 
+                                var pos = value.field.pos;
                                 var tmp = (macro class {
-                                    public static function $methodName(lexer:$lexerType) $methodBody;
+                                    @:pos(pos) public static function $methodName(lexer:$lexerType) $methodBody;
                                 });
 
                                 returnFields.push( tmp.fields[0] );
@@ -147,7 +154,7 @@ class RuleCache {
 
         }
 
-        for (key => value in ranges) {
+        for (_ => value in ranges) {
             var rangeName = rangeName(value.range);
             var rangeExpr = rangeExpr(value.range);
 
@@ -160,9 +167,25 @@ class RuleCache {
 
         }
 
-        for (key => value in patterns) {
-            var patternName = patternName(key);
-            var patternExpr = patternExpr(value.pattern);
+        var empty = [];
+        var match = [];
+        var single = [];
+        var pair = [];
+
+        for (_ => value in patterns) switch value.pattern {
+            case Empty: empty.push(value);
+            case Match(_): match.push(value);
+            case Star(_), Plus(_), Group(_): single.push(value);
+            case _: pair.push(value);
+        }
+
+        var nested = single.concat(pair);
+        nested.sort( (a, b) -> a.depth - b.depth );
+        
+        var ordered = empty.concat(match).concat(nested);
+        for (value in ordered) {
+            var patternName = patternName(value.pattern);
+            var patternExpr = patternExpr(value);
 
             var tmp = (macro class {
                 @:noCompletion 
@@ -173,7 +196,7 @@ class RuleCache {
 
         }
 
-        for (key => value in reconstruct) {
+        for (_ => value in reconstruct) {
             var name = value.field.name;
             var lexerType = macro:hxparse.Lexer;
             var returnType = null;
@@ -196,36 +219,34 @@ class RuleCache {
             }
 
             var eof = macro null;
+            var methods = [];
+
             for (_key in value.keys) if (_key == '') {
                 eof = macro $i{name + '_' + methodName(localName + _key)}
-                break;
+                
+            } else {
+                methods.push( macro $i{name + '_' + methodName(localName + _key)} );
             };
 
-            var cases = [for (_key in value.keys) {
+            var cases = [for (_key in value.patterns) {
                 var value = patterns.get(_key);
-                var access = value.type.getID() + '.' + patternName(_key);
+                var access = value.type.getID() + '.' + _key;
                 macro $e{access.resolve()}
             }];
-            
-            var funcs = [for (_key in value.keys) if (_key != '') {
-                macro $i{name + '_' + methodName(localName + _key)}
-            }];
 
+            var pos = value.field.pos;
             var tmp = (macro class {
-                public static final $name = new hxparse.Ruleset<$lexerType, $returnType>(
+                @:pos(pos) public static final $name = new hxparse.Ruleset<$lexerType, $returnType>(
                     new hxparse.LexEngine([$a{cases}]).firstState(),
-                    [$a{funcs}], $eof, $v{localName + '.' + name}
+                    [$a{methods}], $eof, $v{localName + '.' + name}
                 );
             });
 
             returnFields.push( tmp.fields[0] );
         }
 
-        for (field in returnFields) {
-            if (Context.defined('debug')) {
-                trace( printer.printField( field ) );
-
-            }
+        if (Context.defined('debug')) for (field in returnFields) {
+            trace( printer.printField( field ) );
 
         }
 
@@ -234,15 +255,7 @@ class RuleCache {
 
     //
 
-    /*private static function getKey(value:String):String {
-        var regex = new EReg("\\0", "g");
-        if (regex.match(value)) {
-            value = regex.replace(value, '__NUL__');
-        }
-        return value;
-    }*/
-
-    private static function inlineRanges(pattern:Pattern, sourceType:Type):Void {
+    private static function cacheRanges(pattern:Pattern, sourceType:Type):Void {
         switch pattern {
             case Match(values):
                 for (value in values) {
@@ -256,11 +269,11 @@ class RuleCache {
                 }
 
             case Star(p), Plus(p), Group(p):
-                inlineRanges(p, sourceType);
+                cacheRanges(p, sourceType);
 
             case Next(a, b), Choice(a, b):
-                inlineRanges(a, sourceType);
-                inlineRanges(b, sourceType);
+                cacheRanges(a, sourceType);
+                cacheRanges(b, sourceType);
 
             case _:
 
@@ -275,14 +288,14 @@ class RuleCache {
         return 'range${range.min}${range.max}';
     }
 
-    private static function patternName(key:String):String {
-        var sig = Context.signature(key);
+    private static function patternName(pattern:Pattern):String {
+        var sig:String = Context.signature(pattern);
         sig = sig.substring(sig.length-6, sig.length);
-        return 'pattern$sig';
+        return '${pattern.getName()}$sig';
     }
 
     private static function methodName(key:String):String {
-        var sig = Context.signature(key);
+        var sig:String = Context.signature(key);
         sig = sig.substring(sig.length-6, sig.length);
         return 'method$sig';
     }
@@ -291,8 +304,16 @@ class RuleCache {
         return macro { min:$v{range.min}, max:$v{range.max} };
     }
 
-    private static function patternExpr(pattern:Pattern):Expr {
-        return switch pattern {
+    private static function generatePatternAccess(p:Pattern):String {
+        var key = patternName(p);
+        var info = patterns.get(key);
+        if (info == null) throw 'null access';
+        var access = info.type.getID() + '.' + key;
+        return access;
+    }
+
+    private static function patternExpr(v:{pattern:Pattern, type:Type, depth:Int}):Expr {
+        return switch v.pattern {
             case Empty: 
                 macro hxparse.Pattern.Empty;
 
@@ -305,22 +326,65 @@ class RuleCache {
                 }];
                 macro hxparse.Pattern.Match([$a{ array }]);
 
-            case Star(p): 
-                macro hxparse.Pattern.Star($e{patternExpr(p)});
+            case Star(p):
+                var access = generatePatternAccess(p);
+                macro hxparse.Pattern.Star($e{access.resolve()});
 
-            case Plus(p): 
-                macro hxparse.Pattern.Plus($e{patternExpr(p)});
+            case Plus(p):
+                var access = generatePatternAccess(p);
+                macro hxparse.Pattern.Plus($e{access.resolve()});
 
             case Group(p): 
-                macro hxparse.Pattern.Group($e{patternExpr(p)});
+                var access = generatePatternAccess(p);
+                macro hxparse.Pattern.Group($e{access.resolve()});
 
-            case Next(p1, p2): 
-                macro hxparse.Pattern.Next($e{patternExpr(p1)}, $e{patternExpr(p2)});
+            case Next(p1, p2):
+                var access1 = generatePatternAccess(p1);
+                var access2 = generatePatternAccess(p2);
+                macro hxparse.Pattern.Next($e{access1.resolve()}, $e{access2.resolve()});
 
-            case Choice(p1, p2): 
-                macro hxparse.Pattern.Choice($e{patternExpr(p1)}, $e{patternExpr(p2)});
+            case Choice(p1, p2):
+                var access1 = generatePatternAccess(p1);
+                var access2 = generatePatternAccess(p2);
+                macro hxparse.Pattern.Choice($e{access1.resolve()}, $e{access2.resolve()});
 
         }
+
+    }
+
+    private static function cachePatterns(pattern:Pattern, sourceType:Type, depth:Int = 0):Int {
+        var key = patternName(pattern);
+
+        if (!patterns.exists(key)) {
+            patterns.set( key, {
+                pattern: pattern,
+                type: sourceType,
+                depth: 0
+            } );
+
+            switch pattern {
+                case Empty:
+                case Match(_):
+                case Star(p), Plus(p), Group(p): 
+                    depth += cachePatterns(p, sourceType, depth+1);
+
+                case Next(p1, p2), Choice(p1, p2): 
+                    depth += cachePatterns(p1, sourceType, depth+1);
+                    depth += cachePatterns(p2, sourceType, depth+1);
+
+            }
+
+            var info = patterns.get(key);
+            info.depth = depth;
+            patterns.set(key, info);
+
+        } else {
+            var info = patterns.get(key);
+            depth = info.depth;
+
+        }
+
+        return depth;
     }
 
 }
