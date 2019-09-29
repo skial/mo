@@ -31,16 +31,17 @@ class RuleCache {
         --
         `{ pattern:Pattern }` The parsed rule into a `hxparse.Pattern` enum.
         `{ type:Type }` The original class that contained the `pattern`.
+        `{ depth:Int }` Used to sort generated pattern static fields.
     **/
     @:persistent
     private static var patterns:Map<String, {pattern:Pattern, type:Type, depth:Int}> = [];
 
     public static function build():Array<Field> {
-        var local = Context.getLocalType();
-        var localName = local.getID();
+        var local:Type = Context.getLocalType();
+        var localName:String = local.getID();
         var fields:Array<Field> = Context.getBuildFields();
 
-        // No need to run in display mode.
+        // There is no need to run in display mode.
         if (Context.defined('display') || Context.defined('display-details')) return fields;
 
         var returnFields = [];
@@ -92,10 +93,10 @@ class RuleCache {
                                 reconstruct.set(
                                     field.name, 
                                     {
-                                        field:field, 
-                                        ctype:ct, 
                                         expr:e, 
+                                        ctype:ct, 
                                         keys:keys,
+                                        field:field, 
                                         patterns:patternKeys,
                                     }
                                 );
@@ -150,6 +151,7 @@ class RuleCache {
                 
             }
 
+            // Add back any non matching field.
             returnFields.push( field );
 
         }
@@ -172,11 +174,12 @@ class RuleCache {
         var single = [];
         var pair = [];
 
+        // Split all enum ctors out into common groups to be ordered properly.
         for (_ => value in patterns) switch value.pattern {
             case Empty: empty.push(value);
             case Match(_): match.push(value);
             case Star(_), Plus(_), Group(_): single.push(value);
-            case _: pair.push(value);
+            case Next(_, _), Choice(_, _): pair.push(value);
         }
 
         var nested = single.concat(pair);
@@ -275,7 +278,7 @@ class RuleCache {
                 cacheRanges(a, sourceType);
                 cacheRanges(b, sourceType);
 
-            case _:
+            case Empty:
 
         }
     }
@@ -307,7 +310,6 @@ class RuleCache {
     private static function generatePatternAccess(p:Pattern):String {
         var key = patternName(p);
         var info = patterns.get(key);
-        if (info == null) throw 'null access';
         var access = info.type.getID() + '.' + key;
         return access;
     }
@@ -354,6 +356,11 @@ class RuleCache {
 
     private static function cachePatterns(pattern:Pattern, sourceType:Type, depth:Int = 0):Int {
         var key = patternName(pattern);
+
+        /**
+        I'm not happy with the way `depth` is determined. 
+        But its currently working.
+        **/
 
         if (!patterns.exists(key)) {
             patterns.set( key, {
