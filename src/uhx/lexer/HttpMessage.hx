@@ -30,7 +30,7 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 	}
 	
 	public static var buf = new StringBuf();
-	/*public static var CR:String = '\r';
+	public static var CR:String = '\r';
 	public static var LF:String = '\n';
 	public static var SP:String = ' ';
 	public static var HT:String = '\t';
@@ -50,14 +50,14 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 			copy = copy.replace( invalid, '' );
 		}
 		return '[$copy]+';
-	})();*/
+	})();
 	
 	public static var root:Ruleset<HttpMessage, Token<HttpMessageKeywords>> = Mo.rules( [
-		'\n' => lexer -> Newline,
-		'\r' => lexer -> Carriage,
-		'\t' => lexer -> Tab(lexer.current.length),
-		' +' => lexer -> Space(lexer.current.length),
-		'"' => lexer -> DoubleQuote,
+		LF => lexer -> Newline,
+		CR => lexer -> Carriage,
+		HT => lexer -> Tab(lexer.current.length),
+		SP + '+' => lexer -> Space(lexer.current.length),
+		DQ => lexer -> DoubleQuote,
 		'\\(|\\)|<|>|@|,|;|:|\\|"|/|\\[|\\]|\\?|=|{|}| |\t' => lexer -> {
 			var sep = lexer.current;
 			if (check( sep )) {
@@ -66,7 +66,7 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 			}
 			Keyword( KwdSeparator( sep ) );
 		},
-		'[a-zA-Z0-9!#$%&\'\\*-.^_`~]+' => lexer -> {
+		NAME => lexer -> {
 			var result = switch (lexer.current) {
 				case _.toLowerCase() => 'http':
 					buf = new StringBuf();
@@ -96,7 +96,7 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 	
 	public static var response:Ruleset<HttpMessage, Void> = Mo.rules( [
 		'\\(|\\)|<|>|@|,|;|:|\\|"|/|\\[|\\]|\\?|=|{|}| |\t' => lexer -> lexer.token( response ),
-		'[a-zA-Z0-9!#$%&\'\\*-.^_`~]+' => lexer -> buf.add( lexer.current ),
+		NAME => lexer -> buf.add( lexer.current ),
 	] );
 	
 	public static var value:Ruleset<HttpMessage, Void> = Mo.rules( [

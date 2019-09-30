@@ -64,7 +64,9 @@ class RuleCache {
                         case macro Mo.rules( [$a{exprs}] ):
                             for (expr in exprs) switch expr {
                                 case macro $key => $func:
-                                    var value = key.getValue();
+                                    var value = extractRule(key, fields);
+                                    
+                                    if (value == null) Context.error('Unable to value for `${key.toString()}`.', key.pos);
 
                                     if (keys.lastIndexOf(value) == -1) {
                                         keys.push(value);
@@ -258,29 +260,41 @@ class RuleCache {
 
     //
 
-    private static function cacheRanges(pattern:Pattern, sourceType:Type):Void {
-        switch pattern {
-            case Match(values):
-                for (value in values) {
-                    var key = rangeKey(value);
+    private static function extractRule(expr:Expr, fields:Array<Field>):Null<String> {
+        switch expr {
+            case _.expr => EConst(CString(v)):
+                return v;
 
-                    if (!ranges.exists(key)) {
-                        ranges.set(key, {range:value, type:sourceType});
+            case _.expr => EConst(CIdent(id)):
+                for (field in fields) if (field.name == id) {
+                    switch field.kind {
+                        case FVar(ctype, e):
+                            return extractRule(e, fields);
+
+                        case FProp(get, set, ctype, e):
+                            return extractRule(e, fields);
+
+                        case FFun(method):
 
                     }
 
+                    break;
                 }
 
-            case Star(p), Plus(p), Group(p):
-                cacheRanges(p, sourceType);
+            case _.expr => EBinop(op, e1, e2):
+                var v1:Null<String> = extractRule(e1, fields);
+                var v2:Null<String> = extractRule(e2, fields);
 
-            case Next(a, b), Choice(a, b):
-                cacheRanges(a, sourceType);
-                cacheRanges(b, sourceType);
+                switch op {
+                    case OpAdd: return v1 + v2;
+					case _: Context.warning('Unsupported expression `${expr.toString()}`', expr.pos);
+                }
 
-            case Empty:
-
+            case _:
+            
         }
+
+        return null;
     }
 
     private static function rangeKey(value:CharRange):String {
@@ -312,6 +326,31 @@ class RuleCache {
         var info = patterns.get(key);
         var access = info.type.getID() + '.' + key;
         return access;
+    }
+
+    private static function cacheRanges(pattern:Pattern, sourceType:Type):Void {
+        switch pattern {
+            case Match(values):
+                for (value in values) {
+                    var key = rangeKey(value);
+
+                    if (!ranges.exists(key)) {
+                        ranges.set(key, {range:value, type:sourceType});
+
+                    }
+
+                }
+
+            case Star(p), Plus(p), Group(p):
+                cacheRanges(p, sourceType);
+
+            case Next(a, b), Choice(a, b):
+                cacheRanges(a, sourceType);
+                cacheRanges(b, sourceType);
+
+            case Empty:
+
+        }
     }
 
     private static function patternExpr(v:{pattern:Pattern, type:Type, depth:Int}):Expr {
