@@ -9,6 +9,8 @@ import haxe.macro.Context;
 
 using StringTools;
 using haxe.macro.ExprTools;
+using haxe.macro.TypedExprTools;
+using tink.CoreApi;
 using tink.MacroApi;
 
 class RuleCache {
@@ -40,6 +42,10 @@ class RuleCache {
         var local:Type = Context.getLocalType();
         var localName:String = local.getID();
         var fields:Array<Field> = Context.getBuildFields();
+        var allImports = Context.getLocalImports();
+        var loadedImports = allImports.map( i -> Context.getType( i.path.map( p -> p.name ).join('.') ) );
+        //var starImports = allImports.filter( i -> i.mode.equals(IAll) );
+        //var normalImports = allImports.filter( i -> i.mode.equals(INormal) );
 
         // There is no need to run in display mode.
         if (Context.defined('display') || Context.defined('display-details')) return fields;
@@ -64,9 +70,12 @@ class RuleCache {
                         case macro Mo.rules( [$a{exprs}] ):
                             for (expr in exprs) switch expr {
                                 case macro $key => $func:
-                                    var value = extractRule(key, fields);
+                                    var value = extractRule(key, fields, loadedImports);
+                                    //trace( key.toString(), field.name, value.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t') );
                                     
-                                    if (value == null) Context.error('Unable to value for `${key.toString()}`.', key.pos);
+                                    if (value == null) {
+                                        Context.error('Unable to determine value for `${key.toString()}`.', key.pos);
+                                    }
 
                                     if (keys.lastIndexOf(value) == -1) {
                                         keys.push(value);
@@ -260,7 +269,7 @@ class RuleCache {
 
     //
 
-    private static function extractRule(expr:Expr, fields:Array<Field>):Null<String> {
+    private static function extractRule(expr:Expr, fields:Array<Field>, loadedImports:Array<Type>):Null<String> {
         switch expr {
             case _.expr => EConst(CString(v)):
                 return v;
@@ -269,10 +278,10 @@ class RuleCache {
                 for (field in fields) if (field.name == id) {
                     switch field.kind {
                         case FVar(ctype, e):
-                            return extractRule(e, fields);
+                            return extractRule(e, fields, loadedImports);
 
                         case FProp(get, set, ctype, e):
-                            return extractRule(e, fields);
+                            return extractRule(e, fields, loadedImports);
 
                         case FFun(method):
 
@@ -281,9 +290,42 @@ class RuleCache {
                     break;
                 }
 
+                // Attempt to load the `expr` type and pull value from a matching field.
+                var value = null;
+                var warnings = [];
+                try {
+                    var type = expr.typeof().sure();
+                    value = searchType(type, id);
+                    if (value != null) return value;
+
+                    warnings.push({msg:'Cannot find field `$id` on type `${type.getID()}`', pos:expr.pos});
+
+                } catch (e:Any) {
+                    warnings.push({msg:'Cannot determine type for `${expr.toString()}`', pos:expr.pos});
+
+                }
+
+                // Attempt to find a matching const value in one of the imports.
+                try {
+                    for (type in loadedImports) {
+                        value = searchType(type, id);
+                        if (value != null) return value;
+                        
+                    }
+
+                    warnings.push({msg:'Cannot find field `$id` on any local imports.', pos:expr.pos});
+
+                } catch (e:Any) {
+                    warnings.push({msg:e, pos:expr.pos});
+                }
+
+                for (warning in warnings) {
+                    Context.warning(warning.msg, warning.pos);
+                }
+
             case _.expr => EBinop(op, e1, e2):
-                var v1:Null<String> = extractRule(e1, fields);
-                var v2:Null<String> = extractRule(e2, fields);
+                var v1:Null<String> = extractRule(e1, fields, loadedImports);
+                var v2:Null<String> = extractRule(e2, fields, loadedImports);
 
                 switch op {
                     case OpAdd: return v1 + v2;
@@ -295,6 +337,71 @@ class RuleCache {
         }
 
         return null;
+    }
+
+    private static function searchType(type:Type, id:String):Null<String> {
+        var value = null;
+
+        switch type {
+            case TInst(_.get() => cls, _):
+                for (set in [cls.fields.get(), cls.statics.get()]) {
+                    value = extractTypedRule(id, set);
+                    if (value != null) return value;
+                }
+
+            case TAbstract(_.get() => abs, _):
+                var impl = abs.impl == null ? null : abs.impl.get();
+
+                if (impl != null) {
+                    for (set in [impl.fields.get(), impl.statics.get()]) {
+                        value = extractTypedRule(id, set);
+                        if (value != null) return value;
+                    }
+
+                }
+
+            case _:
+
+        }
+
+        return value;
+    }
+
+    private static function extractTypedRule(name:String, fields:Array<ClassField>):Null<String> {
+        var value = null;
+
+        for (field in fields) if (field.name == name) {
+            var typedExpr = field.expr();
+
+            if (typedExpr != null) {
+                extractTypedExprRule(typedExpr).handle( o -> switch o {
+                    case Success(v): value = v;
+                    case Failure(e): Context.warning(e.message, typedExpr.pos);
+                } );
+                
+                if (value != null) return value;
+            }
+
+            break;
+
+        }
+
+        return null;
+    }
+
+    private static function extractTypedExprRule(expr:TypedExpr, ?trigger:PromiseTrigger<String>):Promise<String> {
+        var trigger:PromiseTrigger<String> = trigger == null ? Promise.trigger() : trigger;
+
+        switch expr {
+            case _.expr => TConst(TString(v)): 
+                trigger.resolve(v);
+
+            case _:
+                expr.iter( extractTypedExprRule.bind(_, trigger) );
+                trigger.reject(Error.withData(NotFound, 'Unable to find const string.', expr));
+
+        }
+        return trigger.asPromise();
     }
 
     private static function rangeKey(value:CharRange):String {

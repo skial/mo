@@ -6,6 +6,7 @@ import byte.ByteData;
 import hxparse.Lexer;
 import hxparse.Ruleset;
 import haxe.ds.StringMap;
+import uhx.lexer.Consts.*;
 
 using Std;
 using StringTools;
@@ -16,11 +17,11 @@ using uhx.lexer.HttpMessage;
  * @author Skial Bainn
  */
 enum HttpMessageKeywords {
-	@css(3) KwdHeader(n:String, v:String);
-	@css(3) KwdHttp(v:String);
+	@css Header(n:String, v:String);
+	@css Http(v:String);
 	// Microsoft can return additional sub decimal values.
-	@css(3) KwdStatus(c:Float, s:String);
-	@css(3) KwdSeparator(v:String);
+	@css Status(c:Float, s:String);
+	@css Separator(v:String);
 }
  
 class HttpMessage extends Lexer implements uhx.mo.RulesCache {
@@ -30,10 +31,10 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 	}
 	
 	public static var buf = new StringBuf();
-	public static var CR:String = '\r';
+	/*public static var CR:String = '\r';
 	public static var LF:String = '\n';
+	public static var HT:String = '\t';*/
 	public static var SP:String = ' ';
-	public static var HT:String = '\t';
 	public static var DQ:String = '"';
 	public static var CTL:String = '\\0|\\a|\\b|' + HT + '|' + LF + '|\\v|\\f|' + CR + '|\\e';
 	public static var DIGIT:String = '0-9';
@@ -64,20 +65,20 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 				check = v -> false;
 				callback();	
 			}
-			Keyword( KwdSeparator( sep ) );
+			Keyword( Separator( sep ) );
 		},
 		NAME => lexer -> {
 			var result = switch (lexer.current) {
 				case _.toLowerCase() => 'http':
 					buf = new StringBuf();
 					try lexer.token( response ) catch (e:Eof) throw e;
-					Keyword( KwdHttp( buf.toString() ) );
+					Keyword( Http( buf.toString() ) );
 					
 				case _.isStatusCode() => true:
 					buf = new StringBuf();
 					var code = lexer.current.parseFloat();
 					try lexer.token( response ) catch (e:Eof) throw e;
-					Keyword( KwdStatus( code, buf.toString() ) );
+					Keyword( Status( code, buf.toString() ) );
 					
 				case _:
 					var name = lexer.current;
@@ -87,7 +88,7 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 						lexer.token( value );
 					}
 					lexer.token( root );
-					Keyword( KwdHeader( name.trim(), buf.toString() ) );
+					Keyword( Header( name.trim(), buf.toString() ) );
 			}
 			result;
 		},
