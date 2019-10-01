@@ -73,7 +73,17 @@ class RulesCache {
         var local:Type = Context.getLocalType();
         var localName:String = local.getID();
         var allImports = Context.getLocalImports();
-        var typedImports = allImports.map( i -> Context.getType( i.path.map( p -> p.name ).join('.') ) );
+        //var allUsings = Context.getLocalUsing();
+        var typedImports = [for (imp in allImports) {
+            var matched = false;
+            var path = [for (p in imp.path) if (!matched) {
+                // Stop joining strings on the first upper case character, as this is a module/type name.
+                matched = p.name.charCodeAt(0) >= 'A'.code && p.name.charCodeAt(0) <= 'Z'.code;
+                p.name;
+            }].join('.');
+            var module = Context.getModule( path );
+            for (type in module) type;
+        }];
         var returnFields = [];
         var reconstruct:Map<String, {field:Field, ctype:Null<ComplexType>, expr:Null<Expr>, keys:Array<String>, patterns:Array<String>}> = [];
 

@@ -7,9 +7,11 @@ import hxparse.Lexer;
 import hxparse.Ruleset;
 import haxe.ds.StringMap;
 import uhx.lexer.Consts.*;
+//import uhx.lexer.Consts.Consts2;
 
 using Std;
 using StringTools;
+using uhx.lexer.Consts;	// imports sub type `Consts2` values into scope.
 using uhx.lexer.HttpMessage;
 
 /**
@@ -24,7 +26,7 @@ enum HttpMessageKeywords {
 	@css Separator(v:String);
 }
  
-class HttpMessage extends Lexer implements uhx.mo.RulesCache {
+class HttpMessage extends Lexer /*implements uhx.mo.RulesCache*/ {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -34,7 +36,7 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 	/*public static var CR:String = '\r';
 	public static var LF:String = '\n';
 	public static var HT:String = '\t';*/
-	public static var SP:String = ' ';
+	//public static var SP:String = ' ';
 	public static var DQ:String = '"';
 	public static var CTL:String = '\\0|\\a|\\b|' + HT + '|' + LF + '|\\v|\\f|' + CR + '|\\e';
 	public static var DIGIT:String = '0-9';
@@ -104,6 +106,8 @@ class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 		'\\(|\\)|<|>|@|,|;|:|\\|"|/|\\[|\\]|\\?|=|{|}| |\t' => lexer -> lexer.token( value ),
 		'[a-zA-Z0-9!#$%&\'\\*-.^_`~\\(\\)<>@,;:\\"/\\[\\]\\?={} ]+' => lexer -> buf.add( lexer.current ),
 	] );
+
+	@:keep public static var emptyRuleSet:Ruleset<HttpMessage, Void> = Mo.rules( [] );
 	
 	// Internal
 	
