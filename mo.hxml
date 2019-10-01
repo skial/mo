@@ -6,6 +6,7 @@
 -cp tests
 
 #-debug
+#-D disable.rules.cache
 -dce full
 -D analyzer-optimize
 -D eval-stack
@@ -16,10 +17,10 @@
 
 -js bin/mo.js
 
-#--next
-#
-#-neko bin/mo.n
-#
-#--next
-#
-#-hl bin/mo.hl
+--next
+
+-neko bin/mo.n
+
+--next
+
+-hl bin/mo.hl

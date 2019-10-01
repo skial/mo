@@ -7,6 +7,10 @@ Mo provides some basic types for building lexers & parsers.
 ## Install
 
 - `lix install gh:skial/mo`
+
+## Defines
+
+- `-D disable.rules.cache` will disable all `implements uhx.mo.RulesCache` macros.
 	
 ## Libraries and Classes built ontop of Mo
 

@@ -1,6 +1,6 @@
 package uhx.mo;
 
-#if !(macro)
-@:autoBuild(uhx.mo.macro.RuleCache.build())
+#if !(eval || macro)
+@:autoBuild(uhx.mo.macro.RulesCache.build())
 #end
 @:remove interface RulesCache {}

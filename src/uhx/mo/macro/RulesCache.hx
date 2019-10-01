@@ -13,7 +13,33 @@ using haxe.macro.TypedExprTools;
 using tink.CoreApi;
 using tink.MacroApi;
 
-class RuleCache {
+enum abstract Defines(String) {
+    public var Debug = 'debug';
+    public var Display = 'display';
+    public var DisplayDetails = 'display-details';
+    public var Disable = 'disable.rules.cache';
+
+    @:to public inline function defined():Bool {
+        return Context.defined(this);
+    }
+
+    @:op(!A) public static inline function boolNot(a:Defines):Bool {
+        return !a.defined();
+    }
+
+    @:commutative
+    @:op(A || B) public static inline function boolOr(a:Defines, b:Bool):Bool {
+        return a.defined() || b;
+    }
+
+    @:commutative
+    @:op(A && B) public static inline function boolAnd(a:Defines, b:Bool):Bool {
+        return a.defined() && b;
+    }
+
+}
+
+class RulesCache {
 
     private static final printer = new haxe.macro.Printer();
 
@@ -39,17 +65,15 @@ class RuleCache {
     private static var patterns:Map<String, {pattern:Pattern, type:Type, depth:Int}> = [];
 
     public static function build():Array<Field> {
-        var local:Type = Context.getLocalType();
-        var localName:String = local.getID();
         var fields:Array<Field> = Context.getBuildFields();
-        var allImports = Context.getLocalImports();
-        var loadedImports = allImports.map( i -> Context.getType( i.path.map( p -> p.name ).join('.') ) );
-        //var starImports = allImports.filter( i -> i.mode.equals(IAll) );
-        //var normalImports = allImports.filter( i -> i.mode.equals(INormal) );
 
         // There is no need to run in display mode.
-        if (Context.defined('display') || Context.defined('display-details')) return fields;
+        if (Disable || Display || DisplayDetails) return fields;
 
+        var local:Type = Context.getLocalType();
+        var localName:String = local.getID();
+        var allImports = Context.getLocalImports();
+        var typedImports = allImports.map( i -> Context.getType( i.path.map( p -> p.name ).join('.') ) );
         var returnFields = [];
         var reconstruct:Map<String, {field:Field, ctype:Null<ComplexType>, expr:Null<Expr>, keys:Array<String>, patterns:Array<String>}> = [];
 
@@ -70,8 +94,7 @@ class RuleCache {
                         case macro Mo.rules( [$a{exprs}] ):
                             for (expr in exprs) switch expr {
                                 case macro $key => $func:
-                                    var value = extractRule(key, fields, loadedImports);
-                                    //trace( key.toString(), field.name, value.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t') );
+                                    var value = extractRule(key, fields, typedImports);
                                     
                                     if (value == null) {
                                         Context.error('Unable to determine value for `${key.toString()}`.', key.pos);
@@ -162,7 +185,7 @@ class RuleCache {
                 
             }
 
-            // Add back any non matching field.
+            // Add back original uneditted fields.
             returnFields.push( field );
 
         }
@@ -185,7 +208,7 @@ class RuleCache {
         var single = [];
         var pair = [];
 
-        // Split all enum ctors out into common groups to be ordered properly.
+        // Split all enum ctors out into common groups to be ordered.
         for (_ => value in patterns) switch value.pattern {
             case Empty: empty.push(value);
             case Match(_): match.push(value);
@@ -259,7 +282,7 @@ class RuleCache {
             returnFields.push( tmp.fields[0] );
         }
 
-        if (Context.defined('debug')) for (field in returnFields) {
+        if (Debug) for (field in returnFields) {
             trace( printer.printField( field ) );
 
         }
@@ -269,7 +292,7 @@ class RuleCache {
 
     //
 
-    private static function extractRule(expr:Expr, fields:Array<Field>, loadedImports:Array<Type>):Null<String> {
+    private static function extractRule(expr:Expr, fields:Array<Field>, typedImports:Array<Type>):Null<String> {
         switch expr {
             case _.expr => EConst(CString(v)):
                 return v;
@@ -278,10 +301,10 @@ class RuleCache {
                 for (field in fields) if (field.name == id) {
                     switch field.kind {
                         case FVar(ctype, e):
-                            return extractRule(e, fields, loadedImports);
+                            return extractRule(e, fields, typedImports);
 
                         case FProp(get, set, ctype, e):
-                            return extractRule(e, fields, loadedImports);
+                            return extractRule(e, fields, typedImports);
 
                         case FFun(method):
 
@@ -290,7 +313,7 @@ class RuleCache {
                     break;
                 }
 
-                // Attempt to load the `expr` type and pull value from a matching field.
+                // Attempt to load the `expr` type and pull a value from a matching field.
                 var value = null;
                 var warnings = [];
                 try {
@@ -307,7 +330,7 @@ class RuleCache {
 
                 // Attempt to find a matching const value in one of the imports.
                 try {
-                    for (type in loadedImports) {
+                    for (type in typedImports) {
                         value = searchType(type, id);
                         if (value != null) return value;
                         
@@ -324,8 +347,8 @@ class RuleCache {
                 }
 
             case _.expr => EBinop(op, e1, e2):
-                var v1:Null<String> = extractRule(e1, fields, loadedImports);
-                var v2:Null<String> = extractRule(e2, fields, loadedImports);
+                var v1:Null<String> = extractRule(e1, fields, typedImports);
+                var v2:Null<String> = extractRule(e2, fields, typedImports);
 
                 switch op {
                     case OpAdd: return v1 + v2;
@@ -339,6 +362,10 @@ class RuleCache {
         return null;
     }
 
+    /**
+        Loops through the available fields/statics to find a matching field,
+        then attempts to pull a string value from the `typedExpr`.
+    **/
     private static function searchType(type:Type, id:String):Null<String> {
         var value = null;
 
@@ -364,9 +391,12 @@ class RuleCache {
 
         }
 
-        return value;
+        return null;
     }
 
+    /**
+        Attempts to extract a string value from a matching fields `typedExpr`.
+    **/
     private static function extractTypedRule(name:String, fields:Array<ClassField>):Null<String> {
         var value = null;
 
@@ -389,6 +419,9 @@ class RuleCache {
         return null;
     }
 
+    /**
+        Attempts to extract a string value from a `typedExpr`.
+    **/
     private static function extractTypedExprRule(expr:TypedExpr, ?trigger:PromiseTrigger<String>):Promise<String> {
         var trigger:PromiseTrigger<String> = trigger == null ? Promise.trigger() : trigger;
 
