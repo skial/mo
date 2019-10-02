@@ -11,6 +11,10 @@ Mo provides some basic types for building lexers & parsers.
 ## Defines
 
 - `-D disable.rules.cache` will disable all `implements uhx.mo.RulesCache` macros.
+
+## Metas
+
+- `@:disable.rules.cache` will disable the attached class `implements uhx.mo.RulesCache` macro.
 	
 ## Libraries and Classes built ontop of Mo
 

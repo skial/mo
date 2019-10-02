@@ -26,7 +26,7 @@ enum HttpMessageKeywords {
 	@css Separator(v:String);
 }
  
-class HttpMessage extends Lexer /*implements uhx.mo.RulesCache*/ {
+class HttpMessage extends Lexer implements uhx.mo.RulesCache {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );

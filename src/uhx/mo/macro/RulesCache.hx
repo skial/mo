@@ -39,6 +39,10 @@ enum abstract Defines(String) {
 
 }
 
+enum abstract Metas(String) to String {
+    public var TargetedDisable = ':' + Disable;
+}
+
 class RulesCache {
 
     private static final printer = new haxe.macro.Printer();
@@ -71,6 +75,14 @@ class RulesCache {
         if (Disable || Display || DisplayDetails) return fields;
 
         var local:Type = Context.getLocalType();
+
+        switch local {
+            case TInst(_.get() => cls, _):
+                if (cls.meta.has(TargetedDisable)) return fields;
+
+            case _:
+        }
+
         var localName:String = local.getID();
         var allImports = Context.getLocalImports();
         //var allUsings = Context.getLocalUsing();
@@ -543,9 +555,9 @@ class RulesCache {
 
     }
 
-    private static function cachePatterns(pattern:Pattern, sourceType:Type, depth:Int = 0):Int {
+    private static function cachePatterns(pattern:Pattern, sourceType:Type):Int {
         var key = patternName(pattern);
-
+        var depth = 0;
         /**
         I'm not happy with the way `depth` is determined. 
         But its currently working.
@@ -562,11 +574,11 @@ class RulesCache {
                 case Empty:
                 case Match(_):
                 case Star(p), Plus(p), Group(p): 
-                    depth += cachePatterns(p, sourceType, depth+1);
+                    depth += cachePatterns(p, sourceType) + 1;
 
                 case Next(p1, p2), Choice(p1, p2): 
-                    depth += cachePatterns(p1, sourceType, depth+1);
-                    depth += cachePatterns(p2, sourceType, depth+1);
+                    depth += cachePatterns(p1, sourceType) + 2;
+                    depth += cachePatterns(p2, sourceType) + 3;
 
             }
 

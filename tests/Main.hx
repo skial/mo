@@ -8,6 +8,7 @@ class Main {
 
     public static function main() {
         trace( run() );
+        trace( Rules.data_state );
         var uri = new uhx.parser.Uri();
         var http = new uhx.parser.HttpMessage();
         trace( uri.toTokens( ByteData.ofString('https://haxe.org'), 'uri' ) );
