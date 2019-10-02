@@ -130,7 +130,8 @@ class RulesCache {
                                         var pattern = hxparse.LexEngine.parse(value);
                                         var key = patternName(pattern);
 
-                                        if (patternKeys.indexOf(key) == -1) {
+                                        // Empty rules don't need to be parsed.
+                                        if (value != '' && patternKeys.indexOf(key) == -1) {
                                             patternKeys.push(key);
                                         }
 
@@ -188,7 +189,7 @@ class RulesCache {
 
                                 }
 
-                                var pos = value.field.pos;
+                                var pos = value.method.pos;
                                 var tmp = (macro class {
                                     @:pos(pos) public static function $methodName(lexer:$lexerType) $methodBody;
                                 });
@@ -292,8 +293,14 @@ class RulesCache {
                 var access = value.type.getID() + '.' + _key;
                 macro $e{access.resolve()}
             }];
-
+            
             var pos = value.field.pos;
+
+            if (cases.length != methods.length) {
+                Context.fatalError('Generation error. Cases length `(${cases.length})` does not match methods length `(${methods.length})`.', pos);
+
+            }
+
             var tmp = (macro class {
                 @:pos(pos) public static final $name = new hxparse.Ruleset<$lexerType, $returnType>(
                     new hxparse.LexEngine([$a{cases}]).firstState(),
