@@ -179,7 +179,7 @@ class RulesCache {
                                 var methodName = value.field.name + '_' + methodName(localName + key);
                                 var methodBody = switch value.method {
                                     case macro $lexer -> $body:
-                                        macro return $body;
+                                        macro @:pos(value.method.pos) return $body;
 
                                     case macro function($lexer) $body:
                                         body;
