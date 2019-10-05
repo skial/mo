@@ -28,14 +28,20 @@ class HttpMessage {
 		
 		try while (true) {
 			var token = lexer.token( HttpMessageLexer.root );
-			results.push( token );
+			switch token {
+				case EOF: break;
+				case _: results.push( token );
+			}
 			
-		} catch (e:Dynamic) { }
+		} catch (e:Any) {
+			//trace(e);
+
+		}
 		
 		return results;
 	}
 	
-	public function toMap(tokens:Array<Token<HttpMessageKeywords>>):StringMap<String> {
+	/*public function toMap(tokens:Array<Token<HttpMessageKeywords>>):StringMap<String> {
 		var result = new StringMap<String>();
 		var current = null;
 		
@@ -60,9 +66,9 @@ class HttpMessage {
 		} catch (e:Dynamic) { }
 		
 		return result;
-	}
+	}*/
 	
-	public function printString(token:Token<HttpMessageKeywords>):String {
+	/*public function printString(token:Token<HttpMessageKeywords>):String {
 		return switch (token) {
 			case Tab(n): [for (i in 0...n) '\t'].join('');
 			case Space(n): [for (i in 0...n) ' '].join('');
@@ -74,9 +80,9 @@ class HttpMessage {
 			case Keyword(KwdHeader(k, v)): '$k:$v';
 			case _: '';
 		}
-	}
+	}*/
 	
-	public function printHTML(token:Token<HttpMessageKeywords>, ?tag:String = 'span'):String {
+	/*public function printHTML(token:Token<HttpMessageKeywords>, ?tag:String = 'span'):String {
 		var name = token.toCSS();
 		var result = new StringBuf();
 		
@@ -102,6 +108,6 @@ class HttpMessage {
 		}
 		
 		return result.toString();
-	}
+	}*/
 	
 }

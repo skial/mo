@@ -9,7 +9,8 @@
   "version": "0.0.1-alpha",
   "url": "https://github.com/skial/mo",
   "dependencies": {
-	"hxparse": "",
-	"unifill": ""
+    "hxparse": "git:https://github.com/skial/hxparse#915395ce7cf7b1ea820e2eae630ac4e87ffc59bf",
+    "unifill": "git:https://github.com/skial/unifill#655e4e7f9e78fb8c7128487794d573cb9ddfe48f",
+    "tink_macro": "git:https://github.com/haxetink/tink_macro#b4fa5f4fe0310bd919866af42d403de06fdcf53c"
   }
 }

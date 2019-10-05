@@ -2,14 +2,19 @@
 
 > Haitian Creole for Words
 
-Mo provides some simple utility files and example lexers.
+Mo provides some basic types for building lexers & parsers.
 
-## Installation
+## Install
 
-1. [hxparse] - `https://github.com/Simn/hxparse development src`
-2. mo - `haxelib git mo https://github.com/skial/mo master src`
+- `lix install gh:skial/mo`
 
-[hxparse]: http://github.com/simn/hxparse "Haxe Lexer and Parser Library"
+## Defines
+
+- `-D disable.rules.cache` will disable all `implements uhx.mo.RulesCache` macros.
+
+## Metas
+
+- `@:disable.rules.cache` will disable the attached class `implements uhx.mo.RulesCache` macro.
 	
 ## Libraries and Classes built ontop of Mo
 
